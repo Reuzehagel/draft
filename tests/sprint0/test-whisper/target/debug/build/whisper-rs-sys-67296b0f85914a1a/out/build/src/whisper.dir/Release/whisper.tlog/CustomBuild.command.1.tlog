@@ -1,0 +1,10 @@
+^C:\USERS\NICK\DESKTOP\DRAFT-V2\TESTS\SPRINT0\TEST-WHISPER\TARGET\DEBUG\BUILD\WHISPER-RS-SYS-67296B0F85914A1A\OUT\WHISPER.CPP\SRC\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Nick/Desktop/draft-v2/tests/sprint0/test-whisper/target/debug/build/whisper-rs-sys-67296b0f85914a1a/out/whisper.cpp -BC:/Users/Nick/Desktop/draft-v2/tests/sprint0/test-whisper/target/debug/build/whisper-rs-sys-67296b0f85914a1a/out/build --check-stamp-file C:/Users/Nick/Desktop/draft-v2/tests/sprint0/test-whisper/target/debug/build/whisper-rs-sys-67296b0f85914a1a/out/build/src/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

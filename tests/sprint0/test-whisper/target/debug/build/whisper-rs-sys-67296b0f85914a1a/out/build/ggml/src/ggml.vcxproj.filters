@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Nick\Desktop\draft-v2\tests\sprint0\test-whisper\target\debug\build\whisper-rs-sys-67296b0f85914a1a\out\whisper.cpp\ggml\src\ggml-backend-reg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Nick\Desktop\draft-v2\tests\sprint0\test-whisper\target\debug\build\whisper-rs-sys-67296b0f85914a1a\out\whisper.cpp\ggml\src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1A5CB485-424F-3D66-8BC9-C242E44DFA1B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

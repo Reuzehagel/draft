@@ -1,0 +1,11 @@
+C:\Users\Nick\Desktop\draft-v2\tests\sprint0\test-enigo\target\debug\deps\enigo-57a76afbf63421d3.d: C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\lib.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\agent.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\mod.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\win_impl.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\keycodes.rs
+
+C:\Users\Nick\Desktop\draft-v2\tests\sprint0\test-enigo\target\debug\deps\libenigo-57a76afbf63421d3.rlib: C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\lib.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\agent.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\mod.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\win_impl.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\keycodes.rs
+
+C:\Users\Nick\Desktop\draft-v2\tests\sprint0\test-enigo\target\debug\deps\libenigo-57a76afbf63421d3.rmeta: C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\lib.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\agent.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\mod.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\win_impl.rs C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\keycodes.rs
+
+C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\lib.rs:
+C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\agent.rs:
+C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\mod.rs:
+C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\win\win_impl.rs:
+C:\Users\Nick\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\enigo-0.6.1\src\keycodes.rs:
