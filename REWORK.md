@@ -5,7 +5,7 @@
 **Draft** is a Windows push-to-talk dictation app. Hold a hotkey, speak, release, and your transcribed text is injected into the focused application.
 
 **Platform:** Windows only
-**Tech Stack:** Tauri (Rust backend) + React frontend
+**Tech Stack:** Tauri v2 (Rust backend) + React frontend
 **STT Engine:** Whisper via whisper-rs (CPU-only)
 
 ---
@@ -29,7 +29,8 @@
 - **Size:** Compact, approximately 200×40px
 - **Position:** Fixed bottom-center of primary monitor
 - **Theme:** Always dark (semi-transparent dark background)
-- **Interaction:** Fully click-through (non-interactive)
+- **Interaction:** Not click-through (clicking pill does nothing, but won't pass through)
+- **Implementation:** Separate Tauri window with `transparent: true`, `decorations: false`, `always_on_top: true`, `skip_taskbar: true`, `focusable: false`
 
 ### Animations
 - **Entrance:** Fade in (~150ms)
@@ -40,15 +41,17 @@
 
 | State | Display |
 |-------|---------|
+| Loading model | Spinner with "Loading model..." text (only on first use or model switch) |
 | Recording | Real-time bar graph waveform (12-16 vertical bars, monochrome) showing actual audio amplitude |
-| Transcribing | Spinner/loader with "Working!" text (waveform fades out, spinner fades in) |
+| Transcribing | Spinner/loader with "Transcribing..." text (waveform fades out, spinner fades in) |
 | Error | Error message displayed for 2 seconds, then fades out |
 | Empty result | Fades out silently (no indication) |
 
 ### Waveform Specification
-- 12-16 vertical bars
+- 12-16 vertical bars representing amplitude over time (not frequency bands)
+- Each bar = recent RMS amplitude of audio chunk (sliding window)
 - Monochrome (single color, likely white or light gray)
-- Real-time visualization of microphone input amplitude
+- Updates at ~30fps (throttled to avoid overwhelming frontend)
 - Not a generic animation—reflects actual audio levels
 
 ---
@@ -58,6 +61,7 @@
 - **Mode:** Push-to-talk only (no toggle mode)
 - **Maximum duration:** 120 seconds (auto-stops if exceeded)
 - **Double-press handling:** Ignored (key repeat events do not affect recording)
+- **Hotkey during transcription:** Ignored (cannot start new recording while transcribing)
 - **Audio feedback:** None (no sounds on start/stop)
 - **Cancel hotkey:** Not implemented (deferred)
 
@@ -86,6 +90,11 @@
 - Location: Windows AppData directory (`%APPDATA%/Draft/models/`)
 - No limit on number of downloaded models
 
+### Model Loading
+- **First load delay:** Large models (medium) may take several seconds to load into memory
+- **Loading indicator:** Show "Loading model..." in pill if transcription is triggered before model is ready
+- **Caching:** Model stays loaded in memory after first use until app closes or different model selected
+
 ### Error Handling
 - **Transcription error:** Pill shows "Error" for 2 seconds, then fades
 - **Empty transcription:** Pill fades out silently, nothing injected
@@ -95,6 +104,7 @@
 ## Text Injection
 
 - **Method:** enigo library for simulated keystrokes
+- **Target window:** Captured at recording start (text injects to the window that was focused when hotkey was pressed, not the window focused when transcription completes)
 - **Failed injection handling:** None (not handled in initial release)
 - **Trailing space:** Configurable setting, **off by default**
   - Setting label: "Add space after text"
@@ -107,7 +117,7 @@
 - **Allowed combinations:** Any key or combination
   - Bare keys allowed (F1, F13, etc.)
   - Modifier combinations allowed (Ctrl+Shift+Space, Alt+D, etc.)
-  - Modifier-only not recommended but technically allowed
+  - Modifier-only combinations are **blocked** (Ctrl alone, Shift+Alt, etc.)
 - **Capture UI:** Best practice implementation (inline field that shows "Press a key..." when activated)
 
 ---
@@ -135,7 +145,8 @@ Single scrollable page (given limited number of settings). Sections:
   - Lists all available input devices
   - If no microphones detected: empty dropdown with helper text "No microphones detected"
 - **Test button**
-  - Clicking shows brief audio level indicator
+  - Runs for 5 seconds, then auto-stops
+  - Shows real-time audio level indicator
   - Allows user to verify microphone is working
 
 #### Hotkey Section
@@ -154,13 +165,16 @@ Single scrollable page (given limited number of settings). Sections:
   - File size
   - Download button
 - **Download progress:** Percentage bar only (no ETA)
-- **No cancel option** during download
-- **On download complete:** In-app toast notification
+- **Concurrent downloads:** One at a time only
+- **Cancel button** available during download
+- **On download complete:** In-app toast notification, auto-selects if it's the first model
+- **Subsequent downloads:** Must be manually selected after download
 - **Deleting selected model:** Clears selection (user must select another)
 
 #### General Section
 - **Auto-start with Windows:** Checkbox, off by default
 - **Add space after text:** Checkbox, off by default
+- **Enable logging:** Checkbox, off by default (writes to `%APPDATA%/Draft/logs/`)
 
 #### Footer
 - Version number (small, unobtrusive)
@@ -192,12 +206,15 @@ Single scrollable page (given limited number of settings). Sections:
 
 - **Format:** JSON file
 - **Location:** `%APPDATA%/Draft/config.json`
+- **Schema version:** Include version field for future migrations
 - **Persisted settings:**
+  - Config version (for migration handling)
   - Selected microphone device ID
   - Selected model
   - Hotkey binding
   - Auto-start preference
   - Trailing space preference
+  - Logging preference
   - Window position/size (if user resizes)
 
 ---
@@ -205,7 +222,7 @@ Single scrollable page (given limited number of settings). Sections:
 ## Auto-Start
 
 - **Default:** Off
-- **Implementation:** Windows startup registry or startup folder
+- **Implementation:** Via `tauri-plugin-autostart` (handles registry automatically)
 - **Configurable:** Yes, checkbox in settings
 
 ---
@@ -214,10 +231,11 @@ Single scrollable page (given limited number of settings). Sections:
 
 - **Library:** cpal
 - **Target format:** 16kHz mono (Whisper requirement)
-- **Resampling:** Linear interpolation (upgrade to rubato only if quality issues)
-- **Buffer:** No pre-roll buffer (add later if speech onset clipped)
+- **Resampling:** rubato library for high-quality sample rate conversion
+- **Threading:** cpal callback writes to lock-free buffer; worker thread handles resampling
 - **Streaming:** None—start/stop/get samples pattern
-- **Device disconnection:** Not handled (edge case deferred)
+- **System Default resolution:** Resolved to actual device at recording start (if Windows default changes mid-session, next recording uses new default)
+- **Device disconnection:** Graceful handling—stop recording, show error in pill, don't crash
 
 ---
 
@@ -225,17 +243,40 @@ Single scrollable page (given limited number of settings). Sections:
 
 ```
 src-tauri/src/
-  main.rs          # Entry point
-  lib.rs           # App setup, command registration, wiring
-  audio.rs         # cpal capture, resampling
-  stt.rs           # Whisper transcription, model loading
-  config.rs        # Config types, JSON persistence
+  main.rs              # Entry point
+  lib.rs               # App setup, plugin registration, command wiring
+  commands.rs          # All Tauri command handlers
+  state.rs             # Application state management
+
+  audio/
+    mod.rs             # Audio module public API
+    capture.rs         # cpal audio capture
+    resampler.rs       # Resampling to 16kHz mono via rubato
+
+  stt/
+    mod.rs             # STT module public API
+    whisper.rs         # Whisper model loading and inference
+    download.rs        # Model download with progress streaming
+
+  config.rs            # Config types, JSON persistence
 
 src/
-  App.tsx          # Settings UI (single page)
-  components/
-    ui/            # Reusable UI components
-    Pill.tsx       # Overlay window component (if separate)
+  settings.html        # Settings window entry point
+  pill.html            # Pill overlay entry point
+
+  settings/
+    SettingsApp.tsx    # Main settings component
+    components/        # Settings-specific components
+
+  pill/
+    PillApp.tsx        # Pill overlay component
+    components/
+      Waveform.tsx     # Real-time amplitude visualization
+      Spinner.tsx      # Transcribing state
+
+  shared/
+    hooks/             # Shared React hooks for Tauri IPC
+    types/             # TypeScript types matching Rust types
 ```
 
 ---
@@ -271,9 +312,11 @@ src/
 
 ### Cargo.toml
 ```toml
-whisper-rs = "0.14"
+whisper-rs = "0.15"
 cpal = "0.15"
-enigo = "0.2"
+enigo = "0.5"
+rubato = "0.15"              # Audio resampling to 16kHz
+reqwest = { version = "0.12", features = ["stream"] }  # Model downloads
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ```
@@ -281,7 +324,7 @@ serde_json = "1"
 ### Tauri Plugins
 - `tauri-plugin-global-shortcut` - Hotkey registration
 - `tauri-plugin-notification` - System notifications
-- `tauri-plugin-shell` - (if needed for auto-start)
+- `tauri-plugin-autostart` - Windows startup registration
 
 ---
 
@@ -291,16 +334,13 @@ serde_json = "1"
 |---------|--------|
 | Toggle mode | Push-to-talk only for initial release |
 | Cancel hotkey | Keep it simple |
+| Pre-roll buffer | Add if users report clipped speech onset |
 | Audio visualization in settings | Test button is sufficient |
 | Multiple profiles | Unnecessary complexity |
 | Privacy mode | Later |
 | Cloud STT | Later |
-| Pre-roll buffer | Add if speech onset clipped |
 | GPU acceleration | Simpler build with CPU-only |
-| Mic disconnect handling | Edge case |
-| Download cancel | Simpler UI |
 | Cross-platform | Windows only initially |
-| Logging | Keep it simple |
 | Injection failure handling | Not handling initially |
 
 ---
@@ -315,7 +355,7 @@ serde_json = "1"
 6. Can delete a model
 7. Can set custom hotkey
 8. Hold hotkey → pill appears with waveform
-9. Release hotkey → pill shows "Working!" with spinner
+9. Release hotkey → pill shows "Transcribing..." with spinner
 10. Text appears in focused application
 11. X button minimizes to tray
 12. Tray icon opens settings
