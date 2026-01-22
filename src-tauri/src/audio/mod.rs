@@ -8,5 +8,5 @@ pub mod devices;
 mod resampler;
 mod worker;
 
-// Re-export public types (commands accessed via devices:: for tauri macro)
-pub use devices::MicrophoneInfo;
+// Commands accessed via devices:: for tauri macro
+// MicrophoneInfo is serialized directly to frontend, no need to re-export

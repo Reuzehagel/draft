@@ -1,9 +1,10 @@
 //! Draft - Voice-to-text transcription application
-//! Sprint 2: Audio Pipeline
+//! Sprint 3: Model Management
 
 mod audio;
 mod config;
 mod events;
+mod stt;
 
 use tauri::{
     menu::{Menu, MenuItem},
@@ -23,6 +24,8 @@ pub fn run() {
         ))
         // Manage state for microphone testing
         .manage(audio::devices::TestState::default())
+        // Manage state for model downloads
+        .manage(stt::DownloadState::default())
         // Register commands
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -30,6 +33,10 @@ pub fn run() {
             config::check_first_run,
             audio::devices::list_microphones,
             audio::devices::test_microphone,
+            stt::commands::list_models,
+            stt::commands::download_model,
+            stt::commands::cancel_download,
+            stt::commands::delete_model,
         ])
         .setup(|app| {
             // Initialize logging in debug mode

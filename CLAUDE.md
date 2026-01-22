@@ -55,6 +55,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `worker.rs` - Background thread for resampling and amplitude calculation
   - `resampler.rs` - rubato wrapper for 16kHz mono conversion
   - `amplitude.rs` - RMS calculation for waveform visualization
+- `stt/` - Speech-to-text module:
+  - `models.rs` - Whisper GGML model definitions, paths, checksums
+  - `download.rs` - Streaming download with progress, verification, cancellation
+  - `commands.rs` - `list_models`, `download_model`, `cancel_download`, `delete_model` commands
 
 ### Audio Pipeline Flow
 
@@ -70,7 +74,12 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 - `amplitude` - 14-element f32 array for waveform visualization (~30fps)
 - `recording-started/stopped` - Recording state changes
 - `transcription-complete/error` - Transcription results
+- `download-progress` - Model download progress (model, progress%, bytes)
 - `test-microphone-complete` - Microphone test finished
+
+### Model Storage
+
+Whisper GGML models stored at `%APPDATA%/Draft/models/`. 8 models available (tiny, base, small, medium + English variants) downloaded from Hugging Face with SHA256 verification.
 
 ### Config Storage
 

@@ -10,18 +10,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Config } from "@/shared/types/config";
 import type { MicrophoneInfo } from "@/shared/types/audio";
+import { formatFileSize } from "@/shared/types/models";
+import { useModels } from "./useModels";
 import * as Events from "@/shared/constants/events";
-
-// Whisper model definitions
-const WHISPER_MODELS = [
-  { id: "tiny", name: "Tiny", size: "75 MB" },
-  { id: "base", name: "Base", size: "142 MB" },
-  { id: "small", name: "Small", size: "466 MB" },
-  { id: "medium", name: "Medium", size: "1.5 GB" },
-  { id: "large-v3", name: "Large v3", size: "3.1 GB" },
-];
 
 function useConfig() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -213,6 +218,47 @@ export default function SettingsApp() {
     error: microphonesError,
   } = useMicrophones();
   const { isTesting, amplitudes, startTest } = useMicrophoneTest();
+  const {
+    downloadedModels,
+    availableModels,
+    loading: modelsLoading,
+    isDownloading,
+    downloadProgress,
+    downloadModel,
+    cancelDownload,
+    deleteModel,
+  } = useModels();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  // Auto-select first downloaded model if none selected
+  useEffect(() => {
+    if (!loading && config && !config.selected_model && downloadedModels.length > 0) {
+      updateConfig({ selected_model: downloadedModels[0].id });
+    }
+  }, [loading, config, downloadedModels, updateConfig]);
+
+  const handleDownload = async (modelId: string) => {
+    setDownloadError(null);
+    try {
+      await downloadModel(modelId);
+    } catch (e) {
+      setDownloadError(String(e));
+    }
+  };
+
+  const handleDelete = async (modelId: string) => {
+    setDeleteError(null);
+    try {
+      await deleteModel(modelId);
+      // Clear selection if deleted model was selected
+      if (config?.selected_model === modelId) {
+        updateConfig({ selected_model: null });
+      }
+    } catch (e) {
+      setDeleteError(String(e));
+    }
+  };
 
   if (loading) {
     return (
@@ -302,35 +348,132 @@ export default function SettingsApp() {
 
         {/* Models Section */}
         <SettingsSection icon="📦" title="Models">
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Downloaded:</p>
-              <p className="text-sm text-muted-foreground/60 italic pl-2">
-                (none)
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">Available:</p>
-              <div className="space-y-2 pl-2">
-                {WHISPER_MODELS.map((model) => (
-                  <div
-                    key={model.id}
-                    className="flex items-center justify-between"
-                  >
-                    <span className="text-sm">
-                      {model.name}{" "}
-                      <span className="text-muted-foreground">
-                        ({model.size})
-                      </span>
-                    </span>
-                    <Button variant="outline" size="sm" disabled>
-                      Download
-                    </Button>
+          {modelsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading models...</p>
+          ) : (
+            <div className="space-y-4">
+              {/* Downloaded Models */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Downloaded:</p>
+                {downloadedModels.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/60 italic pl-2">
+                    (none)
+                  </p>
+                ) : (
+                  <div className="space-y-2 pl-2">
+                    {downloadedModels.map((model) => (
+                      <div
+                        key={model.id}
+                        className="flex items-center justify-between"
+                      >
+                        <label className="flex items-center gap-2 cursor-pointer flex-1">
+                          <input
+                            type="radio"
+                            name="selected_model"
+                            checked={config?.selected_model === model.id}
+                            onChange={() => updateConfig({ selected_model: model.id })}
+                            className="h-4 w-4 accent-primary"
+                          />
+                          <span className="text-sm">
+                            {model.name}{" "}
+                            <span className="text-muted-foreground">
+                              ({formatFileSize(model.size)})
+                            </span>
+                          </span>
+                        </label>
+                        <AlertDialog>
+                          <AlertDialogTrigger
+                            render={<Button variant="ghost" size="sm" />}
+                          >
+                            Delete
+                          </AlertDialogTrigger>
+                          <AlertDialogContent size="sm">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete {model.name}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove the model from your computer. You can download it again later.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                variant="destructive"
+                                onClick={() => handleDelete(model.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
+
+              {/* Available Models */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Available:</p>
+                {availableModels.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/60 italic pl-2">
+                    All models downloaded
+                  </p>
+                ) : (
+                  <div className="space-y-2 pl-2">
+                    {availableModels.map((model) => {
+                      const isThisDownloading = downloadProgress?.model === model.id;
+                      return (
+                        <div key={model.id} className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">
+                              {model.name}{" "}
+                              <span className="text-muted-foreground">
+                                ({formatFileSize(model.size)})
+                              </span>
+                            </span>
+                            {isThisDownloading ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={cancelDownload}
+                              >
+                                Cancel
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isDownloading}
+                                onClick={() => handleDownload(model.id)}
+                              >
+                                Download
+                              </Button>
+                            )}
+                          </div>
+                          {isThisDownloading && downloadProgress && (
+                            <div className="flex items-center gap-2">
+                              <Progress value={downloadProgress.progress} className="flex-1" />
+                              <span className="text-xs text-muted-foreground w-10 text-right">
+                                {downloadProgress.progress}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Error messages */}
+              {downloadError && (
+                <p className="text-sm text-destructive">{downloadError}</p>
+              )}
+              {deleteError && (
+                <p className="text-sm text-destructive">{deleteError}</p>
+              )}
             </div>
-          </div>
+          )}
         </SettingsSection>
 
         <Separator />
