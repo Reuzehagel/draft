@@ -1,6 +1,7 @@
 //! Draft - Voice-to-text transcription application
-//! Sprint 1: Foundation & Shell
+//! Sprint 2: Audio Pipeline
 
+mod audio;
 mod config;
 mod events;
 
@@ -20,11 +21,15 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
         ))
+        // Manage state for microphone testing
+        .manage(audio::devices::TestState::default())
         // Register commands
         .invoke_handler(tauri::generate_handler![
             config::get_config,
             config::set_config,
             config::check_first_run,
+            audio::devices::list_microphones,
+            audio::devices::test_microphone,
         ])
         .setup(|app| {
             // Initialize logging in debug mode

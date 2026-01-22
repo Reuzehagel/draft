@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -10,6 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import type { Config } from "@/shared/types/config";
+import type { MicrophoneInfo } from "@/shared/types/audio";
+import * as Events from "@/shared/constants/events";
 
 // Whisper model definitions
 const WHISPER_MODELS = [
@@ -143,13 +146,73 @@ function HotkeyInput({
   );
 }
 
+function useMicrophones() {
+  const [microphones, setMicrophones] = useState<MicrophoneInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke<MicrophoneInfo[]>("list_microphones")
+      .then((mics) => {
+        setMicrophones(mics);
+        setError(null);
+      })
+      .catch((e) => {
+        setError(String(e));
+        setMicrophones([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { microphones, loading, error };
+}
+
+function useMicrophoneTest() {
+  const [isTesting, setIsTesting] = useState(false);
+  const [amplitudes, setAmplitudes] = useState<number[]>([]);
+
+  useEffect(() => {
+    // Listen for amplitude updates during test
+    const unlistenAmplitude = listen<number[]>(Events.AMPLITUDE, (event) => {
+      setAmplitudes(event.payload);
+    });
+
+    // Listen for test completion
+    const unlistenComplete = listen<boolean>(
+      Events.TEST_MICROPHONE_COMPLETE,
+      () => {
+        setIsTesting(false);
+        setAmplitudes([]);
+      }
+    );
+
+    return () => {
+      unlistenAmplitude.then((fn) => fn());
+      unlistenComplete.then((fn) => fn());
+    };
+  }, []);
+
+  const startTest = useCallback((deviceId: string | null) => {
+    if (isTesting) return;
+    setIsTesting(true);
+    setAmplitudes([]);
+    invoke("test_microphone", { deviceId: deviceId || null }).catch((e) => {
+      console.error("Test microphone failed:", e);
+      setIsTesting(false);
+    });
+  }, [isTesting]);
+
+  return { isTesting, amplitudes, startTest };
+}
+
 export default function SettingsApp() {
   const { config, updateConfig, loading } = useConfig();
-
-  // Placeholder microphone list - will be populated by backend in later sprint
-  const microphones = [
-    { id: "default", name: "Default Microphone" },
-  ];
+  const {
+    microphones,
+    loading: microphonesLoading,
+    error: microphonesError,
+  } = useMicrophones();
+  const { isTesting, amplitudes, startTest } = useMicrophoneTest();
 
   if (loading) {
     return (
@@ -173,25 +236,53 @@ export default function SettingsApp() {
         <SettingsSection icon="🎤" title="Audio">
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Microphone</label>
-            <Select
-              value={config?.microphone_id || "default"}
-              onValueChange={(value) => updateConfig({ microphone_id: value })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select microphone" />
-              </SelectTrigger>
-              <SelectContent>
-                {microphones.map((mic) => (
-                  <SelectItem key={mic.id} value={mic.id}>
-                    {mic.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {microphonesLoading ? (
+              <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : microphonesError ? (
+              <p className="text-sm text-destructive">{microphonesError}</p>
+            ) : microphones.length === 0 ? (
+              <p className="text-sm text-destructive">No microphones detected</p>
+            ) : (
+              <Select
+                value={config?.microphone_id || ""}
+                onValueChange={(value) => updateConfig({ microphone_id: value || null })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select microphone" />
+                </SelectTrigger>
+                <SelectContent>
+                  {microphones.map((mic) => (
+                    <SelectItem key={mic.id || "default"} value={mic.id}>
+                      {mic.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          <Button variant="outline" size="sm" disabled>
-            Test Microphone
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={microphonesLoading || microphones.length === 0 || isTesting}
+              onClick={() => startTest(config?.microphone_id ?? null)}
+            >
+              {isTesting ? "Testing..." : "Test Microphone"}
+            </Button>
+            {isTesting && amplitudes.length > 0 && (
+              <div className="flex items-center gap-[2px] h-5">
+                {amplitudes.slice(0, 14).map((amplitude, i) => (
+                  <div
+                    key={i}
+                    className="w-[3px] bg-primary rounded-full transition-all duration-75"
+                    style={{
+                      height: `${Math.max(4, amplitude * 20)}px`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </SettingsSection>
 
         <Separator />

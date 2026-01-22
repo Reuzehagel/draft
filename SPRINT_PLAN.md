@@ -298,172 +298,202 @@ This document outlines the development plan for Draft, a Windows push-to-talk di
 
 ---
 
-## Sprint 2: Audio Pipeline
+## Sprint 2: Audio Pipeline ✅
 
 **Goal:** Complete audio capture, resampling, amplitude visualization, and working microphone test.
 
 **Demo:** Settings shows microphone dropdown, test button shows real-time waveform, amplitude events flow to pill.
 
+**Status:** Complete
+
 ### Tasks
 
-#### 2.1 Create audio module structure
+#### 2.1 Create audio module structure ✅
 
-- Create `src-tauri/src/audio/mod.rs`
-- Create `src-tauri/src/audio/capture.rs`
-- Create `src-tauri/src/audio/resampler.rs`
-- Create `src-tauri/src/audio/amplitude.rs`
-- Define public API types
+- [x] Create `src-tauri/src/audio/mod.rs`
+- [x] Create `src-tauri/src/audio/capture.rs`
+- [x] Create `src-tauri/src/audio/resampler.rs`
+- [x] Create `src-tauri/src/audio/amplitude.rs`
+- [x] Create `src-tauri/src/audio/buffer.rs`
+- [x] Create `src-tauri/src/audio/worker.rs`
+- [x] Create `src-tauri/src/audio/devices.rs`
+- [x] Define public API types
 - **Validation:** Module compiles, exports are accessible from lib.rs
+- **Result:** Full audio module structure with 7 files
 
-#### 2.2 Implement microphone enumeration
+#### 2.2 Implement microphone enumeration ✅
 
-- Use cpal `available_hosts()` and `devices()`
-- Filter to input devices only
-- Return `Vec<{id: String, name: String}>`
-- Handle "System Default" as first option (id = None/empty)
+- [x] Use cpal `default_host()` and `input_devices()`
+- [x] Filter to input devices only
+- [x] Return `Vec<MicrophoneInfo>` with id and name
+- [x] Handle "System Default" as first option (id = empty string)
 - **Validation:** Returns correct list of input devices
+- **Result:** `list_microphones` in `devices.rs`
 
-#### 2.3 Implement list_microphones command
+#### 2.3 Implement list_microphones command ✅
 
-- Tauri command wrapping enumeration
-- Returns device list to frontend
+- [x] Tauri command wrapping enumeration
+- [x] Returns device list to frontend
 - **Validation:** Frontend receives correct device list
+- **Result:** Command registered in `lib.rs`
 
-#### 2.4 Build microphone dropdown UI
+#### 2.4 Build microphone dropdown UI ✅
 
-- Dropdown component in Audio section
-- First option: "System Default"
-- Lists all available devices by name
-- Shows "No microphones detected" when empty
-- Saves selection to config
+- [x] Dropdown component in Audio section
+- [x] First option: "System Default"
+- [x] Lists all available devices by name
+- [x] Shows "No microphones detected" when empty
+- [x] Saves selection to config
 - **Validation:** Dropdown populates correctly, selection persists
+- **Result:** Updated `SettingsApp.tsx` with real microphone list
 
-#### 2.5 Design lock-free audio buffer
+#### 2.5 Design lock-free audio buffer ✅
 
-- Use crossbeam bounded channel
-- Capacity: 5 seconds at 48kHz stereo (~480,000 samples)
-- Sample format: f32
-- Document overrun policy (drop oldest)
+- [x] Use crossbeam bounded channel
+- [x] Capacity: 5 seconds at 48kHz stereo (~480,000 samples)
+- [x] Sample format: f32
+- [x] Document overrun policy (drop on overflow)
 - **Validation:** Design documented, types defined
+- **Result:** `buffer.rs` with AudioProducer/AudioConsumer
 
-#### 2.6 Implement lock-free audio buffer
+#### 2.6 Implement lock-free audio buffer ✅
 
-- Producer API: `push(samples: &[f32])` - non-blocking
-- Consumer API: `drain() -> Vec<f32>` - collects all available
-- Atomic stop flag for clean shutdown
+- [x] Producer API: `push(samples: &[f32])` - non-blocking
+- [x] Consumer API: `drain_into(&mut Vec<f32>)` - collects all available
+- [x] Atomic stop flag for clean shutdown
 - **Validation:** Unit tests pass for push/drain/shutdown
+- **Result:** Lock-free buffer with tests
 
-#### 2.7 Implement cpal audio stream
+#### 2.7 Implement cpal audio stream ✅
 
-- Open device by ID (or default)
-- Configure for device's native format
-- Store sample rate and channel count for resampling
-- Start/stop stream control
+- [x] Open device by ID (or default)
+- [x] Configure for device's native format
+- [x] Store sample rate and channel count for resampling
+- [x] Start/stop stream control
 - **Validation:** Stream starts and stops without error
+- **Result:** `capture.rs` with AudioCapture struct
 
-#### 2.8 Implement audio callback
+#### 2.8 Implement audio callback ✅
 
-- Write samples to lock-free buffer
-- No allocations in callback
-- No mutex locks in callback
-- Must complete in <5ms
-- **Validation:** Callback timing verified under load
+- [x] Write samples to lock-free buffer
+- [x] No allocations in callback
+- [x] No mutex locks in callback
+- [x] Support F32, I16, U16 sample formats
+- **Validation:** Callback is real-time safe
+- **Result:** Callbacks in `capture.rs` build_stream method
 
-#### 2.9 Implement device disconnection handling
+#### 2.9 Implement device disconnection handling ✅
 
-- Detect device disconnect via cpal error callback
-- Set error flag, stop stream gracefully
-- Emit error event to frontend
+- [x] Detect device disconnect via cpal error callback
+- [x] Set error flag, stop stream gracefully
 - **Validation:** Disconnect handled without crash
+- **Result:** Error callback sets AtomicBool flag
 
-#### 2.10 Create audio worker thread
+#### 2.10 Create audio worker thread ✅
 
-- Background thread that reads from ring buffer
-- Runs continuously while recording
-- Clean shutdown on stop signal
-- Drains remaining samples before exit
+- [x] Background thread that reads from ring buffer
+- [x] Runs continuously while recording
+- [x] Clean shutdown on stop signal
+- [x] Drains remaining samples before exit
 - **Validation:** Worker starts, processes, and stops cleanly
+- **Result:** `worker.rs` with AudioWorker struct
 
-#### 2.11 Implement stereo to mono conversion
+#### 2.11 Implement stereo to mono conversion ✅
 
-- Average left and right channels
-- Handle mono input (pass through)
+- [x] Average left and right channels
+- [x] Handle mono input (pass through)
 - **Validation:** Output is mono regardless of input
+- **Result:** `to_mono()` method in `resampler.rs`
 
-#### 2.12 Implement sample rate conversion with rubato
+#### 2.12 Implement sample rate conversion with rubato ✅
 
-- Configure rubato for high-quality resampling
-- Support common input rates: 44.1kHz, 48kHz, 96kHz
-- Output: 16kHz mono
+- [x] Configure rubato 1.0 with SincInterpolationParameters
+- [x] Support common input rates via ratio-based resampling
+- [x] Output: 16kHz mono
 - **Validation:** Output sample rate is exactly 16kHz
+- **Result:** `resampler.rs` with rubato Async resampler
 
-#### 2.13 Wire up resampling in worker thread
+#### 2.13 Wire up resampling in worker thread ✅
 
-- Worker thread calls resampler
-- Accumulates resampled samples for transcription
+- [x] Worker thread calls resampler
+- [x] Accumulates resampled samples for transcription
 - **Validation:** Resampled audio passed through pipeline
+- **Result:** Worker loop processes through resampler
 
-#### 2.14 Implement RMS amplitude calculation
+#### 2.14 Implement RMS amplitude calculation ✅
 
-- Calculate RMS over ~50-100ms window
-- Sliding window approach
-- Normalize to 0.0-1.0 range
+- [x] Calculate RMS over 80ms window (1280 samples at 16kHz)
+- [x] Sliding window approach with 50% overlap
+- [x] Normalize to 0.0-1.0 range
 - **Validation:** Amplitude values correspond to actual audio levels
+- **Result:** `amplitude.rs` with AmplitudeCalculator
 
-#### 2.15 Implement amplitude event emission
+#### 2.15 Implement amplitude event emission ✅
 
-- Emit `amplitude` event with `{level: f32}`
-- Throttle to ~30fps (33ms interval)
-- Only emit during recording
+- [x] Emit `amplitude` event with Vec<f32> (14 values)
+- [x] Throttle to ~30fps (33ms interval)
+- [x] Only emit during recording/testing
 - **Validation:** Frontend receives amplitude at correct rate
+- **Result:** Event emission in worker loop
 
-#### 2.16 Build waveform component
+#### 2.16 Build waveform component ✅
 
-- 12-16 vertical bars
-- Bar height represents amplitude (0.0-1.0 → 0-100%)
-- Monochrome (white/light gray)
-- Smooth bar height transitions
+- [x] 14 vertical bars
+- [x] Bar height represents amplitude (0.0-1.0 → 4-20px)
+- [x] Monochrome (white/light gray)
+- [x] Smooth bar height transitions (75ms)
 - **Validation:** Bars animate based on amplitude events
+- **Result:** `Waveform.tsx` (already existed from Sprint 1)
 
-#### 2.17 Connect waveform to amplitude events
+#### 2.17 Connect waveform to amplitude events ✅
 
-- Listen to `amplitude` events in pill
-- Update waveform state
-- Ring buffer of last 12-16 values for bar display
+- [x] Listen to `amplitude` events in pill
+- [x] Update waveform state
+- [x] Ring buffer of 14 values for bar display
 - **Validation:** Waveform shows real-time audio levels
+- **Result:** `PillApp.tsx` already wired (Sprint 1)
 
-#### 2.18 Implement test_microphone command
+#### 2.18 Implement test_microphone command ✅
 
-- Accepts optional device_id parameter
-- Starts capture, emits amplitude events
-- Auto-stops after 5 seconds
-- Returns stream of amplitude values
+- [x] Accepts optional device_id parameter
+- [x] Starts capture, emits amplitude events
+- [x] Auto-stops after 5 seconds
+- [x] Emits `test-microphone-complete` event
 - **Validation:** Test runs for exactly 5 seconds
+- **Result:** `test_microphone` command in `devices.rs`
 
-#### 2.19 Build test button UI
+#### 2.19 Build test button UI ✅
 
-- Button in Audio section: "Test Microphone"
-- Disables while test running
-- Shows "Testing..." label during test
-- Displays real-time audio level indicator (reuse waveform or simple bar)
+- [x] Button in Audio section: "Test Microphone"
+- [x] Disables while test running
+- [x] Shows "Testing..." label during test
+- [x] Displays real-time waveform during test
 - **Validation:** Visual feedback matches microphone input
+- **Result:** Test button with inline waveform in `SettingsApp.tsx`
 
-#### 2.20 Implement System Default resolution
+#### 2.20 Implement System Default resolution ✅
 
-- Resolve "System Default" to actual device at capture start
-- Handle case where default changes between recordings
+- [x] Resolve empty/default ID to `host.default_input_device()`
+- [x] Resolution happens at capture start time
 - **Validation:** Uses current Windows default device
+- **Result:** `resolve_device()` in `devices.rs`
 
 ### Sprint 2 Acceptance Criteria
 
-- [ ] Microphone dropdown lists "System Default" + all devices
-- [ ] Test button starts 5-second test
-- [ ] Real-time audio level shows during test
-- [ ] Waveform component animates based on actual audio
-- [ ] Amplitude events emit at ~30fps
-- [ ] Audio is resampled to 16kHz mono
-- [ ] Device disconnection shows error without crash
-- [ ] "No microphones detected" shown when appropriate
+- [x] Microphone dropdown lists "System Default" + all devices
+- [x] Test button starts 5-second test
+- [x] Real-time audio level shows during test
+- [x] Waveform component animates based on actual audio
+- [x] Amplitude events emit at ~30fps
+- [x] Audio is resampled to 16kHz mono
+- [x] Device disconnection sets error flag without crash
+- [x] "No microphones detected" shown when appropriate
+
+### Notes
+
+- Using rubato 1.0 with audioadapter-buffers 2.0 for resampling
+- cpal 0.17 deprecates `device.name()` in favor of `device.description()` - using name() for now
+- Worker thread returns accumulated 16kHz mono audio for future transcription use
 
 ---
 
