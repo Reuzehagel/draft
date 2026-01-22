@@ -383,6 +383,7 @@ export default function SettingsApp() {
   } = useWhisper(config?.selected_model);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [autoStartError, setAutoStartError] = useState<string | null>(null);
 
   // Auto-select first downloaded model if none selected
   useEffect(() => {
@@ -667,21 +668,59 @@ export default function SettingsApp() {
         {/* General Section */}
         <SettingsSection icon="⚙️" title="General">
           <div className="space-y-3">
-            <Checkbox
-              checked={config?.auto_start || false}
-              onChange={(auto_start) => updateConfig({ auto_start })}
-              label="Start with Windows"
-            />
+            <div className="space-y-1">
+              <Checkbox
+                checked={config?.auto_start || false}
+                onChange={async (newValue) => {
+                  if (!config) return;
+
+                  setAutoStartError(null);
+                  const previousValue = config.auto_start;
+
+                  // Optimistic update for immediate UI feedback
+                  updateConfig({ auto_start: newValue });
+
+                  try {
+                    // Update system registry
+                    if (newValue) {
+                      await invoke("enable_autostart");
+                    } else {
+                      await invoke("disable_autostart");
+                    }
+
+                    // Immediately save config (bypass debounce for critical setting)
+                    await invoke("set_config", {
+                      config: { ...config, auto_start: newValue }
+                    });
+                  } catch (e) {
+                    // Rollback on failure
+                    updateConfig({ auto_start: previousValue });
+                    const errorMsg = `Failed to ${newValue ? 'enable' : 'disable'} auto-start`;
+                    setAutoStartError(errorMsg);
+                    console.error(errorMsg, e);
+                  }
+                }}
+                label="Start with Windows"
+              />
+              {autoStartError && (
+                <p className="text-xs text-destructive pl-6">{autoStartError}</p>
+              )}
+            </div>
             <Checkbox
               checked={config?.trailing_space || false}
               onChange={(trailing_space) => updateConfig({ trailing_space })}
               label="Add space after text"
             />
-            <Checkbox
-              checked={config?.logging_enabled || false}
-              onChange={(logging_enabled) => updateConfig({ logging_enabled })}
-              label="Enable logging"
-            />
+            <div className="space-y-1">
+              <Checkbox
+                checked={config?.logging_enabled || false}
+                onChange={(logging_enabled) => updateConfig({ logging_enabled })}
+                label="Enable logging"
+              />
+              <p className="text-xs text-muted-foreground pl-6">
+                Logs to %APPDATA%\Draft\logs\draft.log (restart required)
+              </p>
+            </div>
           </div>
         </SettingsSection>
       </div>

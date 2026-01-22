@@ -82,20 +82,36 @@ pub fn is_first_run() -> bool {
     !config_path().exists()
 }
 
-/// Validate config values are within expected bounds
-/// TypeScript `number` can represent values outside Rust i32/u32 range
+/// Validate config values are within reasonable bounds
 fn validate_config(config: &Config) -> Result<(), String> {
-    // window_position uses i32 - validate bounds
+    // Validate window position is within reasonable screen coordinates
     if let Some((x, y)) = config.window_position {
-        if x < i32::MIN as i32 || x > i32::MAX as i32 || y < i32::MIN as i32 || y > i32::MAX as i32 {
-            return Err("window_position values out of i32 bounds".to_string());
+        const MAX_COORD: i32 = 10000;
+        const MIN_COORD: i32 = -10000;
+        if x < MIN_COORD || x > MAX_COORD || y < MIN_COORD || y > MAX_COORD {
+            return Err(format!(
+                "window_position ({}, {}) out of reasonable bounds ({} to {})",
+                x, y, MIN_COORD, MAX_COORD
+            ));
         }
     }
 
-    // window_size uses u32 - validate non-negative and bounds
+    // Validate window size is within reasonable bounds
     if let Some((w, h)) = config.window_size {
-        if w > u32::MAX as u32 || h > u32::MAX as u32 {
-            return Err("window_size values out of u32 bounds".to_string());
+        const MIN_WIDTH: u32 = 200;
+        const MIN_HEIGHT: u32 = 100;
+        const MAX_DIMENSION: u32 = 10000;
+        if w < MIN_WIDTH || w > MAX_DIMENSION {
+            return Err(format!(
+                "window_size width {} out of bounds ({} to {})",
+                w, MIN_WIDTH, MAX_DIMENSION
+            ));
+        }
+        if h < MIN_HEIGHT || h > MAX_DIMENSION {
+            return Err(format!(
+                "window_size height {} out of bounds ({} to {})",
+                h, MIN_HEIGHT, MAX_DIMENSION
+            ));
         }
     }
 
