@@ -245,10 +245,12 @@ fn whisper_thread_main(
                     audio.len() as f32 / 16000.0
                 );
 
+                let start_time = std::time::Instant::now();
                 let result = context
                     .as_ref()
                     .ok_or_else(|| "No model loaded".to_string())
                     .and_then(|ctx| run_transcription(ctx, &audio));
+                log::info!("Transcription took {:?}", start_time.elapsed());
 
                 match result {
                     Ok(text) => {
@@ -303,6 +305,14 @@ fn run_transcription(ctx: &WhisperContext, audio: &[f32]) -> Result<String, Stri
         .map_err(|e| format!("Failed to create whisper state: {}", e))?;
 
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+
+    // Explicitly set thread count - use all available cores
+    let num_threads = std::thread::available_parallelism()
+        .map(|n| n.get() as i32)
+        .unwrap_or(4);
+    params.set_n_threads(num_threads);
+    log::info!("Using {} threads for whisper inference", num_threads);
+
     params.set_language(None);
     params.set_print_special(false);
     params.set_print_progress(false);

@@ -84,13 +84,13 @@ impl AmplitudeCalculator {
     fn normalize(&self, rms: f32) -> f32 {
         // RMS of full-scale sine wave is ~0.707
         // Speech typically ranges 0.01-0.3 RMS
-        // Use a power curve for better visualization of speech levels
+        // Many microphones have low gain, so use aggressive scaling
 
-        // Clamp and scale
-        let scaled = (rms * 3.0).min(1.0);
+        // Clamp and scale - higher multiplier for low-gain microphones
+        let scaled = (rms * 8.0).min(1.0);
 
-        // Apply slight power curve to make quiet sounds more visible
-        scaled.powf(0.7)
+        // Apply power curve to make quiet sounds more visible
+        scaled.powf(0.5)
     }
 }
 

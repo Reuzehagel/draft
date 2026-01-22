@@ -175,8 +175,8 @@ impl RecordingManager {
 
         // Show pill window at bottom center of screen
         if let Some(pill) = app.get_webview_window("pill") {
-            // Position pill at bottom center of the current monitor
-            if let Ok(Some(monitor)) = pill.current_monitor() {
+            // Position pill at bottom center of the primary monitor
+            if let Ok(Some(monitor)) = pill.primary_monitor() {
                 let monitor_size = monitor.size();
                 let monitor_pos = monitor.position();
                 let pill_size = pill.outer_size().unwrap_or(tauri::PhysicalSize::new(200, 40));

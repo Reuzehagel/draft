@@ -49,3 +49,13 @@ whisper-rs = "0.15"
 # Sprint 6 dependencies (Text injection)
 enigo = "0.6"
 windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+
+# Release profile optimizations for whisper-rs native code performance
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+# Also optimize dependencies in release mode
+[profile.release.package."*"]
+opt-level = 3
