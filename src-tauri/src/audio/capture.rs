@@ -25,7 +25,10 @@ impl AudioCapture {
     /// device_id: None or empty string for system default
     pub fn new(device_id: Option<&str>) -> Result<Self, String> {
         let device = resolve_device(device_id)?;
-        let device_name = device.name().unwrap_or_else(|_| "Unknown".to_string());
+        let device_name = device
+            .description()
+            .map(|d| d.name().to_string())
+            .unwrap_or_else(|_| "Unknown".to_string());
         log::info!("Opening audio device: {}", device_name);
 
         // Get the default input config (native format)

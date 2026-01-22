@@ -96,14 +96,6 @@ impl HotkeyManager {
 
         Ok(())
     }
-
-    /// Check if a hotkey is currently registered (read-only, recovers from poison)
-    pub fn is_registered(&self) -> bool {
-        self.current_shortcut
-            .lock()
-            .map(|guard| guard.is_some())
-            .unwrap_or_else(|e| e.into_inner().is_some())
-    }
 }
 
 /// Validate a hotkey string

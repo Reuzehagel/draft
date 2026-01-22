@@ -14,9 +14,6 @@ use crate::config::load_config;
 use crate::events;
 use crate::stt::WhisperHandle;
 
-/// Maximum recording duration (2 minutes)
-const MAX_RECORDING_DURATION: Duration = Duration::from_secs(120);
-
 /// Recording states
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -355,30 +352,6 @@ impl RecordingManager {
         }
 
         Ok(())
-    }
-
-    /// Check if recording has exceeded max duration and stop if so
-    pub fn check_timeout(&self, app: &AppHandle) -> bool {
-        // Check timeout atomically
-        let should_stop = {
-            let state_data = match self.state_data.lock() {
-                Ok(guard) => guard,
-                Err(_) => return false,
-            };
-            if let Some(ref recording) = state_data.active_recording {
-                recording.start_time.elapsed() >= MAX_RECORDING_DURATION
-            } else {
-                false
-            }
-        };
-
-        if should_stop {
-            log::info!("Recording timeout reached (120s)");
-            let _ = self.on_hotkey_released(app);
-            return true;
-        }
-
-        false
     }
 
     /// Clean up transcription event listeners to prevent memory leaks

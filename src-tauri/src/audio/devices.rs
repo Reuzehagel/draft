@@ -35,7 +35,8 @@ pub fn list_microphones() -> Result<Vec<MicrophoneInfo>, String> {
         .map_err(|e| format!("Failed to enumerate input devices: {}", e))?;
 
     for device in devices {
-        if let Ok(name) = device.name() {
+        if let Ok(desc) = device.description() {
+            let name = desc.name().to_string();
             microphones.push(MicrophoneInfo {
                 id: name.clone(),
                 name,
@@ -63,8 +64,8 @@ pub fn resolve_device(device_id: Option<&str>) -> Result<cpal::Device, String> {
                 .map_err(|e| format!("Failed to enumerate input devices: {}", e))?;
 
             for device in devices {
-                if let Ok(name) = device.name() {
-                    if name == id {
+                if let Ok(desc) = device.description() {
+                    if desc.name() == id {
                         return Ok(device);
                     }
                 }

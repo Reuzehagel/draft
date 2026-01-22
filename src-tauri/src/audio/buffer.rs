@@ -41,12 +41,6 @@ impl AudioProducer {
             // TrySendError::Full is silently ignored - we drop samples on overflow
         }
     }
-
-    /// Check if the buffer should stop receiving data
-    #[inline]
-    pub fn should_stop(&self) -> bool {
-        self.stop_flag.load(Ordering::Relaxed)
-    }
 }
 
 /// Consumer side of the audio buffer - used by worker thread
@@ -66,12 +60,6 @@ impl AudioConsumer {
     /// Check if the buffer has been signaled to stop
     pub fn should_stop(&self) -> bool {
         self.stop_flag.load(Ordering::Relaxed)
-    }
-
-    /// Signal stop and drain remaining samples
-    pub fn stop_and_drain(&self, output: &mut Vec<f32>) {
-        self.stop_flag.store(true, Ordering::SeqCst);
-        self.drain_into(output);
     }
 }
 
@@ -120,12 +108,10 @@ mod tests {
     fn test_buffer_stop_flag() {
         let (producer, consumer) = create_buffer();
 
-        assert!(!producer.should_stop());
         assert!(!consumer.should_stop());
 
         stop_buffer(&producer);
 
-        assert!(producer.should_stop());
         assert!(consumer.should_stop());
     }
 }

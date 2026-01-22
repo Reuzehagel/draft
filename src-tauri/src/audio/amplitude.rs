@@ -92,13 +92,6 @@ impl AmplitudeCalculator {
         // Apply slight power curve to make quiet sounds more visible
         scaled.powf(0.7)
     }
-
-    /// Reset the calculator state
-    pub fn reset(&mut self) {
-        self.values = [0.0; AMPLITUDE_COUNT];
-        self.write_pos = 0;
-        self.window_buffer.clear();
-    }
 }
 
 impl Default for AmplitudeCalculator {

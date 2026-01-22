@@ -17,7 +17,6 @@ use crate::events;
 pub enum WhisperCommand {
     LoadModel { model_id: String },
     Transcribe { audio: Vec<f32> },
-    UnloadModel,
     Shutdown,
 }
 
@@ -77,14 +76,6 @@ impl SharedState {
 pub struct WhisperClient(SharedState);
 
 impl WhisperClient {
-    pub fn is_busy(&self) -> bool {
-        self.0.is_busy()
-    }
-
-    pub fn current_model(&self) -> Option<String> {
-        self.0.current_model()
-    }
-
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<(), String> {
         if self.0.current_model().is_none() {
             return Err("No model loaded".to_string());
@@ -145,10 +136,6 @@ impl WhisperHandle {
         }
         self.state
             .send_if_not_busy(WhisperCommand::Transcribe { audio })
-    }
-
-    pub fn unload_model(&self) -> Result<(), String> {
-        self.state.send_if_not_busy(WhisperCommand::UnloadModel)
     }
 
     pub fn shutdown(&self) {
@@ -273,12 +260,6 @@ fn whisper_thread_main(
                         let _ = app_handle.emit(events::TRANSCRIPTION_ERROR, &e);
                     }
                 }
-            }
-
-            WhisperCommand::UnloadModel => {
-                log::info!("Unloading whisper model");
-                context = None;
-                set_current_model(&current_model, None);
             }
 
             WhisperCommand::Shutdown => {
