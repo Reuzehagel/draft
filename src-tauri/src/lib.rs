@@ -1,10 +1,13 @@
 //! Draft - Voice-to-text transcription application
-//! Sprint 4: Whisper Integration
+//! Sprint 5: Hotkey & Recording Flow
 
 mod audio;
 mod config;
 mod events;
+mod recording;
 mod stt;
+
+use std::sync::Arc;
 
 use tauri::{
     menu::{Menu, MenuItem},
@@ -26,6 +29,9 @@ pub fn run() {
         .manage(audio::devices::TestState::default())
         // Manage state for model downloads
         .manage(stt::DownloadState::default())
+        // Manage state for recording
+        .manage(Arc::new(recording::RecordingManager::new()))
+        .manage(Arc::new(recording::HotkeyManager::new()))
         // Register commands
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -40,6 +46,11 @@ pub fn run() {
             stt::commands::get_whisper_state,
             stt::commands::load_model,
             stt::commands::test_transcription,
+            recording::commands::validate_hotkey,
+            recording::commands::register_hotkey,
+            recording::commands::unregister_hotkey,
+            recording::commands::check_recording_config,
+            recording::commands::get_recording_state,
         ])
         .setup(|app| {
             // Initialize logging in debug mode
@@ -68,6 +79,21 @@ pub fn run() {
             }
 
             app.manage(whisper_handle);
+
+            // Register hotkey from config on startup
+            if let Some(ref hotkey) = loaded_config.hotkey {
+                let hotkey_manager = app.state::<Arc<recording::HotkeyManager>>();
+                let recording_manager = app.state::<Arc<recording::RecordingManager>>();
+                if let Err(e) = hotkey_manager.register(
+                    app.handle(),
+                    hotkey,
+                    recording_manager.inner().clone(),
+                ) {
+                    log::warn!("Failed to register hotkey on startup: {}", e);
+                } else {
+                    log::info!("Hotkey registered on startup: {}", hotkey);
+                }
+            }
 
             // Create tray menu
             let open_settings =

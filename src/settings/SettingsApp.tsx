@@ -117,14 +117,19 @@ function Checkbox({
 function HotkeyInput({
   value,
   onChange,
+  error,
+  onValidate,
 }: {
   value: string | null;
   onChange: (value: string | null) => void;
+  error?: string | null;
+  onValidate?: (hotkey: string) => Promise<void>;
 }) {
   const [isRecording, setIsRecording] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    async (e: React.KeyboardEvent) => {
       if (!isRecording) return;
       e.preventDefault();
 
@@ -134,39 +139,147 @@ function HotkeyInput({
       if (e.shiftKey) parts.push("Shift");
       if (e.metaKey) parts.push("Meta");
 
-      // Only accept modifier + regular key combinations
-      if (e.key && !["Control", "Alt", "Shift", "Meta"].includes(e.key)) {
-        parts.push(e.key.toUpperCase());
-        onChange(parts.join("+"));
-        setIsRecording(false);
+      // Get the key name, handling special cases
+      let keyName = e.key;
+      if (keyName === " ") keyName = "Space";
+
+      // Check if it's a modifier key being pressed alone
+      const isModifierKey = ["Control", "Alt", "Shift", "Meta"].includes(keyName);
+
+      if (keyName && !isModifierKey) {
+        // Normalize key name to uppercase for regular keys
+        const normalizedKey = keyName.length === 1 ? keyName.toUpperCase() : keyName;
+        parts.push(normalizedKey);
+
+        const hotkey = parts.join("+");
+
+        // Quick frontend check for bare keys - F1-F24 are allowed without modifiers
+        // Full validation happens on backend via validate_hotkey command
+        const isFunctionKey = /^F([1-9]|1[0-9]|2[0-4])$/.test(normalizedKey);
+        if (parts.length === 1 && !isFunctionKey) {
+          setValidationError(`'${normalizedKey}' requires a modifier key (Ctrl, Alt, Shift, or Meta)`);
+          return;
+        }
+
+        // Validate with backend
+        try {
+          await invoke("validate_hotkey", { hotkey });
+          setValidationError(null);
+          onChange(hotkey);
+          setIsRecording(false);
+
+          // Trigger registration validation if provided
+          if (onValidate) {
+            onValidate(hotkey).catch((err) => {
+              setValidationError(String(err));
+            });
+          }
+        } catch (err) {
+          setValidationError(String(err));
+        }
       }
     },
-    [isRecording, onChange]
+    [isRecording, onChange, onValidate]
   );
 
+  const displayError = error || validationError;
+
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        className="min-w-[180px] justify-start font-mono text-xs"
-        onClick={() => setIsRecording(!isRecording)}
-        onKeyDown={handleKeyDown}
-      >
-        {isRecording
-          ? "Press keys..."
-          : value || "Click to set hotkey"}
-      </Button>
-      {value && (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
         <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onChange(null)}
+          variant="outline"
+          className={`min-w-[180px] justify-start font-mono text-xs ${displayError ? 'border-destructive' : ''}`}
+          onClick={() => {
+            setIsRecording(!isRecording);
+            if (!isRecording) setValidationError(null);
+          }}
+          onKeyDown={handleKeyDown}
         >
-          Clear
+          {isRecording
+            ? "Press keys..."
+            : value || "Click to set hotkey"}
         </Button>
+        {value && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              onChange(null);
+              setValidationError(null);
+            }}
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+      {displayError && (
+        <p className="text-xs text-destructive">{displayError}</p>
       )}
     </div>
   );
+}
+
+function useHotkeyRegistration(hotkey: string | null | undefined) {
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const previousHotkeyRef = useRef<string | null | undefined>(undefined);
+  const isInitialMount = useRef(true);
+
+  useEffect(() => {
+    // Always run on initial mount to ensure hotkey is registered,
+    // then track changes for subsequent updates
+    const shouldRegister = isInitialMount.current || previousHotkeyRef.current !== hotkey;
+
+    if (!shouldRegister) {
+      return;
+    }
+
+    // Update tracking refs
+    isInitialMount.current = false;
+    previousHotkeyRef.current = hotkey;
+
+    const registerHotkey = async () => {
+      setRegistrationError(null);
+
+      // If hotkey is cleared, unregister
+      if (!hotkey) {
+        try {
+          await invoke("unregister_hotkey");
+        } catch (e) {
+          // Log but don't show error for unregister failures
+          console.warn("Failed to unregister hotkey:", e);
+        }
+        return;
+      }
+
+      setIsRegistering(true);
+      try {
+        await invoke("register_hotkey", { hotkey });
+      } catch (e) {
+        setRegistrationError(String(e));
+      } finally {
+        setIsRegistering(false);
+      }
+    };
+
+    registerHotkey();
+  }, [hotkey]);
+
+  const validateAndRegister = useCallback(async (newHotkey: string) => {
+    setRegistrationError(null);
+    setIsRegistering(true);
+    try {
+      await invoke("register_hotkey", { hotkey: newHotkey });
+    } catch (e) {
+      setRegistrationError(String(e));
+      throw e;
+    } finally {
+      setIsRegistering(false);
+    }
+  }, []);
+
+  return { registrationError, isRegistering, validateAndRegister };
 }
 
 function useMicrophones() {
@@ -195,23 +308,34 @@ function useMicrophoneTest() {
   const [amplitudes, setAmplitudes] = useState<number[]>([]);
 
   useEffect(() => {
+    let mounted = true;
+    let unlistenAmplitudeFn: (() => void) | null = null;
+    let unlistenCompleteFn: (() => void) | null = null;
+
     // Listen for amplitude updates during test
-    const unlistenAmplitude = listen<number[]>(Events.AMPLITUDE, (event) => {
-      setAmplitudes(event.payload);
+    listen<number[]>(Events.AMPLITUDE, (event) => {
+      if (mounted) {
+        setAmplitudes(event.payload);
+      }
+    }).then((fn) => {
+      unlistenAmplitudeFn = fn;
     });
 
     // Listen for test completion
-    const unlistenComplete = listen<boolean>(
-      Events.TEST_MICROPHONE_COMPLETE,
-      () => {
+    listen<boolean>(Events.TEST_MICROPHONE_COMPLETE, () => {
+      if (mounted) {
         setIsTesting(false);
         setAmplitudes([]);
       }
-    );
+    }).then((fn) => {
+      unlistenCompleteFn = fn;
+    });
 
     return () => {
-      unlistenAmplitude.then((fn) => fn());
-      unlistenComplete.then((fn) => fn());
+      mounted = false;
+      // Clean up listeners if they were registered
+      if (unlistenAmplitudeFn) unlistenAmplitudeFn();
+      if (unlistenCompleteFn) unlistenCompleteFn();
     };
   }, []);
 
@@ -236,6 +360,7 @@ export default function SettingsApp() {
     error: microphonesError,
   } = useMicrophones();
   const { isTesting, amplitudes: micTestAmplitudes, startTest } = useMicrophoneTest();
+  const { registrationError: hotkeyError, isRegistering: hotkeyRegistering, validateAndRegister } = useHotkeyRegistration(config?.hotkey);
   const {
     downloadedModels,
     availableModels,
@@ -352,11 +477,19 @@ export default function SettingsApp() {
         {/* Hotkey Section */}
         <SettingsSection icon="⌨️" title="Hotkey">
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Push-to-talk</label>
+            <label className="text-sm text-muted-foreground">
+              Push-to-talk
+              {hotkeyRegistering && <span className="ml-2 text-primary">(Registering...)</span>}
+            </label>
             <HotkeyInput
               value={config?.hotkey || null}
               onChange={(hotkey) => updateConfig({ hotkey })}
+              error={hotkeyError}
+              onValidate={validateAndRegister}
             />
+            <p className="text-xs text-muted-foreground">
+              Hold to record, release to transcribe. Function keys (F1-F24) work without modifiers.
+            </p>
           </div>
         </SettingsSection>
 
