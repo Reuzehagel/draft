@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import * as Events from "@/shared/constants/events";
 function useConfig() {
   const [config, setConfig] = useState<Config | null>(null);
   const [loading, setLoading] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     invoke<Config>("get_config")
@@ -38,18 +39,33 @@ function useConfig() {
       .finally(() => setLoading(false));
   }, []);
 
-  const updateConfig = useMemo(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    return (updates: Partial<Config>) => {
+  // Cleanup timeout on unmount to prevent memory leak
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== undefined) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const updateConfig = useCallback(
+    (updates: Partial<Config>) => {
       if (!config) return;
       const newConfig = { ...config, ...updates };
       setConfig(newConfig);
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
+
+      // Clear any pending save
+      if (timeoutRef.current !== undefined) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Debounce config saves
+      timeoutRef.current = setTimeout(() => {
         invoke("set_config", { config: newConfig });
       }, 300);
-    };
-  }, [config]);
+    },
+    [config]
+  );
 
   return { config, updateConfig, loading };
 }

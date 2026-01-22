@@ -21,6 +21,18 @@ pub fn list_models() -> Vec<ModelInfo> {
     models::get_all_models()
 }
 
+/// RAII guard to ensure download state is cleared on all exit paths (success, error, panic)
+struct DownloadGuard<'a> {
+    current_download: &'a Mutex<Option<String>>,
+}
+
+impl<'a> Drop for DownloadGuard<'a> {
+    fn drop(&mut self) {
+        let mut current = self.current_download.lock().unwrap();
+        *current = None;
+    }
+}
+
 /// Start downloading a model
 #[tauri::command]
 pub async fn download_model(
@@ -28,7 +40,7 @@ pub async fn download_model(
     state: tauri::State<'_, DownloadState>,
     model_id: String,
 ) -> Result<(), String> {
-    // Check if download already in progress
+    // Check if download already in progress and set current download atomically
     {
         let mut current = state.current_download.lock().unwrap();
         if current.is_some() {
@@ -37,19 +49,16 @@ pub async fn download_model(
         *current = Some(model_id.clone());
     }
 
+    // RAII guard ensures cleanup on all exit paths (success, error, panic, async cancellation)
+    let _guard = DownloadGuard {
+        current_download: &state.current_download,
+    };
+
     // Reset cancel token
     state.cancel_token.store(false, Ordering::Relaxed);
 
-    // Perform download
-    let result = download::download_model(app, &model_id, state.cancel_token.clone()).await;
-
-    // Clear current download
-    {
-        let mut current = state.current_download.lock().unwrap();
-        *current = None;
-    }
-
-    result
+    // Perform download - guard ensures cleanup even if this fails
+    download::download_model(app, &model_id, state.cancel_token.clone()).await
 }
 
 /// Cancel the current download

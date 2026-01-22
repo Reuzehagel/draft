@@ -2,15 +2,16 @@ import { useState, useEffect } from "react";
 
 const BAR_COUNT = 14;
 
+// Static initial values (animation starts immediately so these are never displayed)
+const INITIAL_AMPLITUDES = Array.from({ length: BAR_COUNT }, () => 0.5);
+
 export default function Waveform({
   amplitudes,
 }: {
   amplitudes?: number[];
 }) {
-  // Use placeholder random values when no real amplitudes provided
-  const [placeholderAmplitudes, setPlaceholderAmplitudes] = useState<number[]>(
-    () => Array.from({ length: BAR_COUNT }, () => Math.random())
-  );
+  const [placeholderAmplitudes, setPlaceholderAmplitudes] =
+    useState<number[]>(INITIAL_AMPLITUDES);
 
   useEffect(() => {
     if (amplitudes) return;

@@ -82,6 +82,26 @@ pub fn is_first_run() -> bool {
     !config_path().exists()
 }
 
+/// Validate config values are within expected bounds
+/// TypeScript `number` can represent values outside Rust i32/u32 range
+fn validate_config(config: &Config) -> Result<(), String> {
+    // window_position uses i32 - validate bounds
+    if let Some((x, y)) = config.window_position {
+        if x < i32::MIN as i32 || x > i32::MAX as i32 || y < i32::MIN as i32 || y > i32::MAX as i32 {
+            return Err("window_position values out of i32 bounds".to_string());
+        }
+    }
+
+    // window_size uses u32 - validate non-negative and bounds
+    if let Some((w, h)) = config.window_size {
+        if w > u32::MAX as u32 || h > u32::MAX as u32 {
+            return Err("window_size values out of u32 bounds".to_string());
+        }
+    }
+
+    Ok(())
+}
+
 // Tauri commands
 #[tauri::command]
 pub fn get_config() -> Config {
@@ -90,6 +110,7 @@ pub fn get_config() -> Config {
 
 #[tauri::command]
 pub fn set_config(config: Config) -> Result<(), String> {
+    validate_config(&config)?;
     save_config(&config)
 }
 

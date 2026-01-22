@@ -86,11 +86,22 @@ impl AudioCapture {
             }
         };
 
-        // Clone producer for the callback - AudioProducer is designed to be cloned
         let producer = producer.clone();
 
-        // Build stream based on sample format
-        // Note: Audio callback must be real-time safe - no allocations, locks, or I/O
+        // Macro to build input stream with sample conversion
+        // Audio callback must be real-time safe - no allocations, locks, or I/O
+        macro_rules! build_converting_stream {
+            ($sample_type:ty, $convert:expr) => {{
+                let data_callback = move |data: &[$sample_type], _: &cpal::InputCallbackInfo| {
+                    for &sample in data {
+                        let f32_sample: f32 = $convert(sample);
+                        producer.push(&[f32_sample]);
+                    }
+                };
+                device.build_input_stream(config, data_callback, error_callback, None)
+            }};
+        }
+
         let stream = match sample_format {
             SampleFormat::F32 => {
                 let data_callback = move |data: &[f32], _: &cpal::InputCallbackInfo| {
@@ -99,24 +110,12 @@ impl AudioCapture {
                 device.build_input_stream(config, data_callback, error_callback, None)
             }
             SampleFormat::I16 => {
-                let data_callback = move |data: &[i16], _: &cpal::InputCallbackInfo| {
-                    // Convert i16 to f32 inline - this is allocation-free
-                    // We push sample by sample to avoid temp buffer allocation
-                    for &sample in data {
-                        let f32_sample = sample as f32 / i16::MAX as f32;
-                        producer.push(&[f32_sample]);
-                    }
-                };
-                device.build_input_stream(config, data_callback, error_callback, None)
+                // Explicit parentheses for clarity: cast to f32 BEFORE division
+                build_converting_stream!(i16, |s: i16| (s as f32) / (i16::MAX as f32))
             }
             SampleFormat::U16 => {
-                let data_callback = move |data: &[u16], _: &cpal::InputCallbackInfo| {
-                    for &sample in data {
-                        let f32_sample = (sample as f32 / u16::MAX as f32) * 2.0 - 1.0;
-                        producer.push(&[f32_sample]);
-                    }
-                };
-                device.build_input_stream(config, data_callback, error_callback, None)
+                // Explicit parentheses for clarity: cast to f32 BEFORE division
+                build_converting_stream!(u16, |s: u16| ((s as f32) / (u16::MAX as f32)) * 2.0 - 1.0)
             }
             format => {
                 return Err(format!("Unsupported sample format: {:?}", format));

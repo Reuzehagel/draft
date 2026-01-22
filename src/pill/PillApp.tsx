@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
 import * as Events from "@/shared/constants/events";
 
 type PillState = "idle" | "loading" | "recording" | "transcribing" | "error";
+
+/** Cleanup function for multiple event listeners */
+function cleanupListeners(listeners: Promise<UnlistenFn>[]): void {
+  listeners.forEach((unlisten) => unlisten.then((fn) => fn()));
+}
 
 interface PillContentProps {
   state: PillState;
@@ -49,65 +54,43 @@ export default function PillApp() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Listen for amplitude updates during recording
-    const unlistenAmplitude = listen<number[]>(Events.AMPLITUDE, (event) => {
-      setAmplitudes(event.payload);
-    });
-
-    // Listen for recording state changes
-    const unlistenRecordingStarted = listen(Events.RECORDING_STARTED, () => {
-      setState("recording");
-      setVisible(true);
-    });
-
-    const unlistenRecordingStopped = listen(Events.RECORDING_STOPPED, () => {
-      setState("transcribing");
-    });
-
-    // Listen for model loading
-    const unlistenModelLoading = listen(Events.MODEL_LOADING, () => {
-      setState("loading");
-      setVisible(true);
-    });
-
-    const unlistenModelLoaded = listen(Events.MODEL_LOADED, () => {
-      setState("idle");
-      setVisible(false);
-    });
-
-    // Listen for transcription complete
-    const unlistenTranscriptionComplete = listen(
-      Events.TRANSCRIPTION_COMPLETE,
-      () => {
+    const listeners = [
+      listen<number[]>(Events.AMPLITUDE, (event) => {
+        setAmplitudes(event.payload);
+      }),
+      listen(Events.RECORDING_STARTED, () => {
+        setState("recording");
+        setVisible(true);
+      }),
+      listen(Events.RECORDING_STOPPED, () => {
+        setState("transcribing");
+      }),
+      listen(Events.MODEL_LOADING, () => {
+        setState("loading");
+        setVisible(true);
+      }),
+      listen(Events.MODEL_LOADED, () => {
+        setState("idle");
+        setVisible(false);
+      }),
+      listen(Events.TRANSCRIPTION_COMPLETE, () => {
         setState("idle");
         setVisible(false);
         setAmplitudes(undefined);
-      }
-    );
+      }),
+      listen<string>(Events.TRANSCRIPTION_ERROR, (event) => {
+        setState("error");
+        setErrorMessage(event.payload);
+        setVisible(true);
+        setTimeout(() => {
+          setState("idle");
+          setVisible(false);
+          setErrorMessage(undefined);
+        }, 2000);
+      }),
+    ];
 
-    // Listen for errors
-    const unlistenError = listen<string>(Events.TRANSCRIPTION_ERROR, (event) => {
-      setState("error");
-      setErrorMessage(event.payload);
-      setVisible(true);
-
-      // Auto-hide after 2 seconds
-      setTimeout(() => {
-        setState("idle");
-        setVisible(false);
-        setErrorMessage(undefined);
-      }, 2000);
-    });
-
-    return () => {
-      unlistenAmplitude.then((fn) => fn());
-      unlistenRecordingStarted.then((fn) => fn());
-      unlistenRecordingStopped.then((fn) => fn());
-      unlistenModelLoading.then((fn) => fn());
-      unlistenModelLoaded.then((fn) => fn());
-      unlistenTranscriptionComplete.then((fn) => fn());
-      unlistenError.then((fn) => fn());
-    };
+    return () => cleanupListeners(listeners);
   }, []);
 
   // For development: cycle through states with keyboard

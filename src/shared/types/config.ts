@@ -11,15 +11,3 @@ export interface Config {
   window_position: [number, number] | null;
   window_size: [number, number] | null;
 }
-
-export const defaultConfig: Config = {
-  version: 1,
-  microphone_id: null,
-  selected_model: null,
-  hotkey: null,
-  auto_start: false,
-  trailing_space: false,
-  logging_enabled: false,
-  window_position: null,
-  window_size: null,
-};

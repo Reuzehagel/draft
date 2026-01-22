@@ -76,12 +76,8 @@ export function useModels() {
 
   // Delete a model
   const deleteModel = useCallback(async (modelId: string) => {
-    try {
-      await invoke("delete_model", { modelId });
-      await refreshModels();
-    } catch (e) {
-      throw e;
-    }
+    await invoke("delete_model", { modelId });
+    await refreshModels();
   }, [refreshModels]);
 
   // Split models into downloaded and available

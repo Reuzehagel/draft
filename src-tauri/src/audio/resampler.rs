@@ -1,6 +1,8 @@
 //! Audio resampling using rubato
 //! Converts audio from native sample rate to 16kHz mono for Whisper
 
+use std::borrow::Cow;
+
 use audioadapter_buffers::direct::InterleavedSlice;
 use rubato::{Async, FixedAsync, Resampler, SincInterpolationParameters, SincInterpolationType, WindowFunction};
 
@@ -61,115 +63,104 @@ impl AudioResampler {
     /// Input: interleaved samples at native rate
     /// Output: mono samples at 16kHz
     pub fn process(&mut self, input: &[f32], output: &mut Vec<f32>) {
-        // First convert to mono
         let mono_samples = self.to_mono(input);
 
-        if let Some(ref mut resampler) = self.resampler {
-            // Add samples to input buffer
-            self.input_buffer.extend_from_slice(&mono_samples);
-
-            // Process complete chunks
-            let input_frames_needed = resampler.input_frames_next();
-
-            while self.input_buffer.len() >= input_frames_needed {
-                // Take a chunk from the input buffer
-                let chunk: Vec<f32> = self.input_buffer.drain(..input_frames_needed).collect();
-
-                // Create input adapter (mono = 1 channel)
-                let input_adapter = match InterleavedSlice::new(&chunk, 1, chunk.len()) {
-                    Ok(adapter) => adapter,
-                    Err(e) => {
-                        log::warn!("Failed to create input adapter: {}", e);
-                        continue;
-                    }
-                };
-
-                // Create output adapter
-                let output_frames_max = resampler.output_frames_next() + 16; // Safety margin
-                if self.output_buffer.len() < output_frames_max {
-                    self.output_buffer.resize(output_frames_max, 0.0);
-                }
-
-                let mut output_adapter =
-                    match InterleavedSlice::new_mut(&mut self.output_buffer, 1, output_frames_max) {
-                        Ok(adapter) => adapter,
-                        Err(e) => {
-                            log::warn!("Failed to create output adapter: {}", e);
-                            continue;
-                        }
-                    };
-
-                // Process
-                match resampler.process_into_buffer(&input_adapter, &mut output_adapter, None) {
-                    Ok((_frames_read, frames_written)) => {
-                        output.extend_from_slice(&self.output_buffer[..frames_written]);
-                    }
-                    Err(e) => {
-                        log::warn!("Resampling error: {}", e);
-                    }
-                }
-            }
-        } else {
-            // No resampling needed, just output mono samples
+        let Some(ref mut resampler) = self.resampler else {
             output.extend_from_slice(&mono_samples);
+            return;
+        };
+
+        self.input_buffer.extend_from_slice(&mono_samples);
+        let input_frames_needed = resampler.input_frames_next();
+
+        while self.input_buffer.len() >= input_frames_needed {
+            let chunk: Vec<f32> = self.input_buffer.drain(..input_frames_needed).collect();
+            Self::resample_chunk(resampler, &chunk, output, &mut self.output_buffer, true);
         }
     }
 
     /// Flush any remaining samples in the buffer
     pub fn flush(&mut self, output: &mut Vec<f32>) {
-        if let Some(ref mut resampler) = self.resampler {
-            if !self.input_buffer.is_empty() {
-                // Pad the remaining samples to make a complete chunk
-                let input_frames_needed = resampler.input_frames_next();
-                let padding_needed = input_frames_needed.saturating_sub(self.input_buffer.len());
-                self.input_buffer.extend(vec![0.0f32; padding_needed]);
+        let Some(ref mut resampler) = self.resampler else {
+            return;
+        };
 
-                let chunk: Vec<f32> = self.input_buffer.drain(..).collect();
+        if self.input_buffer.is_empty() {
+            return;
+        }
 
-                let input_adapter = match InterleavedSlice::new(&chunk, 1, chunk.len()) {
-                    Ok(adapter) => adapter,
-                    Err(_) => return,
-                };
+        // Pad remaining samples to make a complete chunk
+        let input_frames_needed = resampler.input_frames_next();
+        let padding_needed = input_frames_needed.saturating_sub(self.input_buffer.len());
+        self.input_buffer.extend(vec![0.0f32; padding_needed]);
 
-                let output_frames_max = resampler.output_frames_next() + 16;
-                if self.output_buffer.len() < output_frames_max {
-                    self.output_buffer.resize(output_frames_max, 0.0);
+        let chunk: Vec<f32> = self.input_buffer.drain(..).collect();
+        Self::resample_chunk(resampler, &chunk, output, &mut self.output_buffer, false);
+    }
+
+    /// Resample a single chunk of audio data
+    fn resample_chunk(
+        resampler: &mut Async<f32>,
+        chunk: &[f32],
+        output: &mut Vec<f32>,
+        temp_buffer: &mut Vec<f32>,
+        log_errors: bool,
+    ) {
+        let input_adapter = match InterleavedSlice::new(chunk, 1, chunk.len()) {
+            Ok(adapter) => adapter,
+            Err(e) => {
+                if log_errors {
+                    log::warn!("Failed to create input adapter: {}", e);
                 }
+                return;
+            }
+        };
 
-                let mut output_adapter =
-                    match InterleavedSlice::new_mut(&mut self.output_buffer, 1, output_frames_max) {
-                        Ok(adapter) => adapter,
-                        Err(_) => return,
-                    };
+        let output_frames_max = resampler.output_frames_next() + 16;
+        if temp_buffer.len() < output_frames_max {
+            temp_buffer.resize(output_frames_max, 0.0);
+        }
 
-                if let Ok((_, frames_written)) =
-                    resampler.process_into_buffer(&input_adapter, &mut output_adapter, None)
-                {
-                    output.extend_from_slice(&self.output_buffer[..frames_written]);
+        let mut output_adapter =
+            match InterleavedSlice::new_mut(temp_buffer, 1, output_frames_max) {
+                Ok(adapter) => adapter,
+                Err(e) => {
+                    if log_errors {
+                        log::warn!("Failed to create output adapter: {}", e);
+                    }
+                    return;
+                }
+            };
+
+        match resampler.process_into_buffer(&input_adapter, &mut output_adapter, None) {
+            Ok((_frames_read, frames_written)) => {
+                output.extend_from_slice(&temp_buffer[..frames_written]);
+            }
+            Err(e) => {
+                if log_errors {
+                    log::warn!("Resampling error: {}", e);
                 }
             }
         }
     }
 
     /// Convert interleaved multi-channel audio to mono
-    fn to_mono(&self, input: &[f32]) -> Vec<f32> {
+    /// Returns borrowed slice when input is already mono, avoiding allocation
+    fn to_mono<'a>(&self, input: &'a [f32]) -> Cow<'a, [f32]> {
         if self.channels == 1 {
-            return input.to_vec();
+            return Cow::Borrowed(input);
         }
 
         let channels = self.channels as usize;
         let frame_count = input.len() / channels;
-        let mut mono = Vec::with_capacity(frame_count);
+        let mono: Vec<f32> = (0..frame_count)
+            .map(|i| {
+                let sum: f32 = (0..channels).map(|ch| input[i * channels + ch]).sum();
+                sum / channels as f32
+            })
+            .collect();
 
-        for i in 0..frame_count {
-            let mut sum = 0.0f32;
-            for ch in 0..channels {
-                sum += input[i * channels + ch];
-            }
-            mono.push(sum / channels as f32);
-        }
-
-        mono
+        Cow::Owned(mono)
     }
 }
 

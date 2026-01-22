@@ -60,6 +60,11 @@ fn get_available_space() -> Result<u64, String> {
         }
 
         unsafe {
+            // Validate path is properly null-terminated before FFI call
+            if wide_path.is_empty() || wide_path.last() != Some(&0) {
+                return Err("Invalid path format for disk space check".to_string());
+            }
+
             let result = GetDiskFreeSpaceExW(
                 wide_path.as_ptr(),
                 &mut free_bytes,
@@ -68,7 +73,9 @@ fn get_available_space() -> Result<u64, String> {
             );
 
             if result == 0 {
-                return Err("Failed to get disk space".to_string());
+                // Include OS error for better diagnostics
+                let error = std::io::Error::last_os_error();
+                return Err(format!("Failed to get disk space: {}", error));
             }
         }
 
