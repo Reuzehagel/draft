@@ -26,6 +26,8 @@ import type { Config } from "@/shared/types/config";
 import type { MicrophoneInfo } from "@/shared/types/audio";
 import { formatFileSize } from "@/shared/types/models";
 import { useModels } from "./useModels";
+import { useWhisper } from "./useWhisper";
+import { AmplitudeVisualizer } from "./AmplitudeVisualizer";
 import * as Events from "@/shared/constants/events";
 
 function useConfig() {
@@ -233,7 +235,7 @@ export default function SettingsApp() {
     loading: microphonesLoading,
     error: microphonesError,
   } = useMicrophones();
-  const { isTesting, amplitudes, startTest } = useMicrophoneTest();
+  const { isTesting, amplitudes: micTestAmplitudes, startTest } = useMicrophoneTest();
   const {
     downloadedModels,
     availableModels,
@@ -244,6 +246,16 @@ export default function SettingsApp() {
     cancelDownload,
     deleteModel,
   } = useModels();
+  const {
+    isModelLoading,
+    loadedModel,
+    isTranscribing,
+    transcriptionResult,
+    transcriptionError,
+    amplitudes: whisperAmplitudes,
+    testTranscription,
+    isBusy: whisperBusy,
+  } = useWhisper(config?.selected_model);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -331,19 +343,7 @@ export default function SettingsApp() {
             >
               {isTesting ? "Testing..." : "Test Microphone"}
             </Button>
-            {isTesting && amplitudes.length > 0 && (
-              <div className="flex items-center gap-[2px] h-5">
-                {amplitudes.slice(0, 14).map((amplitude, i) => (
-                  <div
-                    key={i}
-                    className="w-[3px] bg-primary rounded-full transition-all duration-75"
-                    style={{
-                      height: `${Math.max(4, amplitude * 20)}px`,
-                    }}
-                  />
-                ))}
-              </div>
-            )}
+            {isTesting && <AmplitudeVisualizer amplitudes={micTestAmplitudes} />}
           </div>
         </SettingsSection>
 
@@ -370,7 +370,17 @@ export default function SettingsApp() {
             <div className="space-y-4">
               {/* Downloaded Models */}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Downloaded:</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Downloaded:
+                  {isModelLoading && (
+                    <span className="ml-2 text-primary">(Loading model...)</span>
+                  )}
+                  {loadedModel && !isModelLoading && (
+                    <span className="ml-2 text-muted-foreground/60">
+                      (Loaded: {downloadedModels.find((m) => m.id === loadedModel)?.name || loadedModel})
+                    </span>
+                  )}
+                </p>
                 {downloadedModels.length === 0 ? (
                   <p className="text-sm text-muted-foreground/60 italic pl-2">
                     (none)
@@ -382,12 +392,13 @@ export default function SettingsApp() {
                         key={model.id}
                         className="flex items-center justify-between"
                       >
-                        <label className="flex items-center gap-2 cursor-pointer flex-1">
+                        <label className={`flex items-center gap-2 flex-1 ${whisperBusy || isDownloading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                           <input
                             type="radio"
                             name="selected_model"
                             checked={config?.selected_model === model.id}
                             onChange={() => updateConfig({ selected_model: model.id })}
+                            disabled={whisperBusy || isDownloading}
                             className="h-4 w-4 accent-primary"
                           />
                           <span className="text-sm">
@@ -399,7 +410,7 @@ export default function SettingsApp() {
                         </label>
                         <AlertDialog>
                           <AlertDialogTrigger
-                            render={<Button variant="ghost" size="sm" />}
+                            render={<Button variant="ghost" size="sm" disabled={whisperBusy || isDownloading} />}
                           >
                             Delete
                           </AlertDialogTrigger>
@@ -481,12 +492,38 @@ export default function SettingsApp() {
                 )}
               </div>
 
+              {/* Test Transcription */}
+              {downloadedModels.length > 0 && (
+                <div className="pt-2 border-t border-border">
+                  <p className="text-sm text-muted-foreground mb-2">Test Transcription:</p>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={whisperBusy || !loadedModel || isTesting}
+                      onClick={() => testTranscription(config?.microphone_id ?? null)}
+                    >
+                      {isTranscribing ? "Recording (3s)..." : isModelLoading ? "Loading..." : "Test (3s)"}
+                    </Button>
+                    {isTranscribing && <AmplitudeVisualizer amplitudes={whisperAmplitudes} />}
+                  </div>
+                  {transcriptionResult !== null && (
+                    <div className="mt-2 p-2 rounded bg-muted text-sm">
+                      {transcriptionResult || <span className="text-muted-foreground italic">(no speech detected)</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Error messages */}
               {downloadError && (
                 <p className="text-sm text-destructive">{downloadError}</p>
               )}
               {deleteError && (
                 <p className="text-sm text-destructive">{deleteError}</p>
+              )}
+              {transcriptionError && (
+                <p className="text-sm text-destructive">{transcriptionError}</p>
               )}
             </div>
           )}

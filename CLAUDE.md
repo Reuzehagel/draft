@@ -19,9 +19,9 @@ bun tauri dev
 bun tauri build
 
 # Frontend only (for UI development)
-npm run dev          # Vite dev server at localhost:5173
-npm run build        # TypeScript check + Vite build
-npm run lint         # ESLint
+bun run dev          # Vite dev server at localhost:5173
+bun run build        # TypeScript check + Vite build
+bun run lint         # ESLint
 
 # Rust only
 cargo build --manifest-path src-tauri/Cargo.toml
@@ -87,6 +87,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 ## Key Constraints
 
+- **Always use bun, never npm** - This project uses bun as the package manager
 - **Rust 2024 edition** requires rustc 1.85+
 - **CMake required** for whisper-rs (Sprint 4)
 - **Audio callback timing** must complete in <5ms
@@ -103,7 +104,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 After completing a sprint, follow this mandatory review and refinement process:
 
-1. **Run the Code Reviewer agent** (`feature-dev:code-reviewer`) - Review the sprint's code for bugs, logic errors, security vulnerabilities, and code quality issues
+1. **Run the Code Reviewer agent** (`feature-dev:code-reviewer`) - Review the sprint's code for bugs, logic errors, and security vulnerabilities (not style/cleanup - the simplifier handles that)
 2. **Run the Code Simplifier agent** (`code-simplifier:code-simplifier`) - Simplify and refine the code for clarity, consistency, and maintainability
 3. **Run the Code Architect agent** (`feature-dev:code-architect`) - Design solutions for any issues identified by the reviewer and simplifier
 4. **Implement the fixes** - Apply the architect's recommendations to resolve all identified issues

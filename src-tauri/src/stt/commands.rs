@@ -1,10 +1,16 @@
-//! Tauri commands for model management
+//! Tauri commands for model management and transcription
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+use serde::Serialize;
+use tauri::{AppHandle, Emitter};
+
 use super::download;
 use super::models::{self, ModelInfo};
+use super::whisper::WhisperHandle;
+use crate::audio::capture::AudioCapture;
+use crate::audio::worker::AudioWorker;
 
 /// State for tracking active downloads
 #[derive(Default)]
@@ -89,5 +95,130 @@ pub fn delete_model(model_id: String) -> Result<(), String> {
     std::fs::remove_file(&path).map_err(|e| format!("Failed to delete model: {}", e))?;
 
     log::info!("Deleted model {} from {:?}", model_id, path);
+    Ok(())
+}
+
+/// Whisper state returned to frontend
+#[derive(Debug, Clone, Serialize)]
+pub struct WhisperState {
+    pub is_busy: bool,
+    pub current_model: Option<String>,
+}
+
+/// Get current whisper state (busy status and loaded model)
+#[tauri::command]
+pub fn get_whisper_state(whisper: tauri::State<'_, WhisperHandle>) -> WhisperState {
+    WhisperState {
+        is_busy: whisper.is_busy(),
+        current_model: whisper.current_model(),
+    }
+}
+
+/// Load a whisper model by ID
+#[tauri::command]
+pub fn load_model(
+    whisper: tauri::State<'_, WhisperHandle>,
+    model_id: String,
+) -> Result<(), String> {
+    // Validate model exists
+    let model = models::find_model(&model_id)
+        .ok_or_else(|| format!("Unknown model: {}", model_id))?;
+
+    // Check if model is downloaded
+    if !models::is_model_downloaded(model.filename) {
+        return Err(format!("Model {} is not downloaded", model_id));
+    }
+
+    // Send load command to whisper thread
+    whisper.load_model(model_id)
+}
+
+/// Test transcription: record 3s of audio and transcribe it
+/// Returns immediately, results come via events
+#[tauri::command]
+pub async fn test_transcription(
+    app: AppHandle,
+    whisper: tauri::State<'_, WhisperHandle>,
+    device_id: Option<String>,
+) -> Result<(), String> {
+    // Check if whisper is busy
+    if whisper.is_busy() {
+        return Err("Whisper is busy".to_string());
+    }
+
+    // Check if model is loaded
+    if whisper.current_model().is_none() {
+        return Err("No model loaded".to_string());
+    }
+
+    // Get a clonable client for the spawned thread
+    let whisper_client = whisper.client();
+
+    // Spawn the test in a background task
+    std::thread::spawn(move || {
+        let result = run_test_transcription(&app, device_id.as_deref(), &whisper_client);
+        if let Err(e) = result {
+            log::error!("Test transcription failed: {}", e);
+            let _ = app.emit(crate::events::TRANSCRIPTION_ERROR, &e);
+        }
+    });
+
+    Ok(())
+}
+
+/// Internal function to run test transcription
+fn run_test_transcription(
+    app: &AppHandle,
+    device_id: Option<&str>,
+    whisper: &super::whisper::WhisperClient,
+) -> Result<(), String> {
+    log::info!("Starting test transcription for device: {:?}", device_id);
+
+    // Create audio capture
+    let mut capture = AudioCapture::new(device_id)?;
+
+    // Create worker with amplitude events for visualization
+    let worker = AudioWorker::new(
+        capture.take_consumer()?,
+        capture.sample_rate(),
+        capture.channels(),
+        Some(app.clone()),
+    );
+
+    // Start capture - if this fails, stop worker to prevent leak
+    if let Err(e) = capture.start() {
+        let _ = worker.stop(); // Ensure worker thread is joined
+        return Err(e);
+    }
+
+    // Record for 3 seconds
+    std::thread::sleep(std::time::Duration::from_secs(3));
+
+    // Stop capture
+    capture.stop();
+
+    // Check for stream errors during recording
+    if capture.has_error() {
+        let _ = worker.stop(); // Ensure worker thread is joined
+        return Err("Audio stream error during recording".to_string());
+    }
+
+    // Stop worker and get audio (consumes worker, joins thread)
+    let audio = worker.stop();
+
+    // Validate audio was captured
+    if audio.is_empty() {
+        return Err("No audio recorded".to_string());
+    }
+
+    log::info!(
+        "Recorded {} samples ({:.2}s at 16kHz)",
+        audio.len(),
+        audio.len() as f32 / 16000.0
+    );
+
+    // Send to whisper for transcription
+    whisper.transcribe(audio)?;
+
     Ok(())
 }

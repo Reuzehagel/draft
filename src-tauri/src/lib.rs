@@ -1,5 +1,5 @@
 //! Draft - Voice-to-text transcription application
-//! Sprint 3: Model Management
+//! Sprint 4: Whisper Integration
 
 mod audio;
 mod config;
@@ -37,6 +37,9 @@ pub fn run() {
             stt::commands::download_model,
             stt::commands::cancel_download,
             stt::commands::delete_model,
+            stt::commands::get_whisper_state,
+            stt::commands::load_model,
+            stt::commands::test_transcription,
         ])
         .setup(|app| {
             // Initialize logging in debug mode
@@ -47,6 +50,24 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Create WhisperHandle and manage it
+            let whisper_handle = stt::WhisperHandle::new(app.handle().clone());
+
+            // Auto-load selected model on startup if it exists
+            let loaded_config = config::load_config();
+            if let Some(ref model_id) = loaded_config.selected_model {
+                if let Some(model) = stt::models::find_model(model_id) {
+                    if stt::models::is_model_downloaded(model.filename) {
+                        log::info!("Auto-loading model on startup: {}", model_id);
+                        if let Err(e) = whisper_handle.load_model(model_id.clone()) {
+                            log::error!("Failed to auto-load model: {}", e);
+                        }
+                    }
+                }
+            }
+
+            app.manage(whisper_handle);
 
             // Create tray menu
             let open_settings =

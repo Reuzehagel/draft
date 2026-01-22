@@ -3,10 +3,7 @@
 
 mod amplitude;
 mod buffer;
-mod capture;
+pub mod capture;
 pub mod devices;
 mod resampler;
-mod worker;
-
-// Commands accessed via devices:: for tauri macro
-// MicrophoneInfo is serialized directly to frontend, no need to re-export
+pub mod worker;
