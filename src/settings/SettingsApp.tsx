@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Mic01Icon,
+  KeyboardIcon,
+  Package01Icon,
+  SettingsIcon,
+} from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -77,14 +84,14 @@ function SettingsSection({
   title,
   children,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-3">
       <h2 className="flex items-center gap-2 text-sm font-medium">
-        <span>{icon}</span>
+        {icon}
         {title}
       </h2>
       <div className="space-y-3 pl-6">{children}</div>
@@ -433,7 +440,7 @@ export default function SettingsApp() {
       {/* Content */}
       <div className="space-y-6 p-4">
         {/* Audio Section */}
-        <SettingsSection icon="🎤" title="Audio">
+        <SettingsSection icon={<HugeiconsIcon icon={Mic01Icon} size={16} />} title="Audio">
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">Microphone</label>
             {microphonesLoading ? (
@@ -476,7 +483,7 @@ export default function SettingsApp() {
         <Separator />
 
         {/* Hotkey Section */}
-        <SettingsSection icon="⌨️" title="Hotkey">
+        <SettingsSection icon={<HugeiconsIcon icon={KeyboardIcon} size={16} />} title="Hotkey">
           <div className="space-y-2">
             <label className="text-sm text-muted-foreground">
               Push-to-talk
@@ -497,7 +504,7 @@ export default function SettingsApp() {
         <Separator />
 
         {/* Models Section */}
-        <SettingsSection icon="📦" title="Models">
+        <SettingsSection icon={<HugeiconsIcon icon={Package01Icon} size={16} />} title="Models">
           {modelsLoading ? (
             <p className="text-sm text-muted-foreground">Loading models...</p>
           ) : (
@@ -666,7 +673,7 @@ export default function SettingsApp() {
         <Separator />
 
         {/* General Section */}
-        <SettingsSection icon="⚙️" title="General">
+        <SettingsSection icon={<HugeiconsIcon icon={SettingsIcon} size={16} />} title="General">
           <div className="space-y-3">
             <div className="space-y-1">
               <Checkbox
