@@ -1,0 +1,7 @@
+# Force optimization for whisper.cpp/ggml native code
+# whisper-rs-sys passes any WHISPER_* or CMAKE_* env vars as cmake -D defines
+
+[env]
+# Override cmake compiler flags directly (these become -DCMAKE_*=value)
+CMAKE_C_FLAGS_RELEASE = "/O2 /Ob2 /Oi /Ot /DNDEBUG /arch:AVX2 /fp:fast"
+CMAKE_CXX_FLAGS_RELEASE = "/O2 /Ob2 /Oi /Ot /DNDEBUG /arch:AVX2 /fp:fast /EHsc"
