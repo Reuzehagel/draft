@@ -6,7 +6,14 @@ import {
   Mic01Icon,
   KeyboardIcon,
   Package01Icon,
-  SettingsIcon,
+  Settings01Icon,
+  Delete02Icon,
+  Download01Icon,
+  Cancel01Icon,
+  Tick02Icon,
+  InformationCircleIcon,
+  Sun01Icon,
+  Moon01Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
@@ -37,6 +43,25 @@ import { useWhisper } from "./useWhisper";
 import { AmplitudeVisualizer } from "./AmplitudeVisualizer";
 import * as Events from "@/shared/constants/events";
 
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(() => {
+    const stored = localStorage.getItem("draft-dark-mode");
+    if (stored !== null) return stored === "true";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    localStorage.setItem("draft-dark-mode", String(isDark));
+  }, [isDark]);
+
+  return { isDark, toggle: () => setIsDark((d) => !d) };
+}
+
 function useConfig() {
   const [config, setConfig] = useState<Config | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +73,6 @@ function useConfig() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Cleanup timeout on unmount to prevent memory leak
   useEffect(() => {
     return () => {
       if (timeoutRef.current !== undefined) {
@@ -63,12 +87,10 @@ function useConfig() {
       const newConfig = { ...config, ...updates };
       setConfig(newConfig);
 
-      // Clear any pending save
       if (timeoutRef.current !== undefined) {
         clearTimeout(timeoutRef.current);
       }
 
-      // Debounce config saves
       timeoutRef.current = setTimeout(() => {
         invoke("set_config", { config: newConfig });
       }, 300);
@@ -79,45 +101,105 @@ function useConfig() {
   return { config, updateConfig, loading };
 }
 
-function SettingsSection({
+function SettingsCard({
   icon,
   title,
+  description,
   children,
 }: {
   icon: React.ReactNode;
   title: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-3">
-      <h2 className="flex items-center gap-2 text-sm font-medium">
-        {icon}
-        {title}
-      </h2>
-      <div className="space-y-3 pl-6">{children}</div>
+    <div className="rounded-lg border border-border/60 bg-card/50 overflow-hidden">
+      <div className="flex items-start gap-3 px-4 py-3 border-b border-border/40 bg-muted/30">
+        <div className="mt-0.5 text-muted-foreground/70">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-[13px] font-medium text-foreground">{title}</h2>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          )}
+        </div>
+      </div>
+      <div className="px-4 py-3 space-y-3">{children}</div>
     </div>
   );
 }
 
-function Checkbox({
+function SettingRow({
+  label,
+  description,
+  children,
+  inline = false,
+}: {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+  inline?: boolean;
+}) {
+  if (inline) {
+    return (
+      <div className="flex items-center justify-between gap-4 py-1">
+        <div className="flex-1 min-w-0">
+          <span className="text-[13px] text-foreground">{label}</span>
+          {description && (
+            <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+          )}
+        </div>
+        <div className="shrink-0">{children}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 py-1">
+      <div>
+        <span className="text-[13px] text-foreground">{label}</span>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Toggle({
   checked,
   onChange,
-  label,
+  disabled,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
-  label: string;
+  disabled?: boolean;
 }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-border bg-background accent-primary"
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`
+        relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full
+        transition-colors duration-200 ease-in-out
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+        disabled:cursor-not-allowed disabled:opacity-50
+        ${checked ? 'bg-primary' : 'bg-input'}
+      `}
+    >
+      <span
+        className={`
+          pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0
+          transition duration-200 ease-in-out
+          ${checked ? 'translate-x-[18px]' : 'translate-x-0.5'}
+        `}
       />
-      <span className="text-sm">{label}</span>
-    </label>
+    </button>
   );
 }
 
@@ -146,36 +228,29 @@ function HotkeyInput({
       if (e.shiftKey) parts.push("Shift");
       if (e.metaKey) parts.push("Meta");
 
-      // Get the key name, handling special cases
       let keyName = e.key;
       if (keyName === " ") keyName = "Space";
 
-      // Check if it's a modifier key being pressed alone
       const isModifierKey = ["Control", "Alt", "Shift", "Meta"].includes(keyName);
 
       if (keyName && !isModifierKey) {
-        // Normalize key name to uppercase for regular keys
         const normalizedKey = keyName.length === 1 ? keyName.toUpperCase() : keyName;
         parts.push(normalizedKey);
 
         const hotkey = parts.join("+");
 
-        // Quick frontend check for bare keys - F1-F24 are allowed without modifiers
-        // Full validation happens on backend via validate_hotkey command
         const isFunctionKey = /^F([1-9]|1[0-9]|2[0-4])$/.test(normalizedKey);
         if (parts.length === 1 && !isFunctionKey) {
           setValidationError(`'${normalizedKey}' requires a modifier key (Ctrl, Alt, Shift, or Meta)`);
           return;
         }
 
-        // Validate with backend
         try {
           await invoke("validate_hotkey", { hotkey });
           setValidationError(null);
           onChange(hotkey);
           setIsRecording(false);
 
-          // Trigger registration validation if provided
           if (onValidate) {
             onValidate(hotkey).catch((err) => {
               setValidationError(String(err));
@@ -192,36 +267,49 @@ function HotkeyInput({
   const displayError = error || validationError;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          className={`min-w-[180px] justify-start font-mono text-xs ${displayError ? 'border-destructive' : ''}`}
+        <button
           onClick={() => {
             setIsRecording(!isRecording);
             if (!isRecording) setValidationError(null);
           }}
           onKeyDown={handleKeyDown}
+          className={`
+            flex-1 h-9 px-3 rounded-md text-[13px] font-mono text-left
+            border transition-all duration-150
+            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1
+            ${isRecording
+              ? 'border-primary bg-primary/5 text-primary'
+              : displayError
+                ? 'border-destructive/50 bg-destructive/5'
+                : 'border-input bg-background hover:bg-muted/50'
+            }
+          `}
         >
           {isRecording
             ? "Press keys..."
             : value || "Click to set hotkey"}
-        </Button>
+        </button>
         {value && (
           <Button
             variant="ghost"
             size="sm"
+            className="h-9 px-2 text-muted-foreground hover:text-foreground"
             onClick={() => {
               onChange(null);
               setValidationError(null);
             }}
           >
-            Clear
+            <HugeiconsIcon icon={Cancel01Icon} size={16} />
           </Button>
         )}
       </div>
       {displayError && (
-        <p className="text-xs text-destructive">{displayError}</p>
+        <p className="text-xs text-destructive flex items-center gap-1.5">
+          <HugeiconsIcon icon={InformationCircleIcon} size={14} />
+          {displayError}
+        </p>
       )}
     </div>
   );
@@ -234,27 +322,22 @@ function useHotkeyRegistration(hotkey: string | null | undefined) {
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    // Always run on initial mount to ensure hotkey is registered,
-    // then track changes for subsequent updates
     const shouldRegister = isInitialMount.current || previousHotkeyRef.current !== hotkey;
 
     if (!shouldRegister) {
       return;
     }
 
-    // Update tracking refs
     isInitialMount.current = false;
     previousHotkeyRef.current = hotkey;
 
     const registerHotkey = async () => {
       setRegistrationError(null);
 
-      // If hotkey is cleared, unregister
       if (!hotkey) {
         try {
           await invoke("unregister_hotkey");
         } catch (e) {
-          // Log but don't show error for unregister failures
           console.warn("Failed to unregister hotkey:", e);
         }
         return;
@@ -319,7 +402,6 @@ function useMicrophoneTest() {
     let unlistenAmplitudeFn: (() => void) | null = null;
     let unlistenCompleteFn: (() => void) | null = null;
 
-    // Listen for amplitude updates during test
     listen<number[]>(Events.AMPLITUDE, (event) => {
       if (mounted) {
         setAmplitudes(event.payload);
@@ -328,7 +410,6 @@ function useMicrophoneTest() {
       unlistenAmplitudeFn = fn;
     });
 
-    // Listen for test completion
     listen<boolean>(Events.TEST_MICROPHONE_COMPLETE, () => {
       if (mounted) {
         setIsTesting(false);
@@ -340,7 +421,6 @@ function useMicrophoneTest() {
 
     return () => {
       mounted = false;
-      // Clean up listeners if they were registered
       if (unlistenAmplitudeFn) unlistenAmplitudeFn();
       if (unlistenCompleteFn) unlistenCompleteFn();
     };
@@ -359,7 +439,149 @@ function useMicrophoneTest() {
   return { isTesting, amplitudes, startTest };
 }
 
+function ModelItem({
+  name,
+  size,
+  isSelected,
+  isLoaded,
+  onSelect,
+  onDelete,
+  disabled,
+}: {
+  name: string;
+  size: number;
+  isSelected: boolean;
+  isLoaded: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className={`
+      flex items-center gap-3 px-3 py-2 rounded-md transition-colors
+      ${isSelected ? 'bg-primary/8' : 'hover:bg-muted/50'}
+    `}>
+      <button
+        onClick={onSelect}
+        disabled={disabled}
+        className={`
+          w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0
+          transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+          ${isSelected
+            ? 'border-primary bg-primary'
+            : 'border-muted-foreground/30 hover:border-muted-foreground/50'
+          }
+        `}
+      >
+        {isSelected && (
+          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground" />
+        )}
+      </button>
+      <div className="flex-1 min-w-0">
+        <span className="text-[13px] text-foreground">{name}</span>
+        <span className="text-xs text-muted-foreground ml-2">
+          {formatFileSize(size)}
+        </span>
+        {isLoaded && (
+          <span className="text-xs text-primary/70 ml-2 inline-flex items-center gap-1">
+            <HugeiconsIcon icon={Tick02Icon} size={12} />
+            Loaded
+          </span>
+        )}
+      </div>
+      <AlertDialog>
+        <AlertDialogTrigger
+          render={
+            <button
+              disabled={disabled}
+              className="p-1.5 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          }
+        >
+          <HugeiconsIcon icon={Delete02Icon} size={16} />
+        </AlertDialogTrigger>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the model from your computer. You can download it again later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={onDelete}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function DownloadableModel({
+  name,
+  size,
+  isDownloading,
+  progress,
+  onDownload,
+  onCancel,
+  disabled,
+}: {
+  name: string;
+  size: number;
+  isDownloading: boolean;
+  progress: number | null;
+  onDownload: () => void;
+  onCancel: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="px-3 py-2 rounded-md hover:bg-muted/30 transition-colors">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <span className="text-[13px] text-foreground">{name}</span>
+          <span className="text-xs text-muted-foreground ml-2">
+            {formatFileSize(size)}
+          </span>
+        </div>
+        {isDownloading ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-muted-foreground hover:text-foreground"
+            onClick={onCancel}
+          >
+            <HugeiconsIcon icon={Cancel01Icon} size={14} />
+            <span className="ml-1.5 text-xs">Cancel</span>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-muted-foreground hover:text-foreground"
+            disabled={disabled}
+            onClick={onDownload}
+          >
+            <HugeiconsIcon icon={Download01Icon} size={14} />
+            <span className="ml-1.5 text-xs">Download</span>
+          </Button>
+        )}
+      </div>
+      {isDownloading && progress !== null && (
+        <div className="flex items-center gap-2 mt-2">
+          <Progress value={progress} className="flex-1 h-1.5" />
+          <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
+            {progress}%
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SettingsApp() {
+  const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { config, updateConfig, loading } = useConfig();
   const {
     microphones,
@@ -392,7 +614,6 @@ export default function SettingsApp() {
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [autoStartError, setAutoStartError] = useState<string | null>(null);
 
-  // Auto-select first downloaded model if none selected
   useEffect(() => {
     if (!loading && config && !config.selected_model && downloadedModels.length > 0) {
       updateConfig({ selected_model: downloadedModels[0].id });
@@ -412,7 +633,6 @@ export default function SettingsApp() {
     setDeleteError(null);
     try {
       await deleteModel(modelId);
-      // Clear selection if deleted model was selected
       if (config?.selected_model === modelId) {
         updateConfig({ selected_model: null });
       }
@@ -424,7 +644,10 @@ export default function SettingsApp() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-foreground">
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -432,19 +655,35 @@ export default function SettingsApp() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h1 className="text-base font-semibold">Draft Settings</h1>
-        <span className="text-xs text-muted-foreground">v0.1.0</span>
-      </div>
+      <header className="sticky top-0 z-10 backdrop-blur-sm bg-background/80 border-b border-border/60">
+        <div className="flex items-center justify-between px-4 py-3">
+          <h1 className="text-sm font-semibold tracking-tight">Draft Settings</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleDarkMode}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={16} />
+            </button>
+            <span className="text-xs text-muted-foreground/60 font-mono">v0.1.0</span>
+          </div>
+        </div>
+      </header>
 
       {/* Content */}
-      <div className="space-y-6 p-4">
-        {/* Audio Section */}
-        <SettingsSection icon={<HugeiconsIcon icon={Mic01Icon} size={16} />} title="Audio">
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Microphone</label>
+      <div className="p-4 space-y-3 max-w-lg mx-auto">
+        {/* Audio */}
+        <SettingsCard
+          icon={<HugeiconsIcon icon={Mic01Icon} size={16} />}
+          title="Audio"
+          description="Configure your microphone input"
+        >
+          <SettingRow label="Microphone">
             {microphonesLoading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
+              <div className="h-9 flex items-center">
+                <span className="text-sm text-muted-foreground">Loading...</span>
+              </div>
             ) : microphonesError ? (
               <p className="text-sm text-destructive">{microphonesError}</p>
             ) : microphones.length === 0 ? (
@@ -454,23 +693,24 @@ export default function SettingsApp() {
                 value={config?.microphone_id || ""}
                 onValueChange={(value) => updateConfig({ microphone_id: value || null })}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full h-9 text-[13px]">
                   <SelectValue placeholder="Select microphone" />
                 </SelectTrigger>
                 <SelectContent>
                   {microphones.map((mic) => (
-                    <SelectItem key={mic.id || "default"} value={mic.id}>
+                    <SelectItem key={mic.id || "default"} value={mic.id} className="text-[13px]">
                       {mic.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
-          </div>
-          <div className="flex items-center gap-3">
+          </SettingRow>
+          <div className="flex items-center gap-3 pt-1">
             <Button
               variant="outline"
               size="sm"
+              className="h-8 text-xs"
               disabled={microphonesLoading || microphones.length === 0 || isTesting}
               onClick={() => startTest(config?.microphone_id ?? null)}
             >
@@ -478,17 +718,21 @@ export default function SettingsApp() {
             </Button>
             {isTesting && <AmplitudeVisualizer amplitudes={micTestAmplitudes} />}
           </div>
-        </SettingsSection>
+        </SettingsCard>
 
-        <Separator />
-
-        {/* Hotkey Section */}
-        <SettingsSection icon={<HugeiconsIcon icon={KeyboardIcon} size={16} />} title="Hotkey">
+        {/* Hotkey */}
+        <SettingsCard
+          icon={<HugeiconsIcon icon={KeyboardIcon} size={16} />}
+          title="Hotkey"
+          description="Push-to-talk keyboard shortcut"
+        >
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">
-              Push-to-talk
-              {hotkeyRegistering && <span className="ml-2 text-primary">(Registering...)</span>}
-            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] text-foreground">Push-to-talk</span>
+              {hotkeyRegistering && (
+                <span className="text-xs text-primary">(Registering...)</span>
+              )}
+            </div>
             <HotkeyInput
               value={config?.hotkey || null}
               onChange={(hotkey) => updateConfig({ hotkey })}
@@ -499,184 +743,133 @@ export default function SettingsApp() {
               Hold to record, release to transcribe. Function keys (F1-F24) work without modifiers.
             </p>
           </div>
-        </SettingsSection>
+        </SettingsCard>
 
-        <Separator />
-
-        {/* Models Section */}
-        <SettingsSection icon={<HugeiconsIcon icon={Package01Icon} size={16} />} title="Models">
+        {/* Models */}
+        <SettingsCard
+          icon={<HugeiconsIcon icon={Package01Icon} size={16} />}
+          title="Models"
+          description={isModelLoading ? "Loading model..." : loadedModel ? `Active: ${downloadedModels.find((m) => m.id === loadedModel)?.name || loadedModel}` : "Select a transcription model"}
+        >
           {modelsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading models...</p>
+            <div className="py-4 flex items-center justify-center">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm">Loading models...</span>
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
               {/* Downloaded Models */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Downloaded:
-                  {isModelLoading && (
-                    <span className="ml-2 text-primary">(Loading model...)</span>
-                  )}
-                  {loadedModel && !isModelLoading && (
-                    <span className="ml-2 text-muted-foreground/60">
-                      (Loaded: {downloadedModels.find((m) => m.id === loadedModel)?.name || loadedModel})
-                    </span>
-                  )}
-                </p>
-                {downloadedModels.length === 0 ? (
-                  <p className="text-sm text-muted-foreground/60 italic pl-2">
-                    (none)
+              {downloadedModels.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                    Downloaded
                   </p>
-                ) : (
-                  <div className="space-y-2 pl-2">
+                  <div className="space-y-1 -mx-1">
                     {downloadedModels.map((model) => (
-                      <div
+                      <ModelItem
                         key={model.id}
-                        className="flex items-center justify-between"
-                      >
-                        <label className={`flex items-center gap-2 flex-1 ${whisperBusy || isDownloading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
-                          <input
-                            type="radio"
-                            name="selected_model"
-                            checked={config?.selected_model === model.id}
-                            onChange={() => updateConfig({ selected_model: model.id })}
-                            disabled={whisperBusy || isDownloading}
-                            className="h-4 w-4 accent-primary"
-                          />
-                          <span className="text-sm">
-                            {model.name}{" "}
-                            <span className="text-muted-foreground">
-                              ({formatFileSize(model.size)})
-                            </span>
-                          </span>
-                        </label>
-                        <AlertDialog>
-                          <AlertDialogTrigger
-                            render={<Button variant="ghost" size="sm" disabled={whisperBusy || isDownloading} />}
-                          >
-                            Delete
-                          </AlertDialogTrigger>
-                          <AlertDialogContent size="sm">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete {model.name}?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will remove the model from your computer. You can download it again later.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                variant="destructive"
-                                onClick={() => handleDelete(model.id)}
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
+                        name={model.name}
+                        size={model.size}
+                        isSelected={config?.selected_model === model.id}
+                        isLoaded={loadedModel === model.id}
+                        onSelect={() => updateConfig({ selected_model: model.id })}
+                        onDelete={() => handleDelete(model.id)}
+                        disabled={whisperBusy || isDownloading}
+                      />
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Available Models */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Available:</p>
-                {availableModels.length === 0 ? (
-                  <p className="text-sm text-muted-foreground/60 italic pl-2">
-                    All models downloaded
+              {availableModels.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                    Available to Download
                   </p>
-                ) : (
-                  <div className="space-y-2 pl-2">
+                  <div className="space-y-1 -mx-1">
                     {availableModels.map((model) => {
                       const isThisDownloading = downloadProgress?.model === model.id;
                       return (
-                        <div key={model.id} className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm">
-                              {model.name}{" "}
-                              <span className="text-muted-foreground">
-                                ({formatFileSize(model.size)})
-                              </span>
-                            </span>
-                            {isThisDownloading ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={cancelDownload}
-                              >
-                                Cancel
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={isDownloading}
-                                onClick={() => handleDownload(model.id)}
-                              >
-                                Download
-                              </Button>
-                            )}
-                          </div>
-                          {isThisDownloading && downloadProgress && (
-                            <div className="flex items-center gap-2">
-                              <Progress value={downloadProgress.progress} className="flex-1" />
-                              <span className="text-xs text-muted-foreground w-10 text-right">
-                                {downloadProgress.progress}%
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        <DownloadableModel
+                          key={model.id}
+                          name={model.name}
+                          size={model.size}
+                          isDownloading={isThisDownloading}
+                          progress={isThisDownloading ? downloadProgress?.progress ?? null : null}
+                          onDownload={() => handleDownload(model.id)}
+                          onCancel={cancelDownload}
+                          disabled={isDownloading && !isThisDownloading}
+                        />
                       );
                     })}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Test Transcription */}
               {downloadedModels.length > 0 && (
-                <div className="pt-2 border-t border-border">
-                  <p className="text-sm text-muted-foreground mb-2">Test Transcription:</p>
+                <div className="pt-3 border-t border-border/40">
                   <div className="flex items-center gap-3">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-8 text-xs"
                       disabled={whisperBusy || !loadedModel || isTesting}
                       onClick={() => testTranscription(config?.microphone_id ?? null)}
                     >
-                      {isTranscribing ? "Recording (3s)..." : isModelLoading ? "Loading..." : "Test (3s)"}
+                      {isTranscribing ? "Recording (3s)..." : isModelLoading ? "Loading..." : "Test Transcription (3s)"}
                     </Button>
                     {isTranscribing && <AmplitudeVisualizer amplitudes={whisperAmplitudes} />}
                   </div>
                   {transcriptionResult !== null && (
-                    <div className="mt-2 p-2 rounded bg-muted text-sm">
-                      {transcriptionResult || <span className="text-muted-foreground italic">(no speech detected)</span>}
+                    <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40">
+                      <p className="text-[13px]">
+                        {transcriptionResult || <span className="text-muted-foreground italic">(no speech detected)</span>}
+                      </p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Error messages */}
-              {downloadError && (
-                <p className="text-sm text-destructive">{downloadError}</p>
-              )}
-              {deleteError && (
-                <p className="text-sm text-destructive">{deleteError}</p>
-              )}
-              {transcriptionError && (
-                <p className="text-sm text-destructive">{transcriptionError}</p>
+              {/* Errors */}
+              {(downloadError || deleteError || transcriptionError) && (
+                <div className="space-y-1">
+                  {downloadError && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <HugeiconsIcon icon={InformationCircleIcon} size={14} />
+                      {downloadError}
+                    </p>
+                  )}
+                  {deleteError && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <HugeiconsIcon icon={InformationCircleIcon} size={14} />
+                      {deleteError}
+                    </p>
+                  )}
+                  {transcriptionError && (
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <HugeiconsIcon icon={InformationCircleIcon} size={14} />
+                      {transcriptionError}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           )}
-        </SettingsSection>
+        </SettingsCard>
 
-        <Separator />
-
-        {/* General Section */}
-        <SettingsSection icon={<HugeiconsIcon icon={SettingsIcon} size={16} />} title="General">
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Checkbox
+        {/* General */}
+        <SettingsCard
+          icon={<HugeiconsIcon icon={Settings01Icon} size={16} />}
+          title="General"
+          description="Application preferences"
+        >
+          <div className="space-y-1">
+            <SettingRow label="Start with Windows" inline>
+              <Toggle
                 checked={config?.auto_start || false}
                 onChange={async (newValue) => {
                   if (!config) return;
@@ -684,52 +877,50 @@ export default function SettingsApp() {
                   setAutoStartError(null);
                   const previousValue = config.auto_start;
 
-                  // Optimistic update for immediate UI feedback
                   updateConfig({ auto_start: newValue });
 
                   try {
-                    // Update system registry
                     if (newValue) {
                       await invoke("enable_autostart");
                     } else {
                       await invoke("disable_autostart");
                     }
 
-                    // Immediately save config (bypass debounce for critical setting)
                     await invoke("set_config", {
                       config: { ...config, auto_start: newValue }
                     });
                   } catch (e) {
-                    // Rollback on failure
                     updateConfig({ auto_start: previousValue });
                     const errorMsg = `Failed to ${newValue ? 'enable' : 'disable'} auto-start`;
                     setAutoStartError(errorMsg);
                     console.error(errorMsg, e);
                   }
                 }}
-                label="Start with Windows"
               />
-              {autoStartError && (
-                <p className="text-xs text-destructive pl-6">{autoStartError}</p>
-              )}
-            </div>
-            <Checkbox
-              checked={config?.trailing_space || false}
-              onChange={(trailing_space) => updateConfig({ trailing_space })}
-              label="Add space after text"
-            />
-            <div className="space-y-1">
-              <Checkbox
+            </SettingRow>
+            {autoStartError && (
+              <p className="text-xs text-destructive pl-0 pb-1">{autoStartError}</p>
+            )}
+
+            <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>
+              <Toggle
+                checked={config?.trailing_space || false}
+                onChange={(trailing_space) => updateConfig({ trailing_space })}
+              />
+            </SettingRow>
+
+            <SettingRow
+              label="Enable logging"
+              description="Logs to %APPDATA%\Draft\logs (restart required)"
+              inline
+            >
+              <Toggle
                 checked={config?.logging_enabled || false}
                 onChange={(logging_enabled) => updateConfig({ logging_enabled })}
-                label="Enable logging"
               />
-              <p className="text-xs text-muted-foreground pl-6">
-                Logs to %APPDATA%\Draft\logs\draft.log (restart required)
-              </p>
-            </div>
+            </SettingRow>
           </div>
-        </SettingsSection>
+        </SettingsCard>
       </div>
     </div>
   );
