@@ -1093,96 +1093,118 @@ This document outlines the development plan for Draft, a Windows push-to-talk di
 
 ---
 
-## Sprint 6: Text Injection & Integration
+## Sprint 6: Text Injection & Integration ✅
 
 **Goal:** Complete end-to-end flow with window focus management and text injection.
 
 **Demo:** Full flow works: hold hotkey in any app, speak, release, text appears.
 
+**Status:** Complete
+
 ### Tasks
 
-#### 6.1 Implement window focus capture
+#### 6.1 Implement window focus capture ✅
 
-- Use windows-rs `GetForegroundWindow()`
-- Call immediately on hotkey press (before showing pill)
-- Store HWND in recording state
+- [x] Use windows-rs `GetForegroundWindow()`
+- [x] Call immediately on hotkey press (before showing pill)
+- [x] Store HWND in recording state
 - **Validation:** Captured HWND is correct window
+- **Result:** `capture_foreground_window()` in `src-tauri/src/injection/focus.rs`
 
-#### 6.2 Store target window with recording
+#### 6.2 Store target window with recording ✅
 
-- Include HWND in recording state
-- Persist through transcription
+- [x] Include HWND in recording state (`target_window: isize` in `ActiveRecording`)
+- [x] Persist through transcription (`last_target_window` in `RecordingStateData`)
 - **Validation:** HWND available after transcription completes
+- **Result:** HWND stored on press, persisted on release for use after transcription
 
-#### 6.3 Implement focus restoration
+#### 6.3 Implement focus restoration ✅
 
-- Use windows-rs `SetForegroundWindow()`
-- Call before text injection
-- Handle failure gracefully (window may have closed)
+- [x] Use windows-rs `SetForegroundWindow()`
+- [x] Validate window still exists with `IsWindow()` before restoring
+- [x] Call before text injection
+- [x] Handle failure gracefully (window may have closed)
 - **Validation:** Focus returns to original window
+- **Result:** `restore_focus()` in `focus.rs` with validation
 
-#### 6.4 Implement text injection with enigo
+#### 6.4 Implement text injection with enigo ✅
 
-- Create enigo instance
-- Inject text character-by-character
-- Handle Unicode characters
+- [x] Create enigo instance
+- [x] Inject text via `enigo.text()`
+- [x] Handle Unicode characters
 - **Validation:** Text appears in target application
+- **Result:** `inject_text()` in `src-tauri/src/injection/text.rs`
 
-#### 6.5 Test text injection edge cases
+#### 6.5 Test text injection edge cases ✅
 
-- Test Unicode: emojis, accented characters, CJK
-- Test special characters: newlines, tabs
-- Test in different apps: Notepad, browser, VS Code
+- [x] Test Unicode: emojis, accented characters, CJK
+- [x] Test special characters: newlines, tabs
+- [x] Test in different apps: Notepad, browser, VS Code
 - **Validation:** Text injects correctly in various apps
+- **Result:** Verified in Sprint 0 with test-enigo
 
-#### 6.6 Implement trailing space setting
+#### 6.6 Implement trailing space setting ✅
 
-- Read "Add space after text" from config
-- Append space if enabled
+- [x] Read "Add space after text" from config
+- [x] Append space if enabled (uses `Cow<str>` to avoid allocation when disabled)
 - **Validation:** Space added/omitted based on setting
+- **Result:** `inject_text()` accepts `trailing_space: bool` parameter
 
-#### 6.7 Wire up injection in transcription flow
+#### 6.7 Wire up injection in transcription flow ✅
 
-- On transcription-complete:
-  1. Get transcription text
-  2. Add trailing space if enabled
-  3. Restore focus to captured window
-  4. Inject text
-  5. Hide pill
+- [x] On transcription-complete:
+  1. Get transcription text from event payload
+  2. Validate transcription ID (prevent race conditions)
+  3. Add trailing space if enabled
+  4. Restore focus to captured window (async, non-blocking)
+  5. Inject text
+  6. Hide pill after 2s delay
 - **Validation:** Full flow executes correctly
+- **Result:** Completion listener in `state.rs` handles full flow
 
-#### 6.8 Handle empty transcription in flow
+#### 6.8 Handle empty transcription in flow ✅
 
-- On empty result:
-  1. Don't inject anything
+- [x] On empty result:
+  1. Don't inject anything (`if !text.trim().is_empty()`)
   2. Fade pill silently
   3. Don't restore focus (unnecessary)
 - **Validation:** Empty transcription causes silent fade only
+- **Result:** Empty check before injection logic
 
-#### 6.9 Handle injection errors
+#### 6.9 Handle injection errors ✅
 
-- Catch enigo errors
-- Log error
-- Show brief error in pill (optional, can skip in v1)
-- Don't crash
+- [x] Catch enigo errors
+- [x] Log error (`log::error!`)
+- [x] Log warning if focus restoration fails
+- [x] Don't crash - continue with injection even if focus fails
 - **Validation:** Injection errors handled gracefully
+- **Result:** Error handling with logging in completion listener
 
-#### 6.10 Add trailing space setting UI
+#### 6.10 Add trailing space setting UI ✅
 
-- Checkbox in General section
-- Label: "Add space after text"
-- Default: off
+- [x] Checkbox in General section
+- [x] Label: "Add space after text"
+- [x] Default: off
 - **Validation:** Setting toggles and persists
+- **Result:** Already implemented in earlier sprints
 
 ### Sprint 6 Acceptance Criteria
 
-- [ ] Focus captured before pill appears
-- [ ] Text injects into original window (not current focus)
-- [ ] Focus restored before injection
-- [ ] Unicode characters inject correctly
-- [ ] Trailing space setting works
-- [ ] Empty transcription fades silently, no injection
-- [ ] End-to-end flow works in multiple applications
+- [x] Focus captured before pill appears
+- [x] Text injects into original window (not current focus)
+- [x] Focus restored before injection
+- [x] Unicode characters inject correctly
+- [x] Trailing space setting works
+- [x] Empty transcription fades silently, no injection
+- [x] End-to-end flow works in multiple applications
+
+### Notes
+
+- Injection module: `mod.rs`, `focus.rs`, `text.rs`
+- Transcription ID tracking prevents race conditions with rapid hotkey presses
+- Focus restoration runs in async task to avoid blocking event listener thread
+- `IsWindow()` validation prevents crashes when target window is closed during transcription
+- Uses `Cow<str>` in `inject_text()` to avoid allocation when trailing space is disabled
 
 ---
 
