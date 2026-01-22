@@ -176,8 +176,19 @@ impl RecordingManager {
         // Emit recording started event (no locks held)
         let _ = app.emit(events::RECORDING_STARTED, ());
 
-        // Show pill window
+        // Show pill window at bottom center of screen
         if let Some(pill) = app.get_webview_window("pill") {
+            // Position pill at bottom center of the current monitor
+            if let Ok(Some(monitor)) = pill.current_monitor() {
+                let monitor_size = monitor.size();
+                let monitor_pos = monitor.position();
+                let pill_size = pill.outer_size().unwrap_or(tauri::PhysicalSize::new(200, 40));
+
+                let x = monitor_pos.x + (monitor_size.width as i32 - pill_size.width as i32) / 2;
+                let y = monitor_pos.y + monitor_size.height as i32 - pill_size.height as i32 - 100; // 100px from bottom
+
+                let _ = pill.set_position(tauri::PhysicalPosition::new(x, y));
+            }
             let _ = pill.show();
         }
 

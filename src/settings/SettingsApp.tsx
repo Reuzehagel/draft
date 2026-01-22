@@ -688,23 +688,35 @@ export default function SettingsApp() {
               <p className="text-sm text-destructive">{microphonesError}</p>
             ) : microphones.length === 0 ? (
               <p className="text-sm text-destructive">No microphones detected</p>
-            ) : (
-              <Select
-                value={config?.microphone_id || ""}
-                onValueChange={(value) => updateConfig({ microphone_id: value || null })}
-              >
-                <SelectTrigger className="w-full h-9 text-[13px]">
-                  <SelectValue placeholder="Select microphone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {microphones.map((mic) => (
-                    <SelectItem key={mic.id || "default"} value={mic.id} className="text-[13px]">
-                      {mic.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+            ) : (() => {
+              // Find selected mic - null/empty config means system default (first mic with empty id, or just first mic)
+              const selectedId = config?.microphone_id;
+              const selectedMic = selectedId
+                ? microphones.find((m) => m.id === selectedId)
+                : microphones.find((m) => m.id === "") || microphones[0];
+
+              return (
+                <Select
+                  value={selectedMic?.id}
+                  onValueChange={(value) => {
+                    // Store null for system default (empty id), otherwise store the id
+                    const mic = microphones.find((m) => m.id === value);
+                    updateConfig({ microphone_id: mic?.id === "" ? null : value });
+                  }}
+                >
+                  <SelectTrigger className="w-full h-9 text-[13px]">
+                    <SelectValue placeholder="Select microphone" />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {microphones.map((mic) => (
+                      <SelectItem key={mic.id || "system-default"} value={mic.id} className="text-[13px]">
+                        {mic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              );
+            })()}
           </SettingRow>
           <div className="flex items-center gap-3 pt-1">
             <Button

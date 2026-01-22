@@ -119,11 +119,47 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply font-sans bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
+
+  /* Custom scrollbar - minimal, only visible on hover */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  *:hover {
+    scrollbar-color: oklch(0.5 0 0 / 0.3) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 3px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background-color: oklch(0.5 0 0 / 0.2);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: oklch(0.5 0 0 / 0.4);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
