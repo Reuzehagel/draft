@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "windows": [
-    "main"
+    "settings",
+    "pill"
   ],
   "permissions": [
     "core:default",

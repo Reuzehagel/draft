@@ -1,24 +1,47 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "draft",
+  "productName": "Draft",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.draft.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "bun dev",
+    "beforeDevCommand": "bun dev:vite",
     "beforeBuildCommand": "bun build"
   },
   "app": {
     "windows": [
       {
-        "title": "draft",
-        "width": 800,
+        "label": "settings",
+        "title": "Draft - Settings",
+        "width": 500,
         "height": 600,
+        "minWidth": 400,
+        "minHeight": 500,
         "resizable": true,
-        "fullscreen": false
+        "visible": false,
+        "url": "settings.html"
+      },
+      {
+        "label": "pill",
+        "title": "",
+        "width": 200,
+        "height": 40,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "url": "pill.html",
+        "focus": false
       }
     ],
+    "trayIcon": {
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": true,
+      "menuOnLeftClick": false
+    },
     "security": {
       "csp": null
     }
@@ -34,11 +57,5 @@
       "icons/icon.ico"
     ]
   },
-  "plugins": {
-    "global-shortcut": {},
-    "notification": {
-      "all": true
-    },
-    "autostart": {}
-  }
+  "plugins": {}
 }

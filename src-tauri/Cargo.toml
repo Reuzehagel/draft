@@ -19,10 +19,23 @@ tauri-build = { version = "2.5.3", features = [] }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.9.5", features = [] }
+tauri = { version = "2.9.5", features = ["tray-icon"] }
 tauri-plugin-log = "2"
 
 # Sprint 0 Task 0.4: Tauri v2 plugins verification
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
+
+# Sprint 1 dependencies (used now)
+dirs = "6.0"  # For %APPDATA% path resolution
+
+# Sprint 2+ dependencies (commented out until needed to avoid build issues)
+# whisper-rs = "0.15"
+# cpal = "0.17"
+# enigo = "0.6"
+# rubato = "1.0"
+# crossbeam = "0.8"
+# reqwest = { version = "0.13", features = ["stream"] }
+# windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging"] }
+# sha2 = "0.10"

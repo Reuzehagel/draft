@@ -1,0 +1,55 @@
+/* Pill window animations and styles */
+
+body {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Fade in/out animations */
+.pill-enter {
+  opacity: 0;
+}
+
+.pill-enter-active {
+  opacity: 1;
+  transition: opacity 150ms ease-out;
+}
+
+.pill-exit {
+  opacity: 1;
+}
+
+.pill-exit-active {
+  opacity: 0;
+  transition: opacity 150ms ease-in;
+}
+
+/* Pill container */
+.pill-container {
+  width: 200px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(26, 26, 26, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  color: white;
+  font-size: 12px;
+  font-family: 'Inter Variable', system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Error state with red tint */
+.pill-container.error {
+  background: rgba(180, 40, 40, 0.9);
+}
