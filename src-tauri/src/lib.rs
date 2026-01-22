@@ -1,9 +1,10 @@
 //! Draft - Voice-to-text transcription application
-//! Sprint 5: Hotkey & Recording Flow
+//! Sprint 6: Text Injection & Integration
 
 mod audio;
 mod config;
 mod events;
+mod injection;
 mod recording;
 mod stt;
 

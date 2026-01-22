@@ -1,7 +1,7 @@
 //! Recording state machine
 //! Manages the recording flow: Idle -> Recording -> Transcribing -> Idle
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -31,6 +31,7 @@ struct ActiveRecording {
     capture: AudioCapture,
     worker: AudioWorker,
     start_time: Instant,
+    target_window: isize, // HWND for focus restoration after transcription
 }
 
 /// Combined recording state (state + optional active recording)
@@ -38,6 +39,8 @@ struct ActiveRecording {
 struct RecordingStateData {
     state: RecordingState,
     active_recording: Option<ActiveRecording>,
+    last_target_window: Option<isize>, // Persists for injection after transcription
+    transcription_id: Option<u64>,     // Tracks current transcription to prevent race conditions
 }
 
 /// Manages recording state and transitions
@@ -49,6 +52,8 @@ pub struct RecordingManager {
     /// Track event listeners for cleanup to prevent memory leaks
     transcription_complete_listener: Arc<Mutex<Option<EventId>>>,
     transcription_error_listener: Arc<Mutex<Option<EventId>>>,
+    /// Monotonic counter for transcription requests to prevent race conditions
+    transcription_counter: Arc<AtomicU64>,
 }
 
 impl Default for RecordingManager {
@@ -63,10 +68,13 @@ impl RecordingManager {
             state_data: Arc::new(Mutex::new(RecordingStateData {
                 state: RecordingState::Idle,
                 active_recording: None,
+                last_target_window: None,
+                transcription_id: None,
             })),
             key_pressed: Arc::new(AtomicBool::new(false)),
             transcription_complete_listener: Arc::new(Mutex::new(None)),
             transcription_error_listener: Arc::new(Mutex::new(None)),
+            transcription_counter: Arc::new(AtomicU64::new(0)),
         }
     }
 
@@ -102,6 +110,9 @@ impl RecordingManager {
 
     /// Handle hotkey press - start recording
     pub fn on_hotkey_pressed(&self, app: &AppHandle) -> Result<(), String> {
+        // FIRST: Capture target window before anything else (before pill shows)
+        let target_window = crate::injection::capture_foreground_window();
+
         // Ignore key repeats using compare-exchange
         if self
             .key_pressed
@@ -157,6 +168,7 @@ impl RecordingManager {
                 capture,
                 worker,
                 start_time: Instant::now(),
+                target_window,
             });
             state_data.state = RecordingState::Recording;
         }
@@ -184,10 +196,13 @@ impl RecordingManager {
             return Ok(());
         }
 
-        // Take the active recording atomically
+        // Take the active recording atomically and store target window for injection
         let recording = {
             let mut state_data = self.state_data.lock().map_err(|_| "Lock poisoned")?;
-            state_data.active_recording.take()
+            let recording = state_data.active_recording.take();
+            // Store target window for use after transcription completes
+            state_data.last_target_window = recording.as_ref().map(|r| r.target_window);
+            recording
         };
 
         let Some(mut recording) = recording else {
@@ -209,24 +224,78 @@ impl RecordingManager {
         // Emit recording stopped event (no locks held)
         let _ = app.emit(events::RECORDING_STOPPED, ());
 
-        // Update state to transcribing atomically
-        {
+        // Update state to transcribing atomically and generate transcription ID
+        let transcription_id = {
             let mut state_data = self.state_data.lock().map_err(|_| "Lock poisoned")?;
             state_data.state = RecordingState::Transcribing;
-        }
+            // Generate unique transcription ID to prevent race conditions
+            let id = self.transcription_counter.fetch_add(1, Ordering::SeqCst);
+            state_data.transcription_id = Some(id);
+            id
+        };
 
         // Clean up any existing listeners before registering new ones
         self.cleanup_transcription_listeners(app);
 
-        // Set up new listeners for transcription completion to reset state
+        // Set up new listeners for transcription completion to reset state and inject text
         // Note: No state_data lock held during listener setup to prevent deadlock
         let state_data_clone = self.state_data.clone();
         let app_for_complete = app.clone();
-        let complete_listener_id = app.listen(events::TRANSCRIPTION_COMPLETE, move |_| {
-            if let Ok(mut state_data) = state_data_clone.lock() {
+        let expected_id = transcription_id;
+        let complete_listener_id = app.listen(events::TRANSCRIPTION_COMPLETE, move |event| {
+            // Parse transcription text from event
+            let text: String = serde_json::from_str(event.payload()).unwrap_or_default();
+
+            // Get target window and reset state atomically, validating transcription ID
+            let target_window = {
+                let mut state_data = match state_data_clone.lock() {
+                    Ok(guard) => guard,
+                    Err(_) => return,
+                };
+
+                // Validate this is the current transcription (prevent race condition)
+                if state_data.transcription_id != Some(expected_id) {
+                    log::warn!(
+                        "Ignoring stale transcription completion (expected {}, got {:?})",
+                        expected_id,
+                        state_data.transcription_id
+                    );
+                    return;
+                }
+
                 state_data.state = RecordingState::Idle;
+                state_data.transcription_id = None;
+                state_data.last_target_window.take()
+            };
+
+            // Only inject if we have non-empty text
+            if !text.trim().is_empty() {
+                let config = crate::config::load_config();
+
+                // Spawn background task for focus restoration and injection
+                // This prevents blocking the event listener thread
+                tauri::async_runtime::spawn(async move {
+                    if let Some(hwnd) = target_window {
+                        // Restore focus to original window
+                        if crate::injection::restore_focus(hwnd) {
+                            // Small delay to ensure focus is established
+                            tokio::time::sleep(Duration::from_millis(50)).await;
+                        } else {
+                            log::warn!(
+                                "Failed to restore focus to window (HWND: {}). Text will inject to current focus.",
+                                hwnd
+                            );
+                        }
+                    }
+
+                    // Inject the text (works regardless of focus restoration)
+                    if let Err(e) = crate::injection::inject_text(&text, config.trailing_space) {
+                        log::error!("Text injection failed: {}", e);
+                    }
+                });
             }
-            // Hide pill after a short delay to show result
+
+            // Hide pill after delay
             if let Some(pill) = app_for_complete.get_webview_window("pill") {
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(Duration::from_secs(2)).await;
@@ -239,7 +308,12 @@ impl RecordingManager {
         let app_for_error = app.clone();
         let error_listener_id = app.listen(events::TRANSCRIPTION_ERROR, move |_| {
             if let Ok(mut state_data) = state_data_clone.lock() {
+                // Validate this is the current transcription
+                if state_data.transcription_id != Some(expected_id) {
+                    return;
+                }
                 state_data.state = RecordingState::Idle;
+                state_data.transcription_id = None;
             }
             // Hide pill after showing error
             if let Some(pill) = app_for_error.get_webview_window("pill") {
