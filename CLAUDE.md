@@ -98,3 +98,14 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - Pill states can be tested in dev mode via keyboard shortcuts (1-4, 0) at `localhost:5173/pill.html`
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing
 - See `SPRINT_PLAN.md` for detailed implementation status and task breakdown
+
+## Post-Sprint Workflow
+
+After completing a sprint, follow this mandatory review and refinement process:
+
+1. **Run the Code Reviewer agent** (`feature-dev:code-reviewer`) - Review the sprint's code for bugs, logic errors, security vulnerabilities, and code quality issues
+2. **Run the Code Simplifier agent** (`code-simplifier:code-simplifier`) - Simplify and refine the code for clarity, consistency, and maintainability
+3. **Run the Code Architect agent** (`feature-dev:code-architect`) - Design solutions for any issues identified by the reviewer and simplifier
+4. **Implement the fixes** - Apply the architect's recommendations to resolve all identified issues
+
+This workflow ensures code quality remains high across sprints.
