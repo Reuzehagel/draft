@@ -13,7 +13,7 @@ A Windows push-to-talk dictation application. Hold a hotkey to record your voice
 ## Requirements
 
 - Windows 10/11
-- Microphone
+- Microphone (duh)
 - ~500MB to ~1.5GB disk space depending on model choice
 
 ## Installation
@@ -78,6 +78,7 @@ See [BUILD.md](BUILD.md) for detailed setup instructions.
 ## Data Storage
 
 All data is stored locally in `%APPDATA%\Draft\`:
+
 - `config.json` - Settings
 - `models/` - Downloaded Whisper models
 - `logs/` - Log files (when enabled)
