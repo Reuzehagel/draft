@@ -303,11 +303,18 @@ impl RecordingManager {
                 });
             }
 
-            // Hide pill after delay
+            // Hide pill after delay (only if still idle — prevents hiding during a new recording)
+            let state_for_hide = state_data_clone.clone();
             if let Some(pill) = app_for_complete.get_webview_window("pill") {
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(Duration::from_secs(2)).await;
-                    let _ = pill.hide();
+                    let is_idle = state_for_hide
+                        .lock()
+                        .map(|s| s.state == RecordingState::Idle)
+                        .unwrap_or(true);
+                    if is_idle {
+                        let _ = pill.hide();
+                    }
                 });
             }
         });
@@ -323,11 +330,18 @@ impl RecordingManager {
                 state_data.state = RecordingState::Idle;
                 state_data.transcription_id = None;
             }
-            // Hide pill after showing error
+            // Hide pill after showing error (only if still idle)
+            let state_for_hide = state_data_clone.clone();
             if let Some(pill) = app_for_error.get_webview_window("pill") {
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(Duration::from_secs(3)).await;
-                    let _ = pill.hide();
+                    let is_idle = state_for_hide
+                        .lock()
+                        .map(|s| s.state == RecordingState::Idle)
+                        .unwrap_or(true);
+                    if is_idle {
+                        let _ = pill.hide();
+                    }
                 });
             }
         });
