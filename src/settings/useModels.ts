@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import * as Events from "@/shared/constants/events";
 
@@ -29,7 +29,9 @@ export function useModels() {
 
   // Listen for download progress events
   useEffect(() => {
-    const unlisten = listen<DownloadProgress>(Events.DOWNLOAD_PROGRESS, (event) => {
+    const listeners = createListenerGroup();
+
+    listeners.add<DownloadProgress>(Events.DOWNLOAD_PROGRESS, (event) => {
       setDownloadProgress(event.payload);
 
       // If download completed (100%), refresh models
@@ -40,9 +42,7 @@ export function useModels() {
       }
     });
 
-    return () => {
-      unlisten.then((fn) => fn());
-    };
+    return () => listeners.cleanup();
   }, [refreshModels]);
 
   // Download a model
@@ -81,12 +81,8 @@ export function useModels() {
   }, [refreshModels]);
 
   // Split models into downloaded and available
-  const { downloadedModels, availableModels } = useMemo(() => {
-    return {
-      downloadedModels: models.filter((m) => m.downloaded),
-      availableModels: models.filter((m) => !m.downloaded),
-    };
-  }, [models]);
+  const downloadedModels = models.filter((m) => m.downloaded);
+  const availableModels = models.filter((m) => !m.downloaded);
 
   return {
     models,

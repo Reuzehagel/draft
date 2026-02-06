@@ -164,7 +164,7 @@ pub async fn download_model(
 
         // Update progress
         downloaded_bytes += chunk.len() as u64;
-        let progress = ((downloaded_bytes as f64 / total_bytes as f64) * 100.0) as u8;
+        let progress = ((downloaded_bytes as f64 / total_bytes as f64) * 100.0).round().min(100.0) as u8;
 
         // Emit progress event if changed
         if progress != last_progress {

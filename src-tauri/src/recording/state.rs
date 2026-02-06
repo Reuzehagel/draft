@@ -347,7 +347,10 @@ impl RecordingManager {
             // Reset state on failure
             if let Ok(mut state_data) = self.state_data.lock() {
                 state_data.state = RecordingState::Idle;
+                state_data.transcription_id = None;
             }
+            // Clean up listeners registered above to prevent leak
+            self.cleanup_transcription_listeners(app);
             let _ = app.emit(events::TRANSCRIPTION_ERROR, &e);
         }
 

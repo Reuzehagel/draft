@@ -97,21 +97,18 @@ impl WhisperHandle {
         let is_busy = Arc::new(AtomicBool::new(false));
         let current_model = Arc::new(Mutex::new(None));
 
-        let thread_state = SharedState {
-            sender: sender.clone(),
-            is_busy: is_busy.clone(),
-            current_model: current_model.clone(),
-        };
+        let is_busy_clone = is_busy.clone();
+        let current_model_clone = current_model.clone();
 
         let thread_handle = thread::spawn(move || {
-            whisper_thread_main(receiver, app_handle, is_busy, current_model);
+            whisper_thread_main(receiver, app_handle, is_busy_clone, current_model_clone);
         });
 
         Self {
             state: SharedState {
                 sender,
-                is_busy: thread_state.is_busy,
-                current_model: thread_state.current_model,
+                is_busy,
+                current_model,
             },
             thread_handle: Mutex::new(Some(thread_handle)),
         }

@@ -18,6 +18,7 @@ pub struct AudioResampler {
     channels: u16,
     input_buffer: Vec<f32>,
     output_buffer: Vec<f32>,
+    chunk_buffer: Vec<f32>,
 }
 
 impl AudioResampler {
@@ -56,6 +57,7 @@ impl AudioResampler {
             channels,
             input_buffer: Vec::with_capacity(CHUNK_SIZE * 2),
             output_buffer,
+            chunk_buffer: Vec::with_capacity(CHUNK_SIZE),
         })
     }
 
@@ -74,8 +76,9 @@ impl AudioResampler {
         let input_frames_needed = resampler.input_frames_next();
 
         while self.input_buffer.len() >= input_frames_needed {
-            let chunk: Vec<f32> = self.input_buffer.drain(..input_frames_needed).collect();
-            Self::resample_chunk(resampler, &chunk, output, &mut self.output_buffer, true);
+            self.chunk_buffer.clear();
+            self.chunk_buffer.extend(self.input_buffer.drain(..input_frames_needed));
+            Self::resample_chunk(resampler, &self.chunk_buffer, output, &mut self.output_buffer, true);
         }
     }
 
@@ -92,10 +95,11 @@ impl AudioResampler {
         // Pad remaining samples to make a complete chunk
         let input_frames_needed = resampler.input_frames_next();
         let padding_needed = input_frames_needed.saturating_sub(self.input_buffer.len());
-        self.input_buffer.extend(vec![0.0f32; padding_needed]);
+        self.input_buffer.resize(self.input_buffer.len() + padding_needed, 0.0f32);
 
-        let chunk: Vec<f32> = self.input_buffer.drain(..).collect();
-        Self::resample_chunk(resampler, &chunk, output, &mut self.output_buffer, false);
+        self.chunk_buffer.clear();
+        self.chunk_buffer.extend(self.input_buffer.drain(..));
+        Self::resample_chunk(resampler, &self.chunk_buffer, output, &mut self.output_buffer, false);
     }
 
     /// Resample a single chunk of audio data

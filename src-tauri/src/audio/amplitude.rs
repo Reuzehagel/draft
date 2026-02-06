@@ -46,7 +46,9 @@ impl AmplitudeCalculator {
 
                 // Clear window for next calculation (with 50% overlap)
                 let half = RMS_WINDOW_SAMPLES / 2;
-                self.window_buffer.drain(..half);
+                let len = self.window_buffer.len();
+                self.window_buffer.copy_within(half..len, 0);
+                self.window_buffer.truncate(len - half);
 
                 updated = true;
             }

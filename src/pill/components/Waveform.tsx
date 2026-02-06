@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { WaveformBars } from "@/components/WaveformBars";
 
 const BAR_COUNT = 14;
 
@@ -29,16 +30,11 @@ export default function Waveform({
   const values = amplitudes || placeholderAmplitudes;
 
   return (
-    <div className="flex items-center justify-center gap-[2px] h-5">
-      {values.slice(0, BAR_COUNT).map((amplitude, i) => (
-        <div
-          key={i}
-          className="w-[3px] bg-white/90 rounded-full transition-all duration-75"
-          style={{
-            height: `${Math.max(4, amplitude * 20)}px`,
-          }}
-        />
-      ))}
-    </div>
+    <WaveformBars
+      amplitudes={values}
+      barCount={BAR_COUNT}
+      colorClass="bg-white/90"
+      centered
+    />
   );
 }

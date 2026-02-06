@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { getVersion } from "@tauri-apps/api/app";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Mic01Icon,
@@ -35,71 +35,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Config } from "@/shared/types/config";
-import type { MicrophoneInfo } from "@/shared/types/audio";
 import { formatFileSize } from "@/shared/types/models";
+import { useDarkMode } from "./hooks/useDarkMode";
+import { useConfig } from "./hooks/useConfig";
+import { useHotkeyRegistration } from "./hooks/useHotkeyRegistration";
+import { useMicrophones } from "./hooks/useMicrophones";
+import { useMicrophoneTest } from "./hooks/useMicrophoneTest";
 import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { AmplitudeVisualizer } from "./AmplitudeVisualizer";
-import * as Events from "@/shared/constants/events";
-
-function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    const stored = localStorage.getItem("draft-dark-mode");
-    if (stored !== null) return stored === "true";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("draft-dark-mode", String(isDark));
-  }, [isDark]);
-
-  return { isDark, toggle: () => setIsDark((d) => !d) };
-}
-
-function useConfig() {
-  const [config, setConfig] = useState<Config | null>(null);
-  const [loading, setLoading] = useState(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  useEffect(() => {
-    invoke<Config>("get_config")
-      .then(setConfig)
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== undefined) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  const updateConfig = useCallback(
-    (updates: Partial<Config>) => {
-      if (!config) return;
-      const newConfig = { ...config, ...updates };
-      setConfig(newConfig);
-
-      if (timeoutRef.current !== undefined) {
-        clearTimeout(timeoutRef.current);
-      }
-
-      timeoutRef.current = setTimeout(() => {
-        invoke("set_config", { config: newConfig });
-      }, 300);
-    },
-    [config]
-  );
-
-  return { config, updateConfig, loading };
-}
 
 function SettingsCard({
   icon,
@@ -315,130 +259,6 @@ function HotkeyInput({
   );
 }
 
-function useHotkeyRegistration(hotkey: string | null | undefined) {
-  const [registrationError, setRegistrationError] = useState<string | null>(null);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const previousHotkeyRef = useRef<string | null | undefined>(undefined);
-  const isInitialMount = useRef(true);
-
-  useEffect(() => {
-    const shouldRegister = isInitialMount.current || previousHotkeyRef.current !== hotkey;
-
-    if (!shouldRegister) {
-      return;
-    }
-
-    isInitialMount.current = false;
-    previousHotkeyRef.current = hotkey;
-
-    const registerHotkey = async () => {
-      setRegistrationError(null);
-
-      if (!hotkey) {
-        try {
-          await invoke("unregister_hotkey");
-        } catch (e) {
-          console.warn("Failed to unregister hotkey:", e);
-        }
-        return;
-      }
-
-      setIsRegistering(true);
-      try {
-        await invoke("register_hotkey", { hotkey });
-      } catch (e) {
-        setRegistrationError(String(e));
-      } finally {
-        setIsRegistering(false);
-      }
-    };
-
-    registerHotkey();
-  }, [hotkey]);
-
-  const validateAndRegister = useCallback(async (newHotkey: string) => {
-    setRegistrationError(null);
-    setIsRegistering(true);
-    try {
-      await invoke("register_hotkey", { hotkey: newHotkey });
-    } catch (e) {
-      setRegistrationError(String(e));
-      throw e;
-    } finally {
-      setIsRegistering(false);
-    }
-  }, []);
-
-  return { registrationError, isRegistering, validateAndRegister };
-}
-
-function useMicrophones() {
-  const [microphones, setMicrophones] = useState<MicrophoneInfo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    invoke<MicrophoneInfo[]>("list_microphones")
-      .then((mics) => {
-        setMicrophones(mics);
-        setError(null);
-      })
-      .catch((e) => {
-        setError(String(e));
-        setMicrophones([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  return { microphones, loading, error };
-}
-
-function useMicrophoneTest() {
-  const [isTesting, setIsTesting] = useState(false);
-  const [amplitudes, setAmplitudes] = useState<number[]>([]);
-
-  useEffect(() => {
-    let mounted = true;
-    let unlistenAmplitudeFn: (() => void) | null = null;
-    let unlistenCompleteFn: (() => void) | null = null;
-
-    listen<number[]>(Events.AMPLITUDE, (event) => {
-      if (mounted) {
-        setAmplitudes(event.payload);
-      }
-    }).then((fn) => {
-      unlistenAmplitudeFn = fn;
-    });
-
-    listen<boolean>(Events.TEST_MICROPHONE_COMPLETE, () => {
-      if (mounted) {
-        setIsTesting(false);
-        setAmplitudes([]);
-      }
-    }).then((fn) => {
-      unlistenCompleteFn = fn;
-    });
-
-    return () => {
-      mounted = false;
-      if (unlistenAmplitudeFn) unlistenAmplitudeFn();
-      if (unlistenCompleteFn) unlistenCompleteFn();
-    };
-  }, []);
-
-  const startTest = useCallback((deviceId: string | null) => {
-    if (isTesting) return;
-    setIsTesting(true);
-    setAmplitudes([]);
-    invoke("test_microphone", { deviceId: deviceId || null }).catch((e) => {
-      console.error("Test microphone failed:", e);
-      setIsTesting(false);
-    });
-  }, [isTesting]);
-
-  return { isTesting, amplitudes, startTest };
-}
-
 function ModelItem({
   name,
   size,
@@ -613,6 +433,11 @@ export default function SettingsApp() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [autoStartError, setAutoStartError] = useState<string | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
 
   useEffect(() => {
     if (!loading && config && !config.selected_model && downloadedModels.length > 0) {
@@ -666,7 +491,7 @@ export default function SettingsApp() {
             >
               <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={16} />
             </button>
-            <span className="text-xs text-muted-foreground/60 font-mono">v0.1.0</span>
+            {version && <span className="text-xs text-muted-foreground/60 font-mono">v{version}</span>}
           </div>
         </div>
       </header>
@@ -849,24 +674,12 @@ export default function SettingsApp() {
               {/* Errors */}
               {(downloadError || deleteError || transcriptionError) && (
                 <div className="space-y-1">
-                  {downloadError && (
-                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                  {[downloadError, deleteError, transcriptionError].filter(Boolean).map((error, i) => (
+                    <p key={i} className="text-xs text-destructive flex items-center gap-1.5">
                       <HugeiconsIcon icon={InformationCircleIcon} size={14} />
-                      {downloadError}
+                      {error}
                     </p>
-                  )}
-                  {deleteError && (
-                    <p className="text-xs text-destructive flex items-center gap-1.5">
-                      <HugeiconsIcon icon={InformationCircleIcon} size={14} />
-                      {deleteError}
-                    </p>
-                  )}
-                  {transcriptionError && (
-                    <p className="text-xs text-destructive flex items-center gap-1.5">
-                      <HugeiconsIcon icon={InformationCircleIcon} size={14} />
-                      {transcriptionError}
-                    </p>
-                  )}
+                  ))}
                 </div>
               )}
             </div>

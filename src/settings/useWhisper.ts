@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import * as Events from "@/shared/constants/events";
 
 interface WhisperState {
@@ -25,56 +25,51 @@ export function useWhisper(selectedModel: string | null | undefined) {
     });
   }, []);
 
+  const isTranscribingRef = useRef(false);
+  useEffect(() => {
+    isTranscribingRef.current = isTranscribing;
+  }, [isTranscribing]);
+
   // Listen for whisper events
   useEffect(() => {
-    const unlistenLoading = listen<string>(Events.MODEL_LOADING, (event) => {
+    const listeners = createListenerGroup();
+
+    listeners.add<string>(Events.MODEL_LOADING, (event) => {
       setIsModelLoading(true);
       setTranscriptionError(null);
       console.log("Model loading:", event.payload);
     });
 
-    const unlistenLoaded = listen<string>(Events.MODEL_LOADED, (event) => {
+    listeners.add<string>(Events.MODEL_LOADED, (event) => {
       setIsModelLoading(false);
       setLoadedModel(event.payload);
       lastLoadedModelRef.current = event.payload;
       console.log("Model loaded:", event.payload);
     });
 
-    const unlistenTranscriptionComplete = listen<string>(
-      Events.TRANSCRIPTION_COMPLETE,
-      (event) => {
-        setIsTranscribing(false);
-        setTranscriptionResult(event.payload);
-        setAmplitudes([]);
-        console.log("Transcription complete:", event.payload);
-      }
-    );
+    listeners.add<string>(Events.TRANSCRIPTION_COMPLETE, (event) => {
+      setIsTranscribing(false);
+      setTranscriptionResult(event.payload);
+      setAmplitudes([]);
+      console.log("Transcription complete:", event.payload);
+    });
 
-    const unlistenTranscriptionError = listen<string>(
-      Events.TRANSCRIPTION_ERROR,
-      (event) => {
-        setIsModelLoading(false);
-        setIsTranscribing(false);
-        setTranscriptionError(event.payload);
-        setAmplitudes([]);
-        console.error("Transcription error:", event.payload);
-      }
-    );
+    listeners.add<string>(Events.TRANSCRIPTION_ERROR, (event) => {
+      setIsModelLoading(false);
+      setIsTranscribing(false);
+      setTranscriptionError(event.payload);
+      setAmplitudes([]);
+      console.error("Transcription error:", event.payload);
+    });
 
-    const unlistenAmplitude = listen<number[]>(Events.AMPLITUDE, (event) => {
-      if (isTranscribing) {
+    listeners.add<number[]>(Events.AMPLITUDE, (event) => {
+      if (isTranscribingRef.current) {
         setAmplitudes(event.payload);
       }
     });
 
-    return () => {
-      unlistenLoading.then((fn) => fn());
-      unlistenLoaded.then((fn) => fn());
-      unlistenTranscriptionComplete.then((fn) => fn());
-      unlistenTranscriptionError.then((fn) => fn());
-      unlistenAmplitude.then((fn) => fn());
-    };
-  }, [isTranscribing]);
+    return () => listeners.cleanup();
+  }, []);
 
   // Load model when selected model changes
   useEffect(() => {

@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
 import * as Events from "@/shared/constants/events";
 
 type PillState = "idle" | "loading" | "recording" | "transcribing" | "error";
 
-/** Cleanup function for multiple event listeners */
-function cleanupListeners(listeners: Promise<UnlistenFn>[]): void {
-  listeners.forEach((unlisten) => unlisten.then((fn) => fn()));
-}
+const ERROR_DISPLAY_MS = 2000;
 
 interface PillContentProps {
   state: PillState;
@@ -54,43 +51,43 @@ export default function PillApp() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const listeners = [
-      listen<number[]>(Events.AMPLITUDE, (event) => {
-        setAmplitudes(event.payload);
-      }),
-      listen(Events.RECORDING_STARTED, () => {
-        setState("recording");
-        setVisible(true);
-      }),
-      listen(Events.RECORDING_STOPPED, () => {
-        setState("transcribing");
-      }),
-      listen(Events.MODEL_LOADING, () => {
-        setState("loading");
-        setVisible(true);
-      }),
-      listen(Events.MODEL_LOADED, () => {
-        setState("idle");
-        setVisible(false);
-      }),
-      listen(Events.TRANSCRIPTION_COMPLETE, () => {
-        setState("idle");
-        setVisible(false);
-        setAmplitudes(undefined);
-      }),
-      listen<string>(Events.TRANSCRIPTION_ERROR, (event) => {
-        setState("error");
-        setErrorMessage(event.payload);
-        setVisible(true);
-        setTimeout(() => {
-          setState("idle");
-          setVisible(false);
-          setErrorMessage(undefined);
-        }, 2000);
-      }),
-    ];
+    const listeners = createListenerGroup();
 
-    return () => cleanupListeners(listeners);
+    listeners.add<number[]>(Events.AMPLITUDE, (event) => {
+      setAmplitudes(event.payload);
+    });
+    listeners.add(Events.RECORDING_STARTED, () => {
+      setState("recording");
+      setVisible(true);
+    });
+    listeners.add(Events.RECORDING_STOPPED, () => {
+      setState("transcribing");
+    });
+    listeners.add(Events.MODEL_LOADING, () => {
+      setState("loading");
+      setVisible(true);
+    });
+    listeners.add(Events.MODEL_LOADED, () => {
+      setState("idle");
+      setVisible(false);
+    });
+    listeners.add(Events.TRANSCRIPTION_COMPLETE, () => {
+      setState("idle");
+      setVisible(false);
+      setAmplitudes(undefined);
+    });
+    listeners.add<string>(Events.TRANSCRIPTION_ERROR, (event) => {
+      setState("error");
+      setErrorMessage(event.payload);
+      setVisible(true);
+      setTimeout(() => {
+        setState("idle");
+        setVisible(false);
+        setErrorMessage(undefined);
+      }, ERROR_DISPLAY_MS);
+    });
+
+    return () => listeners.cleanup();
   }, []);
 
   // For development: cycle through states with keyboard
