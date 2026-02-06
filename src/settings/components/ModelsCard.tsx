@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import type { Config } from "@/shared/types/config";
 import { AmplitudeVisualizer } from "../AmplitudeVisualizer";
+import { Toggle } from "./Toggle";
 import { TierPicker } from "./models/TierPicker";
 import { ModelStatusArea } from "./models/ModelStatusArea";
 import { AllModelsCollapsible } from "./models/AllModelsCollapsible";
@@ -17,37 +18,6 @@ import {
   getModelId,
   type Tier,
 } from "./models/tierConfig";
-
-function Toggle({
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`
-        relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full
-        transition-colors duration-200 ease-in-out
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
-        ${checked ? 'bg-primary' : 'bg-input'}
-      `}
-    >
-      <span
-        className={`
-          pointer-events-none inline-block h-4 w-4 transform rounded-full bg-background shadow-sm ring-0
-          transition duration-200 ease-in-out
-          ${checked ? 'translate-x-[18px]' : 'translate-x-0.5'}
-        `}
-      />
-    </button>
-  );
-}
 
 interface ModelsCardProps {
   config: Config | null;
@@ -190,11 +160,24 @@ export function ModelsCard({
     }
   };
 
-  const description = isModelLoading
-    ? "Loading model..."
-    : loadedModel
-      ? `Active: ${downloadedModels.find((m) => m.id === loadedModel)?.name || loadedModel}`
-      : "Select a transcription model";
+  let description: string;
+  if (isModelLoading) {
+    description = "Loading model...";
+  } else if (loadedModel) {
+    const loadedName = downloadedModels.find((m) => m.id === loadedModel)?.name ?? loadedModel;
+    description = `Active: ${loadedName}`;
+  } else {
+    description = "Select a transcription model";
+  }
+
+  let testButtonLabel: string;
+  if (isTranscribing) {
+    testButtonLabel = "Recording (3s)...";
+  } else if (isModelLoading) {
+    testButtonLabel = "Loading...";
+  } else {
+    testButtonLabel = "Test Transcription (3s)";
+  }
 
   return (
     <div className="rounded-lg border border-border/60 bg-card/50 overflow-hidden">
@@ -298,7 +281,7 @@ export function ModelsCard({
                     disabled={whisperBusy || !loadedModel || isTesting}
                     onClick={() => testTranscription(config?.microphone_id ?? null)}
                   >
-                    {isTranscribing ? "Recording (3s)..." : isModelLoading ? "Loading..." : "Test Transcription (3s)"}
+                    {testButtonLabel}
                   </Button>
                   {isTranscribing && <AmplitudeVisualizer amplitudes={whisperAmplitudes} />}
                 </div>

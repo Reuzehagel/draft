@@ -13,20 +13,12 @@ body {
 }
 
 /* Fade in/out animations */
-.pill-enter {
-  opacity: 0;
-}
-
-.pill-enter-active {
+.pill-visible {
   opacity: 1;
   transition: opacity 150ms ease-out;
 }
 
 .pill-exit {
-  opacity: 1;
-}
-
-.pill-exit-active {
   opacity: 0;
   transition: opacity 150ms ease-in;
 }
@@ -53,4 +45,24 @@ body {
 /* Error state with red tint */
 .pill-container.error {
   background: rgba(180, 40, 40, 0.9);
+}
+
+/* Cross-fade wrapper for state content transitions */
+.pill-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+/* Incoming content fades in with subtle slide */
+.pill-content-enter {
+  animation: contentFadeIn 120ms ease-out both;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

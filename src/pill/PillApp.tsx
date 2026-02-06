@@ -49,6 +49,8 @@ export default function PillApp() {
   const [errorMessage, setErrorMessage] = useState<string>();
   const [amplitudes, setAmplitudes] = useState<number[]>();
   const [visible, setVisible] = useState(false);
+  // Content key: incremented on state changes to trigger remount + CSS enter animation
+  const [contentKey, setContentKey] = useState(0);
 
   useEffect(() => {
     const listeners = createListenerGroup();
@@ -59,13 +61,16 @@ export default function PillApp() {
     listeners.add(Events.RECORDING_STARTED, () => {
       setState("recording");
       setVisible(true);
+      setContentKey((k) => k + 1);
     });
     listeners.add(Events.RECORDING_STOPPED, () => {
       setState("transcribing");
+      setContentKey((k) => k + 1);
     });
     listeners.add(Events.MODEL_LOADING, () => {
       setState("loading");
       setVisible(true);
+      setContentKey((k) => k + 1);
     });
     listeners.add(Events.MODEL_LOADED, () => {
       setState("idle");
@@ -80,6 +85,7 @@ export default function PillApp() {
       setState("error");
       setErrorMessage(event.payload);
       setVisible(true);
+      setContentKey((k) => k + 1);
       setTimeout(() => {
         setState("idle");
         setVisible(false);
@@ -98,19 +104,23 @@ export default function PillApp() {
           case "1":
             setState("loading");
             setVisible(true);
+            setContentKey((k) => k + 1);
             break;
           case "2":
             setState("recording");
             setVisible(true);
+            setContentKey((k) => k + 1);
             break;
           case "3":
             setState("transcribing");
             setVisible(true);
+            setContentKey((k) => k + 1);
             break;
           case "4":
             setState("error");
             setErrorMessage("Test error");
             setVisible(true);
+            setContentKey((k) => k + 1);
             break;
           case "0":
             setState("idle");
@@ -128,17 +138,22 @@ export default function PillApp() {
     return null;
   }
 
+  // Container class: scale+fade entry/exit + smooth error color transition
+  const containerClass = [
+    "pill-container",
+    state === "error" ? "error" : "",
+    visible ? "pill-visible" : "pill-exit",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div
-      className={`pill-container ${state === "error" ? "error" : ""} ${
-        visible ? "pill-enter-active" : "pill-exit-active"
-      }`}
-    >
-      <PillContent
-        state={state}
-        errorMessage={errorMessage}
-        amplitudes={amplitudes}
-      />
+    <div className={containerClass}>
+      <div key={contentKey} className="pill-content pill-content-enter">
+        <PillContent
+          state={state}
+          errorMessage={errorMessage}
+          amplitudes={amplitudes}
+        />
+      </div>
     </div>
   );
 }

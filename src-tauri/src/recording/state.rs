@@ -303,20 +303,7 @@ impl RecordingManager {
                 });
             }
 
-            // Hide pill after delay (only if still idle — prevents hiding during a new recording)
-            let state_for_hide = state_data_clone.clone();
-            if let Some(pill) = app_for_complete.get_webview_window("pill") {
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(Duration::from_secs(2)).await;
-                    let is_idle = state_for_hide
-                        .lock()
-                        .map(|s| s.state == RecordingState::Idle)
-                        .unwrap_or(true);
-                    if is_idle {
-                        let _ = pill.hide();
-                    }
-                });
-            }
+            hide_pill_after_delay(&app_for_complete, &state_data_clone, Duration::from_secs(2));
         });
 
         let state_data_clone = self.state_data.clone();
@@ -330,20 +317,7 @@ impl RecordingManager {
                 state_data.state = RecordingState::Idle;
                 state_data.transcription_id = None;
             }
-            // Hide pill after showing error (only if still idle)
-            let state_for_hide = state_data_clone.clone();
-            if let Some(pill) = app_for_error.get_webview_window("pill") {
-                tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(Duration::from_secs(3)).await;
-                    let is_idle = state_for_hide
-                        .lock()
-                        .map(|s| s.state == RecordingState::Idle)
-                        .unwrap_or(true);
-                    if is_idle {
-                        let _ = pill.hide();
-                    }
-                });
-            }
+            hide_pill_after_delay(&app_for_error, &state_data_clone, Duration::from_secs(3));
         });
 
         // Store listener IDs for cleanup (prevents memory leak)
@@ -386,6 +360,27 @@ impl RecordingManager {
                 app.unlisten(listener_id);
             }
         }
+    }
+}
+
+/// Hide the pill window after a delay, but only if still idle (prevents hiding during a new recording)
+fn hide_pill_after_delay(
+    app: &AppHandle,
+    state_data: &Arc<Mutex<RecordingStateData>>,
+    delay: Duration,
+) {
+    if let Some(pill) = app.get_webview_window("pill") {
+        let state_for_hide = state_data.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(delay).await;
+            let is_idle = state_for_hide
+                .lock()
+                .map(|s| s.state == RecordingState::Idle)
+                .unwrap_or(true);
+            if is_idle {
+                let _ = pill.hide();
+            }
+        });
     }
 }
 
