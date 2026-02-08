@@ -38,10 +38,14 @@ cargo test --manifest-path src-tauri/Cargo.toml
 ### Frontend Structure (`src/`)
 
 - `settings/` - Settings window React app with microphone, hotkey, model management
+  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest
+  - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
+  - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
 - `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → error
 - `shared/types/` - TypeScript interfaces mirroring Rust types
 - `shared/constants/events.ts` - Event names matching `src-tauri/src/events.rs`
-- `components/ui/` - shadcn/ui components
+- `shared/utils/tauriListeners.ts` - `createListenerGroup()` helper for consistent event listener cleanup
+- `components/` - Shared components (`WaveformBars`) and shadcn/ui components
 
 ### Backend Structure (`src-tauri/src/`)
 
@@ -55,10 +59,19 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `worker.rs` - Background thread for resampling and amplitude calculation
   - `resampler.rs` - rubato wrapper for 16kHz mono conversion
   - `amplitude.rs` - RMS calculation for waveform visualization
+- `recording/` - Recording state management:
+  - `commands.rs` - Start/stop recording commands
+  - `hotkey.rs` - Global hotkey registration and handling
+  - `state.rs` - Recording state machine
+- `injection/` - Text injection module:
+  - `focus.rs` - Capture and restore window focus before/after recording
+  - `text.rs` - enigo-based text injection into active application
 - `stt/` - Speech-to-text module:
   - `models.rs` - Whisper GGML model definitions, paths, checksums
   - `download.rs` - Streaming download with progress, verification, cancellation
   - `commands.rs` - `list_models`, `download_model`, `cancel_download`, `delete_model` commands
+  - `whisper.rs` - Whisper model loading and transcription
+- `autostart.rs` - Windows startup integration
 
 ### Audio Pipeline Flow
 
@@ -75,6 +88,7 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 - `recording-started/stopped` - Recording state changes
 - `transcription-complete/error` - Transcription results
 - `download-progress` - Model download progress (model, progress%, bytes)
+- `model-loading/loaded` - Whisper model load state
 - `test-microphone-complete` - Microphone test finished
 
 ### Model Storage
@@ -89,16 +103,15 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 - **Always use bun, never npm** - This project uses bun as the package manager
 - **Rust 2024 edition** requires rustc 1.85+
-- **CMake required** for whisper-rs (Sprint 4)
+- **CMake 3.20+ required** for whisper-rs, plus Visual Studio Build Tools with C++ workload and Windows SDK
 - **Audio callback timing** must complete in <5ms
 - **Tauri v2 plugins** use capabilities system in `src-tauri/capabilities/default.json`
-- Dependencies for future sprints are commented out in Cargo.toml until needed
+- **Path alias**: `@/*` maps to `./src/*` in tsconfig
 
 ## Development Notes
 
 - Pill states can be tested in dev mode via keyboard shortcuts (1-4, 0) at `localhost:5173/pill.html`
-- Sprint verification tests in `tests/sprint0/` for isolated dependency testing
-- See `SPRINT_PLAN.md` for detailed implementation status and task breakdown
+- Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
 
 ## Post-Sprint Workflow
 
