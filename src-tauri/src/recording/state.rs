@@ -277,12 +277,34 @@ impl RecordingManager {
             };
 
             // Only inject if we have non-empty text
+            let mut llm_will_process = false;
+
             if !text.trim().is_empty() {
                 let config = crate::config::load_config();
 
-                // Spawn background task for focus restoration and injection
+                // Check if LLM will process this text
+                llm_will_process = config.llm_auto_process
+                    && config.llm_provider.is_some()
+                    && config
+                        .llm_api_key
+                        .as_ref()
+                        .is_some_and(|k| !k.is_empty());
+
+                // Emit LLM_PROCESSING synchronously so pill transitions before hiding
+                if llm_will_process {
+                    let _ = app_for_complete.emit(events::LLM_PROCESSING, ());
+                }
+
+                let app_for_llm = app_for_complete.clone();
+                let state_for_hide = state_data_clone.clone();
+
+                // Spawn background task for LLM processing, focus restoration, and injection
                 // This prevents blocking the event listener thread
                 tauri::async_runtime::spawn(async move {
+                    // LLM post-processing (returns raw text on failure or if disabled)
+                    let final_text =
+                        crate::llm::post_process(&text, &config, &app_for_llm).await;
+
                     if let Some(hwnd) = target_window {
                         // Restore focus to original window
                         if crate::injection::restore_focus(hwnd) {
@@ -296,14 +318,28 @@ impl RecordingManager {
                         }
                     }
 
-                    // Inject the text (works regardless of focus restoration)
-                    if let Err(e) = crate::injection::inject_text(&text, config.trailing_space) {
+                    // Inject the processed text (works regardless of focus restoration)
+                    if let Err(e) =
+                        crate::injection::inject_text(&final_text, config.trailing_space)
+                    {
                         log::error!("Text injection failed: {}", e);
+                    }
+
+                    // Hide pill after LLM processing + injection completes
+                    if llm_will_process {
+                        hide_pill_after_delay(
+                            &app_for_llm,
+                            &state_for_hide,
+                            Duration::from_secs(2),
+                        );
                     }
                 });
             }
 
-            hide_pill_after_delay(&app_for_complete, &state_data_clone, Duration::from_secs(2));
+            // Only auto-hide pill for non-LLM case
+            if !llm_will_process {
+                hide_pill_after_delay(&app_for_complete, &state_data_clone, Duration::from_secs(2));
+            }
         });
 
         let state_data_clone = self.state_data.clone();

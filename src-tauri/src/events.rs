@@ -10,3 +10,4 @@ pub const DOWNLOAD_PROGRESS: &str = "download-progress";
 pub const MODEL_LOADING: &str = "model-loading";
 pub const MODEL_LOADED: &str = "model-loaded";
 pub const TEST_MICROPHONE_COMPLETE: &str = "test-microphone-complete";
+pub const LLM_PROCESSING: &str = "llm-processing";

@@ -6,6 +6,7 @@ mod autostart;
 mod config;
 mod events;
 mod injection;
+mod llm;
 mod recording;
 mod stt;
 

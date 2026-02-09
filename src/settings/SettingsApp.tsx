@@ -10,6 +10,7 @@ import {
   InformationCircleIcon,
   Sun01Icon,
   Moon01Icon,
+  SparklesIcon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ import { useMicrophoneTest } from "./hooks/useMicrophoneTest";
 import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { AmplitudeVisualizer } from "./AmplitudeVisualizer";
+import { Input } from "@/components/ui/input";
 import { Toggle } from "./components/Toggle";
 import { ModelsCard } from "./components/ModelsCard";
 
@@ -223,6 +225,7 @@ export default function SettingsApp() {
   const whisperHook = useWhisper(config?.selected_model);
   const [autoStartError, setAutoStartError] = useState<string | null>(null);
   const [version, setVersion] = useState<string | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -373,6 +376,96 @@ export default function SettingsApp() {
           whisperBusy={whisperHook.isBusy}
           isTesting={isTesting}
         />
+
+        {/* AI Enhancement */}
+        <SettingsCard
+          icon={<HugeiconsIcon icon={SparklesIcon} size={16} />}
+          title="AI Enhancement"
+          description="Clean up and transform transcribed text"
+        >
+          <div className="space-y-1">
+            <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
+              <Toggle
+                checked={config?.llm_auto_process || false}
+                onChange={(llm_auto_process) => updateConfig({ llm_auto_process })}
+              />
+            </SettingRow>
+          </div>
+
+          {config?.llm_auto_process && (
+            <div className="space-y-3 pt-1">
+              <SettingRow label="Provider">
+                <Select
+                  value={config?.llm_provider || ""}
+                  onValueChange={(value) => updateConfig({ llm_provider: value || null })}
+                >
+                  <SelectTrigger className="w-full h-9 text-[13px]">
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    <SelectItem value="openai" className="text-[13px]">OpenAI</SelectItem>
+                    <SelectItem value="anthropic" className="text-[13px]">Anthropic</SelectItem>
+                    <SelectItem value="openrouter" className="text-[13px]">OpenRouter</SelectItem>
+                    <SelectItem value="cerebras" className="text-[13px]">Cerebras</SelectItem>
+                    <SelectItem value="groq" className="text-[13px]">Groq</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+
+              <SettingRow label="API Key">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type={showApiKey ? "text" : "password"}
+                    value={config?.llm_api_key || ""}
+                    onChange={(e) => updateConfig({ llm_api_key: e.target.value || null })}
+                    placeholder="Enter API key"
+                    className="flex-1 h-9 text-[13px] font-mono"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                  >
+                    {showApiKey ? "Hide" : "Show"}
+                  </Button>
+                </div>
+              </SettingRow>
+
+              <SettingRow label="Model" description="Leave empty for provider default">
+                <Input
+                  type="text"
+                  value={config?.llm_model || ""}
+                  onChange={(e) => updateConfig({ llm_model: e.target.value || null })}
+                  placeholder={
+                    config?.llm_provider === "openai" ? "gpt-4o-mini" :
+                    config?.llm_provider === "anthropic" ? "claude-haiku-4-5-20251001" :
+                    config?.llm_provider === "openrouter" ? "openai/gpt-4o-mini" :
+                    config?.llm_provider === "cerebras" ? "llama-4-scout-17b-16e-instruct" :
+                    config?.llm_provider === "groq" ? "llama-3.3-70b-versatile" :
+                    "Provider default"
+                  }
+                  className="h-9 text-[13px] font-mono"
+                />
+              </SettingRow>
+
+              <SettingRow label="Custom prompt" description="Override the default system prompt sent to the LLM">
+                <textarea
+                  value={config?.llm_system_prompt || ""}
+                  onChange={(e) => updateConfig({ llm_system_prompt: e.target.value || null })}
+                  placeholder="Leave empty for default prompt (light cleanup, preserve original words)"
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-[13px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 resize-y min-h-[60px]"
+                />
+              </SettingRow>
+
+              <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
+                <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
+                <span>Voice commands: start with an instruction like &ldquo;reply saying...&rdquo; or &ldquo;make this professional&rdquo;</span>
+              </p>
+            </div>
+          )}
+        </SettingsCard>
 
         {/* General */}
         <SettingsCard

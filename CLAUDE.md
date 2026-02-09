@@ -113,6 +113,17 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - Pill states can be tested in dev mode via keyboard shortcuts (1-4, 0) at `localhost:5173/pill.html`
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
 
+## Feature Roadmap
+
+| Priority | Feature | Status |
+|----------|---------|--------|
+| 1 | LLM post-processing (auto-cleanup + voice commands) | In Progress |
+| 2 | Clipboard mode | Planned |
+| 3 | Whisper initial prompt | Planned |
+| 4 | Sound effects | Planned |
+| 5 | Continuous dictation (double-tap toggle) | Planned |
+| 6 | Transcription history | Planned |
+
 ## Post-Sprint Workflow
 
 After completing a sprint, follow this mandatory review and refinement process:

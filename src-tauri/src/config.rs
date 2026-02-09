@@ -16,6 +16,11 @@ pub struct Config {
     pub logging_enabled: bool,
     pub window_position: Option<(i32, i32)>,
     pub window_size: Option<(u32, u32)>,
+    pub llm_provider: Option<String>,
+    pub llm_api_key: Option<String>,
+    pub llm_model: Option<String>,
+    pub llm_auto_process: bool,
+    pub llm_system_prompt: Option<String>,
 }
 
 impl Default for Config {
@@ -30,6 +35,11 @@ impl Default for Config {
             logging_enabled: false,
             window_position: None,
             window_size: None,
+            llm_provider: None,
+            llm_api_key: None,
+            llm_model: None,
+            llm_auto_process: false,
+            llm_system_prompt: None,
         }
     }
 }

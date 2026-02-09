@@ -4,7 +4,7 @@ import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
 import * as Events from "@/shared/constants/events";
 
-type PillState = "idle" | "loading" | "recording" | "transcribing" | "error";
+type PillState = "idle" | "loading" | "recording" | "transcribing" | "enhancing" | "error";
 
 const ERROR_DISPLAY_MS = 2000;
 
@@ -32,6 +32,14 @@ function PillContent({ state, errorMessage, amplitudes }: PillContentProps) {
         <>
           <Spinner className="text-white/80" />
           <span className="text-white/80">Transcribing...</span>
+        </>
+      );
+
+    case "enhancing":
+      return (
+        <>
+          <Spinner className="text-white/80" />
+          <span className="text-white/80">Enhancing...</span>
         </>
       );
 
@@ -76,6 +84,11 @@ export default function PillApp() {
       setState("idle");
       setVisible(false);
     });
+    listeners.add(Events.LLM_PROCESSING, () => {
+      setState("enhancing");
+      setVisible(true);
+      setContentKey((k) => k + 1);
+    });
     listeners.add(Events.TRANSCRIPTION_COMPLETE, () => {
       setState("idle");
       setVisible(false);
@@ -119,6 +132,11 @@ export default function PillApp() {
           case "4":
             setState("error");
             setErrorMessage("Test error");
+            setVisible(true);
+            setContentKey((k) => k + 1);
+            break;
+          case "5":
+            setState("enhancing");
             setVisible(true);
             setContentKey((k) => k + 1);
             break;

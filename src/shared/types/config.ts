@@ -10,4 +10,9 @@ export interface Config {
   logging_enabled: boolean;
   window_position: [number, number] | null;
   window_size: [number, number] | null;
+  llm_provider: string | null;
+  llm_api_key: string | null;
+  llm_model: string | null;
+  llm_auto_process: boolean;
+  llm_system_prompt: string | null;
 }
