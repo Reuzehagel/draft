@@ -55,7 +55,7 @@ export function DownloadableModel({
       </div>
       {isDownloading && progress !== null && (
         <div className="flex items-center gap-2 mt-2">
-          <Progress value={progress} className="flex-1 h-1.5" />
+          <Progress value={progress} className="flex-1 h-1.5" aria-label="Download progress" />
           <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
             {progress}%
           </span>

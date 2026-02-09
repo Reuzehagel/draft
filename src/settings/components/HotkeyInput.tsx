@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { ErrorMessage } from "./ErrorMessage";
 
 const MODIFIER_KEYS = new Set(["Control", "Alt", "Shift", "Meta"]);
 const FUNCTION_KEY_PATTERN = /^F([1-9]|1[0-9]|2[0-4])$/;
@@ -74,7 +75,7 @@ export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputP
           }}
           onKeyDown={handleKeyDown}
           className={`
-            flex-1 h-9 px-3 rounded-md text-[13px] font-mono text-left
+            flex-1 h-8 px-3 rounded-md text-[13px] font-mono text-left
             border transition-all duration-150
             focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1
             ${isRecording
@@ -92,8 +93,9 @@ export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputP
         {value && (
           <Button
             variant="ghost"
-            size="sm"
-            className="h-9 px-2 text-muted-foreground hover:text-foreground"
+            size="icon-sm"
+            className="text-muted-foreground hover:text-foreground"
+            aria-label="Clear hotkey"
             onClick={() => {
               onChange(null);
               setValidationError(null);
@@ -103,12 +105,7 @@ export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputP
           </Button>
         )}
       </div>
-      {displayError && (
-        <p className="text-xs text-destructive flex items-center gap-1.5">
-          <HugeiconsIcon icon={InformationCircleIcon} size={14} />
-          {displayError}
-        </p>
-      )}
+      {displayError && <ErrorMessage message={displayError} />}
     </div>
   );
 }

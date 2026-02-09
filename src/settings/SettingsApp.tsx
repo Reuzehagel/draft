@@ -10,6 +10,7 @@ import {
   Sun01Icon,
   Moon01Icon,
   SparklesIcon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { useDarkMode } from "./hooks/useDarkMode";
 import { useConfig } from "./hooks/useConfig";
 import { useHotkeyRegistration } from "./hooks/useHotkeyRegistration";
@@ -33,6 +36,7 @@ import { SettingRow } from "./components/SettingRow";
 import { HotkeyInput } from "./components/HotkeyInput";
 import { Toggle } from "./components/Toggle";
 import { ModelsCard } from "./components/ModelsCard";
+import { ErrorMessage } from "./components/ErrorMessage";
 
 const LLM_DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4o-mini",
@@ -71,7 +75,7 @@ function MicrophoneSelect({
         onSelect(mic?.id === "" ? null : value);
       }}
     >
-      <SelectTrigger className="w-full h-9 text-[13px]">
+      <SelectTrigger className="w-full text-[13px]">
         <SelectValue placeholder="Select microphone" />
       </SelectTrigger>
       <SelectContent alignItemWithTrigger={false}>
@@ -125,7 +129,7 @@ function MicrophoneContent({
 
 export default function SettingsApp() {
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
-  const { config, updateConfig, loading } = useConfig();
+  const { config, updateConfig, loading, saved } = useConfig();
   const {
     microphones,
     loading: microphonesLoading,
@@ -182,20 +186,29 @@ export default function SettingsApp() {
       <header className="sticky top-0 z-10 backdrop-blur-sm bg-background/80 border-b border-border/60">
         <div className="flex items-center justify-between px-4 py-3">
           <h1 className="text-sm font-semibold tracking-tight">Draft Settings</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}
+              role="status"
+              aria-live="polite"
+            >
+              <HugeiconsIcon icon={Tick02Icon} size={12} />
+              Saved
+            </span>
             <button
               onClick={toggleDarkMode}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
             >
               <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={16} />
             </button>
-            {version && <span className="text-xs text-muted-foreground/60 font-mono">v{version}</span>}
+            {version && <Badge variant="outline" className="text-[10px] font-mono px-1.5 h-4 text-muted-foreground">v{version}</Badge>}
           </div>
         </div>
       </header>
 
-      <div className="p-4 space-y-3 max-w-lg mx-auto">
+      <div className="p-4 space-y-3 max-w-xl mx-auto">
         {/* Audio */}
         <SettingsCard
           icon={<HugeiconsIcon icon={Mic01Icon} size={16} />}
@@ -289,72 +302,77 @@ export default function SettingsApp() {
             </SettingRow>
           </div>
 
-          {config?.llm_auto_process && (
-            <div className="space-y-3 pt-1">
-              <SettingRow label="Provider">
-                <Select
-                  value={config?.llm_provider || ""}
-                  onValueChange={(value) => updateConfig({ llm_provider: value || null })}
-                >
-                  <SelectTrigger className="w-full h-9 text-[13px]">
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    {LLM_PROVIDERS.map((provider) => (
-                      <SelectItem key={provider.value} value={provider.value} className="text-[13px]">
-                        {provider.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </SettingRow>
-
-              <SettingRow label="API Key">
-                <div className="flex items-center gap-2">
-                  <Input
-                    type={showApiKey ? "text" : "password"}
-                    value={config?.llm_api_key || ""}
-                    onChange={(e) => updateConfig({ llm_api_key: e.target.value || null })}
-                    placeholder="Enter API key"
-                    className="flex-1 h-9 text-[13px] font-mono"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowApiKey(!showApiKey)}
+          <div
+            className="grid transition-[grid-template-rows] duration-200 ease-out"
+            style={{ gridTemplateRows: config?.llm_auto_process ? "1fr" : "0fr" }}
+          >
+            <div className="overflow-hidden">
+              <div className="space-y-3 pt-1">
+                <SettingRow label="Provider">
+                  <Select
+                    value={config?.llm_provider || ""}
+                    onValueChange={(value) => updateConfig({ llm_provider: value || null })}
                   >
-                    {showApiKey ? "Hide" : "Show"}
-                  </Button>
-                </div>
-              </SettingRow>
+                    <SelectTrigger className="w-full text-[13px]">
+                      <SelectValue placeholder="Select provider" />
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {LLM_PROVIDERS.map((provider) => (
+                        <SelectItem key={provider.value} value={provider.value} className="text-[13px]">
+                          {provider.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
 
-              <SettingRow label="Model" description="Leave empty for provider default">
-                <Input
-                  type="text"
-                  value={config?.llm_model || ""}
-                  onChange={(e) => updateConfig({ llm_model: e.target.value || null })}
-                  placeholder={LLM_DEFAULT_MODELS[config?.llm_provider ?? ""] ?? "Provider default"}
-                  className="h-9 text-[13px] font-mono"
-                />
-              </SettingRow>
+                <SettingRow label="API Key">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type={showApiKey ? "text" : "password"}
+                      value={config?.llm_api_key || ""}
+                      onChange={(e) => updateConfig({ llm_api_key: e.target.value || null })}
+                      placeholder="Enter API key"
+                      className="flex-1 text-[13px] font-mono"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                    >
+                      {showApiKey ? "Hide" : "Show"}
+                    </Button>
+                  </div>
+                </SettingRow>
 
-              <SettingRow label="Custom prompt" description="Override the default system prompt sent to the LLM">
-                <textarea
-                  value={config?.llm_system_prompt || ""}
-                  onChange={(e) => updateConfig({ llm_system_prompt: e.target.value || null })}
-                  placeholder="Leave empty for default prompt (light cleanup, preserve original words)"
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-[13px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 resize-y min-h-[60px]"
-                />
-              </SettingRow>
+                <SettingRow label="Model" description="Leave empty for provider default">
+                  <Input
+                    type="text"
+                    value={config?.llm_model || ""}
+                    onChange={(e) => updateConfig({ llm_model: e.target.value || null })}
+                    placeholder={LLM_DEFAULT_MODELS[config?.llm_provider ?? ""] ?? "Provider default"}
+                    className="text-[13px] font-mono"
+                  />
+                </SettingRow>
 
-              <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
-                <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
-                <span>Voice commands: start with an instruction like &ldquo;reply saying...&rdquo; or &ldquo;make this professional&rdquo;</span>
-              </p>
+                <SettingRow label="Custom prompt" description="Override the default system prompt sent to the LLM">
+                  <Textarea
+                    value={config?.llm_system_prompt || ""}
+                    onChange={(e) => updateConfig({ llm_system_prompt: e.target.value || null })}
+                    placeholder="Leave empty for default prompt (light cleanup, preserve original words)"
+                    rows={3}
+                    className="text-[13px] min-h-[60px] resize-y"
+                  />
+                </SettingRow>
+
+                <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
+                  <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
+                  <span>Voice commands: start with an instruction like &ldquo;reply saying...&rdquo; or &ldquo;make this professional&rdquo;</span>
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </SettingsCard>
 
         {/* General */}
@@ -371,7 +389,9 @@ export default function SettingsApp() {
               />
             </SettingRow>
             {autoStartError && (
-              <p className="text-xs text-destructive pl-0 pb-1">{autoStartError}</p>
+              <div className="pb-1">
+                <ErrorMessage message={autoStartError} />
+              </div>
             )}
 
             <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>

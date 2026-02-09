@@ -5,6 +5,7 @@ export interface Tier {
   id: string;
   label: string;
   description: string;
+  detail: string;
   baseModelId: string;
 }
 
@@ -13,18 +14,21 @@ export const TIERS: Tier[] = [
     id: "fast",
     label: "Fast",
     description: "Lowest latency",
+    detail: "~1 GB RAM, best for quick notes",
     baseModelId: "tiny",
   },
   {
     id: "balanced",
     label: "Balanced",
     description: "Speed + accuracy",
+    detail: "~2 GB RAM, good for most uses",
     baseModelId: "base",
   },
   {
     id: "accurate",
     label: "Accurate",
     description: "Best quality",
+    detail: "~3 GB RAM, best for longer text",
     baseModelId: "small",
   },
 ];

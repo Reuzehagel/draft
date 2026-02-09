@@ -25,6 +25,7 @@ export function TierPicker({
           >
             <div className="text-[13px] font-medium text-foreground">{tier.label}</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">{tier.description}</div>
+            <div className="text-[10px] text-muted-foreground/60 mt-0.5">{tier.detail}</div>
           </button>
         );
       })}

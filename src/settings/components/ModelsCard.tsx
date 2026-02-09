@@ -1,11 +1,13 @@
 import { useState, useRef } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Package01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
+import { Package01Icon } from "@hugeicons/core-free-icons";
+import { Spinner } from "@/components/Spinner";
 import { Button } from "@/components/ui/button";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import type { Config } from "@/shared/types/config";
 import { WaveformBars } from "@/components/WaveformBars";
 import { Toggle } from "./Toggle";
+import { ErrorMessage } from "./ErrorMessage";
 import { TierPicker } from "./models/TierPicker";
 import { ModelStatusArea } from "./models/ModelStatusArea";
 import { AllModelsCollapsible } from "./models/AllModelsCollapsible";
@@ -193,8 +195,8 @@ export function ModelsCard({
       <div className="px-4 py-3 space-y-3">
         {modelsLoading ? (
           <div className="py-4 flex items-center justify-center">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-muted-foreground" role="status" aria-live="polite">
+              <Spinner size={16} />
               <span className="text-sm">Loading models...</span>
             </div>
           </div>
@@ -220,7 +222,7 @@ export function ModelsCard({
               onCancel={cancelDownload}
             />
 
-            {/* All Models (collapsible) */}
+            {/* All Models + Test Transcription (collapsible) */}
             <AllModelsCollapsible>
               {downloadedModels.length > 0 && (
                 <div>
@@ -268,41 +270,38 @@ export function ModelsCard({
                   </div>
                 </div>
               )}
-            </AllModelsCollapsible>
 
-            {/* Test Transcription */}
-            {downloadedModels.length > 0 && (
-              <div className="pt-1 border-t border-border/40">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    disabled={whisperBusy || !loadedModel || isTesting}
-                    onClick={() => testTranscription(config?.microphone_id ?? null)}
-                  >
-                    {testButtonLabel}
-                  </Button>
-                  {isTranscribing && <WaveformBars amplitudes={whisperAmplitudes} />}
-                </div>
-                {transcriptionResult !== null && (
-                  <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40">
-                    <p className="text-[13px]">
-                      {transcriptionResult || <span className="text-muted-foreground italic">(no speech detected)</span>}
-                    </p>
+              {/* Test Transcription */}
+              {downloadedModels.length > 0 && (
+                <div className="pt-1 border-t border-border/40">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={whisperBusy || !loadedModel || isTesting}
+                      onClick={() => testTranscription(config?.microphone_id ?? null)}
+                    >
+                      {testButtonLabel}
+                    </Button>
+                    {isTranscribing && <WaveformBars amplitudes={whisperAmplitudes} />}
                   </div>
-                )}
-              </div>
-            )}
+                  {transcriptionResult !== null && (
+                    <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40" role="status" aria-live="polite">
+                      <p className="text-[13px]">
+                        {transcriptionResult || <span className="text-muted-foreground italic">(no speech detected)</span>}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </AllModelsCollapsible>
 
             {/* Errors */}
             {(downloadError || deleteError || transcriptionError) && (
               <div className="space-y-1">
                 {[downloadError, deleteError, transcriptionError].filter(Boolean).map((error, i) => (
-                  <p key={i} className="text-xs text-destructive flex items-center gap-1.5">
-                    <HugeiconsIcon icon={InformationCircleIcon} size={14} />
-                    {error}
-                  </p>
+                  <ErrorMessage key={i} message={error!} />
                 ))}
               </div>
             )}

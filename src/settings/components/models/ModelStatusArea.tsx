@@ -2,6 +2,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon, Download01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/Spinner";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 
 export function ModelStatusArea({
@@ -29,14 +30,15 @@ export function ModelStatusArea({
   if (isThisDownloading) {
     return (
       <div className="flex items-center gap-2 py-1">
-        <Progress value={downloadProgress?.progress ?? 0} className="flex-1 h-1.5" />
+        <Progress value={downloadProgress?.progress ?? 0} className="flex-1 h-1.5" aria-label="Download progress" />
         <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
           {downloadProgress?.progress ?? 0}%
         </span>
         <Button
           variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-muted-foreground hover:text-foreground"
+          size="icon-sm"
+          className="text-muted-foreground hover:text-foreground"
+          aria-label="Cancel download"
           onClick={onCancel}
         >
           <HugeiconsIcon icon={Cancel01Icon} size={14} />
@@ -66,8 +68,8 @@ export function ModelStatusArea({
   // Loading model into whisper
   if (isModelLoading) {
     return (
-      <div className="flex items-center gap-2 py-1 text-muted-foreground">
-        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center gap-2 py-1 text-muted-foreground" role="status" aria-live="polite">
+        <Spinner size={14} />
         <span className="text-xs">Loading model...</span>
       </div>
     );
@@ -76,7 +78,7 @@ export function ModelStatusArea({
   // Loaded and ready
   if (isLoaded) {
     return (
-      <div className="flex items-center gap-1.5 py-1 text-primary/70">
+      <div className="flex items-center gap-1.5 py-1 text-primary/70" role="status" aria-live="polite">
         <HugeiconsIcon icon={Tick02Icon} size={14} />
         <span className="text-xs">Ready</span>
       </div>

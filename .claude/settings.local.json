@@ -3,7 +3,8 @@
     "allow": [
       "Skill(commit-commands:commit)",
       "WebSearch",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(cargo check:*)"
     ]
   }
 }

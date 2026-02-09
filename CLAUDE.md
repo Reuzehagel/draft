@@ -129,11 +129,13 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 | Priority | Feature | Status |
 |----------|---------|--------|
 | 1 | LLM post-processing (auto-cleanup + voice commands) | Done |
-| 2 | Clipboard mode | Planned |
-| 3 | Whisper initial prompt | Planned |
-| 4 | Sound effects | Planned |
-| 5 | Continuous dictation (double-tap toggle) | Planned |
-| 6 | Transcription history | Planned |
+| 2 | Text output mode setting (clipboard copy vs inject into app) | Planned |
+| 3 | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off) | Planned |
+| 4 | Toggle transcription button in settings (hold-to-record vs toggle on/off) | Planned |
+| 5 | LLM confirmation hotkey — after transcription, pill expands to prompt "Apply post-processing?" with (Y)es/(N)o buttons+hotkeys. New setting: "Ask for confirmation before LLM processing" | Planned |
+| 6 | Whisper initial prompt | Planned |
+| 7 | Sound effects | Planned |
+| 8 | Transcription history | Planned |
 
 ## Post-Sprint Workflow
 

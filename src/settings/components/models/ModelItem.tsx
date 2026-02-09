@@ -68,6 +68,7 @@ export function ModelItem({
           render={
             <button
               disabled={disabled}
+              aria-label={`Delete ${name}`}
               className="p-1.5 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             />
           }
