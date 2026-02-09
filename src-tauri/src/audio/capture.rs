@@ -172,6 +172,11 @@ impl AudioCapture {
     pub fn has_error(&self) -> bool {
         self.error_flag.load(Ordering::Relaxed)
     }
+
+    /// Get a clone of the error flag for sharing with other threads
+    pub fn error_flag(&self) -> Arc<AtomicBool> {
+        self.error_flag.clone()
+    }
 }
 
 impl Drop for AudioCapture {

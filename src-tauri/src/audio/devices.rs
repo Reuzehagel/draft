@@ -139,6 +139,7 @@ fn run_microphone_test(app: &AppHandle, device_id: Option<&str>) -> Result<(), S
         capture.sample_rate(),
         capture.channels(),
         Some(app.clone()),
+        Some(capture.error_flag()),
     );
 
     // Start capture

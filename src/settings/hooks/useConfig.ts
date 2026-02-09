@@ -40,7 +40,9 @@ export function useConfig() {
       }
 
       timeoutRef.current = setTimeout(() => {
-        invoke("set_config", { config: newConfig });
+        invoke("set_config", { config: newConfig }).catch((e) => {
+          console.error("Failed to save config:", e);
+        });
       }, CONFIG_SAVE_DEBOUNCE_MS);
     },
     []

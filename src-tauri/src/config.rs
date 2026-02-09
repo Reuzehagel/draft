@@ -4,6 +4,12 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Mutex;
+
+/// Serializes all config write operations to prevent read-modify-write races
+/// between `set_config` (frontend debounced save) and `save_window_geometry`
+/// (Rust window-close handler).
+static CONFIG_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -58,8 +64,14 @@ pub fn load_config() -> Config {
     let path = config_path();
     if path.exists() {
         match fs::read_to_string(&path) {
-            Ok(contents) => match serde_json::from_str(&contents) {
-                Ok(config) => return config,
+            Ok(contents) => match serde_json::from_str::<Config>(&contents) {
+                Ok(config) => {
+                    if let Err(e) = validate_config(&config) {
+                        log::warn!("Config validation failed, using defaults: {}", e);
+                        return Config::default();
+                    }
+                    return config;
+                }
                 Err(e) => {
                     log::warn!("Failed to parse config file: {}", e);
                 }
@@ -86,6 +98,16 @@ pub fn save_config(config: &Config) -> Result<(), String> {
 
     log::info!("Config saved to {:?}", path);
     Ok(())
+}
+
+/// Save only window geometry fields without overwriting the rest of the config.
+/// Acquires CONFIG_LOCK to prevent racing with `set_config`.
+pub fn save_window_geometry(position: (i32, i32), size: (u32, u32)) -> Result<(), String> {
+    let _lock = CONFIG_LOCK.lock().map_err(|_| "Config lock poisoned")?;
+    let mut config = load_config();
+    config.window_position = Some(position);
+    config.window_size = Some(size);
+    save_config(&config)
 }
 
 pub fn is_first_run() -> bool {
@@ -135,8 +157,14 @@ pub fn get_config() -> Config {
 }
 
 #[tauri::command]
-pub fn set_config(config: Config) -> Result<(), String> {
+pub fn set_config(mut config: Config) -> Result<(), String> {
     validate_config(&config)?;
+    let _lock = CONFIG_LOCK.lock().map_err(|_| "Config lock poisoned")?;
+    // Preserve window geometry from disk — the frontend doesn't manage these
+    // fields, so its snapshot would clobber values written by save_window_geometry.
+    let current = load_config();
+    config.window_position = current.window_position;
+    config.window_size = current.window_size;
     save_config(&config)
 }
 

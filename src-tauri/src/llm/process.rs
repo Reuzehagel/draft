@@ -1,8 +1,6 @@
 //! LLM post-processing orchestration
 //! Routes transcribed text through the configured LLM provider for cleanup or command execution
 
-use tauri::AppHandle;
-
 use crate::config::Config;
 
 use super::LlmProvider;
@@ -61,7 +59,7 @@ fn validate_llm_config(config: &Config) -> Option<(LlmProvider, &str)> {
 /// Post-process transcribed text through an LLM.
 /// Returns the original text if LLM is not configured, disabled, or fails.
 /// Note: The caller emits LLM_PROCESSING before calling this function.
-pub async fn post_process(raw_text: &str, config: &Config, _app: &AppHandle) -> String {
+pub async fn post_process(raw_text: &str, config: &Config) -> String {
     let (provider, api_key) = match validate_llm_config(config) {
         Some(pair) => pair,
         None => return raw_text.to_string(),
@@ -86,7 +84,7 @@ pub async fn post_process(raw_text: &str, config: &Config, _app: &AppHandle) -> 
         client::call_openai_compatible(provider.base_url(), api_key, model, system_prompt, raw_text)
             .await
     } else {
-        client::call_anthropic(api_key, model, system_prompt, raw_text).await
+        client::call_anthropic(provider.base_url(), api_key, model, system_prompt, raw_text).await
     };
 
     match result {

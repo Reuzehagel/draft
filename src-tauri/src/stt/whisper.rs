@@ -303,10 +303,13 @@ fn run_transcription(ctx: &WhisperContext, audio: &[f32]) -> Result<String, Stri
 
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-    // Use 4 threads - whisper.cpp performs poorly with too many threads
-    // due to memory bandwidth saturation and thread contention
-    params.set_n_threads(4);
-    log::info!("Using 4 threads for whisper inference");
+    // Cap threads at 8 — whisper.cpp degrades beyond that due to
+    // memory bandwidth saturation and thread contention
+    let n_threads = std::thread::available_parallelism()
+        .map(|n| n.get().min(8))
+        .unwrap_or(4) as i32;
+    params.set_n_threads(n_threads);
+    log::info!("Using {} threads for whisper inference", n_threads);
 
     params.set_language(None);
     params.set_print_special(false);

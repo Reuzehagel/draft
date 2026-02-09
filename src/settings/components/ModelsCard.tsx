@@ -4,7 +4,7 @@ import { Package01Icon, InformationCircleIcon } from "@hugeicons/core-free-icons
 import { Button } from "@/components/ui/button";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import type { Config } from "@/shared/types/config";
-import { AmplitudeVisualizer } from "../AmplitudeVisualizer";
+import { WaveformBars } from "@/components/WaveformBars";
 import { Toggle } from "./Toggle";
 import { TierPicker } from "./models/TierPicker";
 import { ModelStatusArea } from "./models/ModelStatusArea";
@@ -283,7 +283,7 @@ export function ModelsCard({
                   >
                     {testButtonLabel}
                   </Button>
-                  {isTranscribing && <AmplitudeVisualizer amplitudes={whisperAmplitudes} />}
+                  {isTranscribing && <WaveformBars amplitudes={whisperAmplitudes} />}
                 </div>
                 {transcriptionResult !== null && (
                   <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40">

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import * as Events from "@/shared/constants/events";
@@ -6,12 +6,16 @@ import * as Events from "@/shared/constants/events";
 export function useMicrophoneTest() {
   const [isTesting, setIsTesting] = useState(false);
   const [amplitudes, setAmplitudes] = useState<number[]>([]);
+  const isTestingRef = useRef(false);
+  useEffect(() => { isTestingRef.current = isTesting; }, [isTesting]);
 
   useEffect(() => {
     const listeners = createListenerGroup();
 
     listeners.add<number[]>(Events.AMPLITUDE, (event) => {
-      setAmplitudes(event.payload);
+      if (isTestingRef.current) {
+        setAmplitudes(event.payload);
+      }
     });
 
     listeners.add<boolean>(Events.TEST_MICROPHONE_COMPLETE, () => {

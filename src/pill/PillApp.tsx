@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
@@ -60,11 +60,19 @@ export default function PillApp() {
   // Content key: incremented on state changes to trigger remount + CSS enter animation
   const [contentKey, setContentKey] = useState(0);
 
+  // Refs for use inside event handlers (avoids stale closures with [] deps)
+  const stateRef = useRef<PillState>("idle");
+  useEffect(() => { stateRef.current = state; }, [state]);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
   useEffect(() => {
     const listeners = createListenerGroup();
 
     listeners.add<number[]>(Events.AMPLITUDE, (event) => {
-      setAmplitudes(event.payload);
+      // Only process amplitude events during recording
+      if (stateRef.current === "recording") {
+        setAmplitudes(event.payload);
+      }
     });
     listeners.add(Events.RECORDING_STARTED, () => {
       setState("recording");
@@ -90,8 +98,10 @@ export default function PillApp() {
       setContentKey((k) => k + 1);
     });
     listeners.add(Events.TRANSCRIPTION_COMPLETE, () => {
+      // Don't hide the pill here — let Rust's hide_pill_after_delay control
+      // the window visibility. This prevents a flicker when LLM processing
+      // follows immediately (Rust emits LLM_PROCESSING right after this).
       setState("idle");
-      setVisible(false);
       setAmplitudes(undefined);
     });
     listeners.add<string>(Events.TRANSCRIPTION_ERROR, (event) => {
@@ -99,14 +109,22 @@ export default function PillApp() {
       setErrorMessage(event.payload);
       setVisible(true);
       setContentKey((k) => k + 1);
-      setTimeout(() => {
-        setState("idle");
-        setVisible(false);
-        setErrorMessage(undefined);
+      // Clear any previous error timeout to prevent stale dismissals
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = setTimeout(() => {
+        // Only dismiss if still showing an error (a new event may have changed state)
+        if (stateRef.current === "error") {
+          setState("idle");
+          setVisible(false);
+          setErrorMessage(undefined);
+        }
       }, ERROR_DISPLAY_MS);
     });
 
-    return () => listeners.cleanup();
+    return () => {
+      listeners.cleanup();
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
   }, []);
 
   // For development: cycle through states with keyboard

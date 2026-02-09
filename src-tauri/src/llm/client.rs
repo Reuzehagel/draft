@@ -88,14 +88,18 @@ pub async fn call_openai_compatible(
 
 /// Call the Anthropic Messages API
 pub async fn call_anthropic(
+    base_url: &str,
     api_key: &str,
     model: &str,
     system_prompt: &str,
     user_text: &str,
 ) -> Result<String, String> {
+    let url = format!("{base_url}/messages");
+
     let body = json!({
         "model": model,
         "max_tokens": 2048,
+        "temperature": 0.3,
         "system": system_prompt,
         "messages": [
             { "role": "user", "content": user_text }
@@ -103,7 +107,7 @@ pub async fn call_anthropic(
     });
 
     let response = reqwest::Client::new()
-        .post("https://api.anthropic.com/v1/messages")
+        .post(&url)
         .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
         .header("Content-Type", "application/json")

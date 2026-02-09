@@ -28,17 +28,19 @@ pub struct AudioWorker {
 impl AudioWorker {
     /// Create and start a new audio worker
     /// If app_handle is Some, amplitude events will be emitted
+    /// If capture_error is Some, the worker will stop when the capture signals an error
     pub fn new(
         consumer: AudioConsumer,
         sample_rate: u32,
         channels: u16,
         app_handle: Option<AppHandle>,
+        capture_error: Option<Arc<AtomicBool>>,
     ) -> Self {
         let stop_flag = Arc::new(AtomicBool::new(false));
         let stop_flag_clone = stop_flag.clone();
 
         let handle = thread::spawn(move || {
-            Self::worker_loop(consumer, sample_rate, channels, app_handle, stop_flag_clone)
+            Self::worker_loop(consumer, sample_rate, channels, app_handle, stop_flag_clone, capture_error)
         });
 
         Self {
@@ -65,6 +67,7 @@ impl AudioWorker {
         channels: u16,
         app_handle: Option<AppHandle>,
         stop_flag: Arc<AtomicBool>,
+        capture_error: Option<Arc<AtomicBool>>,
     ) -> Vec<f32> {
         log::info!(
             "Audio worker started: {} Hz, {} channels",
@@ -89,7 +92,9 @@ impl AudioWorker {
         let mut resampled_buffer = Vec::with_capacity(4096);
         let mut output_audio = Vec::new();
 
-        while !stop_flag.load(Ordering::Relaxed) && !consumer.should_stop() {
+        while !stop_flag.load(Ordering::Relaxed) && !consumer.should_stop()
+            && !capture_error.as_ref().is_some_and(|f| f.load(Ordering::Relaxed))
+        {
             // Drain available samples from the buffer
             raw_buffer.clear();
             consumer.drain_into(&mut raw_buffer);
@@ -148,5 +153,8 @@ impl AudioWorker {
 impl Drop for AudioWorker {
     fn drop(&mut self) {
         self.stop_flag.store(true, Ordering::SeqCst);
+        if let Some(handle) = self.handle.take() {
+            let _ = handle.join();
+        }
     }
 }

@@ -82,9 +82,16 @@ pub fn cancel_download(state: tauri::State<'_, DownloadState>) -> Result<(), Str
 
 /// Delete a downloaded model
 #[tauri::command]
-pub fn delete_model(model_id: String) -> Result<(), String> {
+pub fn delete_model(
+    model_id: String,
+    whisper: tauri::State<'_, WhisperHandle>,
+) -> Result<(), String> {
     let model =
         models::find_model(&model_id).ok_or_else(|| format!("Unknown model: {}", model_id))?;
+
+    if whisper.current_model().as_deref() == Some(&model_id) {
+        return Err("Cannot delete the currently loaded model. Load a different model first.".to_string());
+    }
 
     let path = models::model_path(model.filename);
 
@@ -183,6 +190,7 @@ fn run_test_transcription(
         capture.sample_rate(),
         capture.channels(),
         Some(app.clone()),
+        Some(capture.error_flag()),
     );
 
     // Start capture - if this fails, stop worker to prevent leak

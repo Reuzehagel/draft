@@ -14,6 +14,10 @@ use crate::config::load_config;
 use crate::events;
 use crate::stt::WhisperHandle;
 
+/// Delay after restoring focus before injecting text.
+/// Gives the target window time to process WM_ACTIVATE and be ready for input.
+const FOCUS_RESTORE_DELAY: Duration = Duration::from_millis(100);
+
 /// Recording states
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -126,6 +130,9 @@ impl RecordingManager {
     }
 
     /// Core recording startup logic, separated from key-press guard.
+    /// Safety: The can_start_recording check and state transition are not atomic,
+    /// but concurrent calls are prevented by the key_pressed compare_exchange in
+    /// on_hotkey_pressed — only one hotkey press can pass that gate at a time.
     fn start_recording(&self, app: &AppHandle, target_window: isize) -> Result<(), String> {
         if let Err(e) = self.can_start_recording(app) {
             log::warn!("{}", e);
@@ -146,7 +153,7 @@ impl RecordingManager {
             .take_consumer()
             .map_err(|e| format!("Failed to get audio consumer: {}", e))?;
 
-        let worker = AudioWorker::new(consumer, sample_rate, channels, Some(app.clone()));
+        let worker = AudioWorker::new(consumer, sample_rate, channels, Some(app.clone()), Some(capture.error_flag()));
 
         capture
             .start()
@@ -219,6 +226,10 @@ impl RecordingManager {
                 state_data.state = RecordingState::Idle;
                 state_data.transcription_id = None;
             }
+            // Cleanup listeners before emitting the error event. Since Tauri
+            // dispatches events asynchronously, the listener is already
+            // unregistered by the time the event fires, preventing the error
+            // handler from redundantly resetting state.
             self.cleanup_transcription_listeners(app);
             let _ = app.emit(events::TRANSCRIPTION_ERROR, &e);
         }
@@ -268,7 +279,13 @@ fn handle_transcription_complete(
     app: &AppHandle,
     expected_id: u64,
 ) {
-    let text: String = serde_json::from_str(event.payload()).unwrap_or_default();
+    let text: String = match serde_json::from_str(event.payload()) {
+        Ok(t) => t,
+        Err(e) => {
+            log::warn!("Failed to parse transcription event payload: {}", e);
+            String::new()
+        }
+    };
 
     let target_window = {
         let mut guard = match state_data.lock() {
@@ -306,11 +323,19 @@ fn handle_transcription_complete(
     let state_for_task = state_data.clone();
 
     tauri::async_runtime::spawn(async move {
-        let final_text = crate::llm::post_process(&text, &config, &app_for_task).await;
+        let final_text = crate::llm::post_process(&text, &config).await;
 
         if let Some(hwnd) = target_window {
-            if crate::injection::restore_focus(hwnd) {
-                tokio::time::sleep(Duration::from_millis(50)).await;
+            // Run restore_focus on the main thread so AttachThreadInput has a
+            // proper Windows message queue (tokio worker threads don't have one).
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            let _ = app_for_task.run_on_main_thread(move || {
+                let _ = tx.send(crate::injection::restore_focus(hwnd));
+            });
+            let focused = rx.await.unwrap_or(false);
+
+            if focused {
+                tokio::time::sleep(FOCUS_RESTORE_DELAY).await;
             } else {
                 log::warn!(
                     "Failed to restore focus to window (HWND: {}). Text will inject to current focus.",
@@ -321,6 +346,7 @@ fn handle_transcription_complete(
 
         if let Err(e) = crate::injection::inject_text(&final_text, config.trailing_space) {
             log::error!("Text injection failed: {}", e);
+            let _ = app_for_task.emit(events::TRANSCRIPTION_ERROR, &format!("Injection failed: {}", e));
         }
 
         if llm_will_process {
@@ -345,6 +371,7 @@ fn handle_transcription_error(
         }
         guard.state = RecordingState::Idle;
         guard.transcription_id = None;
+        guard.last_target_window = None;
     }
     hide_pill_after_delay(app, state_data, Duration::from_secs(3));
 }

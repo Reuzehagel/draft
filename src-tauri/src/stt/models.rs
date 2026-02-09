@@ -120,6 +120,20 @@ pub fn ensure_models_dir() -> Result<(), String> {
     Ok(())
 }
 
+/// Remove orphaned .tmp files left by interrupted downloads
+pub fn cleanup_temp_files() {
+    let dir = models_dir();
+    if let Ok(entries) = std::fs::read_dir(&dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) == Some("tmp") {
+                log::info!("Removing orphaned temp file: {:?}", path);
+                let _ = std::fs::remove_file(&path);
+            }
+        }
+    }
+}
+
 /// Check if a model file exists
 pub fn is_model_downloaded(filename: &str) -> bool {
     model_path(filename).exists()

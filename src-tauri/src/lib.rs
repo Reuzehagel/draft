@@ -84,6 +84,8 @@ pub fn run() {
         .setup(|app| {
             // Load config early for logging and other startup configuration
             let loaded_config = config::load_config();
+            // Capture first-run before anything else can create the config file
+            let first_run = config::is_first_run();
 
             // Initialize logging based on config or debug mode
             // In debug mode: always log to console
@@ -123,6 +125,9 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Clean up orphaned temp files from interrupted downloads
+            stt::models::cleanup_temp_files();
 
             // Create WhisperHandle and manage it
             let whisper_handle = stt::WhisperHandle::new(app.handle().clone());
@@ -222,13 +227,14 @@ pub fn run() {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         api.prevent_close();
 
-                        // Save window position and size before hiding
+                        // Save window geometry before hiding. Uses a targeted save
+                        // to avoid racing with the frontend's debounced config save.
                         if let Ok(position) = window_clone.outer_position() {
                             if let Ok(size) = window_clone.outer_size() {
-                                let mut current_config = config::load_config();
-                                current_config.window_position = Some((position.x, position.y));
-                                current_config.window_size = Some((size.width, size.height));
-                                if let Err(e) = config::save_config(&current_config) {
+                                if let Err(e) = config::save_window_geometry(
+                                    (position.x, position.y),
+                                    (size.width, size.height),
+                                ) {
                                     log::error!("Failed to save window position/size: {}", e);
                                 }
                             }
@@ -240,7 +246,7 @@ pub fn run() {
             }
 
             // First-run: show settings immediately
-            if config::is_first_run() {
+            if first_run {
                 log::info!("First run detected - showing settings window");
                 if let Some(window) = app.get_webview_window("settings") {
                     let _ = window.show();

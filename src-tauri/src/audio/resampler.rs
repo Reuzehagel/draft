@@ -73,9 +73,9 @@ impl AudioResampler {
         };
 
         self.input_buffer.extend_from_slice(&mono_samples);
-        let input_frames_needed = resampler.input_frames_next();
 
-        while self.input_buffer.len() >= input_frames_needed {
+        while self.input_buffer.len() >= resampler.input_frames_next() {
+            let input_frames_needed = resampler.input_frames_next();
             self.chunk_buffer.clear();
             self.chunk_buffer.extend(self.input_buffer.drain(..input_frames_needed));
             Self::resample_chunk(resampler, &self.chunk_buffer, output, &mut self.output_buffer, true);

@@ -27,7 +27,7 @@ import { useMicrophones } from "./hooks/useMicrophones";
 import { useMicrophoneTest } from "./hooks/useMicrophoneTest";
 import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
-import { AmplitudeVisualizer } from "./AmplitudeVisualizer";
+import { WaveformBars } from "@/components/WaveformBars";
 import { SettingsCard } from "./components/SettingsCard";
 import { SettingRow } from "./components/SettingRow";
 import { HotkeyInput } from "./components/HotkeyInput";
@@ -221,7 +221,7 @@ export default function SettingsApp() {
             >
               {isTesting ? "Testing..." : "Test Microphone"}
             </Button>
-            {isTesting && <AmplitudeVisualizer amplitudes={micTestAmplitudes} />}
+            {isTesting && <WaveformBars amplitudes={micTestAmplitudes} />}
           </div>
         </SettingsCard>
 
