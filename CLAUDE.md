@@ -39,6 +39,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 - `settings/` - Settings window React app with microphone, hotkey, model management
   - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest
+  - `components/` - SettingsCard, SettingRow, HotkeyInput, Toggle, ModelsCard
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
   - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
 - `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → error
@@ -108,6 +109,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 - **Always use bun, never npm** - This project uses bun as the package manager
 - **Rust 2024 edition** requires rustc 1.85+
+- **Rust nightly-only APIs**: `floor_char_boundary` is unstable on 1.85; use `is_char_boundary()` loop instead
 - **CMake 3.20+ required** for whisper-rs, plus Visual Studio Build Tools with C++ workload and Windows SDK
 - **Audio callback timing** must complete in <5ms
 - **Tauri v2 plugins** use capabilities system in `src-tauri/capabilities/default.json`
@@ -117,6 +119,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 - Pill states can be tested in dev mode via keyboard shortcuts (1-4, 0) at `localhost:5173/pill.html`
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
+- LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/SettingsApp.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
 
 ## Feature Roadmap
 
