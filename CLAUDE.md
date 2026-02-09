@@ -41,7 +41,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
   - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
-- `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → error
+- `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → error
 - `shared/types/` - TypeScript interfaces mirroring Rust types
 - `shared/constants/events.ts` - Event names matching `src-tauri/src/events.rs`
 - `shared/utils/tauriListeners.ts` - `createListenerGroup()` helper for consistent event listener cleanup
@@ -71,6 +71,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `download.rs` - Streaming download with progress, verification, cancellation
   - `commands.rs` - `list_models`, `download_model`, `cancel_download`, `delete_model` commands
   - `whisper.rs` - Whisper model loading and transcription
+- `llm/` - LLM post-processing module:
+  - `client.rs` - HTTP clients for OpenAI-compatible and Anthropic APIs
+  - `process.rs` - Post-processing orchestration (auto-cleanup, voice commands)
+  - Supports 5 providers: OpenAI, Anthropic, OpenRouter, Cerebras, Groq
 - `autostart.rs` - Windows startup integration
 
 ### Audio Pipeline Flow
@@ -90,6 +94,7 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 - `download-progress` - Model download progress (model, progress%, bytes)
 - `model-loading/loaded` - Whisper model load state
 - `test-microphone-complete` - Microphone test finished
+- `llm-processing` - LLM post-processing started (triggers "enhancing" pill state)
 
 ### Model Storage
 
@@ -97,7 +102,7 @@ Whisper GGML models stored at `%APPDATA%/Draft/models/`. 8 models available (tin
 
 ### Config Storage
 
-Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript types in `src/shared/types/config.ts` must match Rust `Config` struct.
+Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript types in `src/shared/types/config.ts` must match Rust `Config` struct. Includes LLM settings: `llm_provider`, `llm_api_key`, `llm_model`, `llm_auto_process`, `llm_system_prompt`.
 
 ## Key Constraints
 
@@ -117,7 +122,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 | Priority | Feature | Status |
 |----------|---------|--------|
-| 1 | LLM post-processing (auto-cleanup + voice commands) | In Progress |
+| 1 | LLM post-processing (auto-cleanup + voice commands) | Done |
 | 2 | Clipboard mode | Planned |
 | 3 | Whisper initial prompt | Planned |
 | 4 | Sound effects | Planned |

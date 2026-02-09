@@ -6,6 +6,51 @@ use std::time::Duration;
 use serde_json::{json, Value};
 
 const TIMEOUT: Duration = Duration::from_secs(15);
+const BODY_PREVIEW_MAX: usize = 200;
+
+/// Read and parse a JSON response body, with truncated preview on parse failure.
+async fn read_json_body(response: reqwest::Response, provider: &str) -> Result<(Value, String), String> {
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("{provider} API error {status}: {body}"));
+    }
+
+    let body_text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read {provider} response body: {e}"))?;
+
+    let json: Value = serde_json::from_str(&body_text).map_err(|e| {
+        let preview = if body_text.len() > BODY_PREVIEW_MAX {
+            // Find last valid char boundary at or before BODY_PREVIEW_MAX
+            let mut end = BODY_PREVIEW_MAX;
+            while !body_text.is_char_boundary(end) {
+                end -= 1;
+            }
+            format!("{}...", &body_text[..end])
+        } else {
+            body_text.clone()
+        };
+        format!("Failed to parse {provider} response: {e} (body: {preview})")
+    })?;
+
+    Ok((json, body_text))
+}
+
+/// Extract a trimmed string from a JSON path, or return an error with the full body.
+fn extract_content(json: &Value, path: &[&str], body_text: &str, provider: &str) -> Result<String, String> {
+    let mut node = json;
+    for key in path {
+        node = match key.parse::<usize>() {
+            Ok(idx) => &node[idx],
+            Err(_) => &node[key],
+        };
+    }
+    node.as_str()
+        .map(|s| s.trim().to_string())
+        .ok_or_else(|| format!("{provider} response missing content: {body_text}"))
+}
 
 /// Call an OpenAI-compatible chat completions API
 pub async fn call_openai_compatible(
@@ -15,7 +60,7 @@ pub async fn call_openai_compatible(
     system_prompt: &str,
     user_text: &str,
 ) -> Result<String, String> {
-    let url = format!("{}/chat/completions", base_url);
+    let url = format!("{base_url}/chat/completions");
 
     let body = json!({
         "model": model,
@@ -27,41 +72,18 @@ pub async fn call_openai_compatible(
         "max_tokens": 2048
     });
 
-    let client = reqwest::Client::new();
-    let response = client
+    let response = reqwest::Client::new()
         .post(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Authorization", format!("Bearer {api_key}"))
         .header("Content-Type", "application/json")
         .timeout(TIMEOUT)
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("LLM request failed: {}", e))?;
+        .map_err(|e| format!("LLM request failed: {e}"))?;
 
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(format!("LLM API error {}: {}", status, body));
-    }
-
-    let body_text = response
-        .text()
-        .await
-        .map_err(|e| format!("Failed to read LLM response body: {}", e))?;
-
-    let json: Value = serde_json::from_str(&body_text).map_err(|e| {
-        let preview = if body_text.len() > 200 {
-            format!("{}...", &body_text[..200])
-        } else {
-            body_text.clone()
-        };
-        format!("Failed to parse LLM response: {} (body: {})", e, preview)
-    })?;
-
-    json["choices"][0]["message"]["content"]
-        .as_str()
-        .map(|s| s.trim().to_string())
-        .ok_or_else(|| format!("LLM response missing content: {}", body_text))
+    let (json, body_text) = read_json_body(response, "LLM").await?;
+    extract_content(&json, &["choices", "0", "message", "content"], &body_text, "LLM")
 }
 
 /// Call the Anthropic Messages API
@@ -80,8 +102,7 @@ pub async fn call_anthropic(
         ]
     });
 
-    let client = reqwest::Client::new();
-    let response = client
+    let response = reqwest::Client::new()
         .post("https://api.anthropic.com/v1/messages")
         .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
@@ -90,33 +111,8 @@ pub async fn call_anthropic(
         .json(&body)
         .send()
         .await
-        .map_err(|e| format!("Anthropic request failed: {}", e))?;
+        .map_err(|e| format!("Anthropic request failed: {e}"))?;
 
-    if !response.status().is_success() {
-        let status = response.status();
-        let body = response.text().await.unwrap_or_default();
-        return Err(format!("Anthropic API error {}: {}", status, body));
-    }
-
-    let body_text = response
-        .text()
-        .await
-        .map_err(|e| format!("Failed to read Anthropic response body: {}", e))?;
-
-    let json: Value = serde_json::from_str(&body_text).map_err(|e| {
-        let preview = if body_text.len() > 200 {
-            format!("{}...", &body_text[..200])
-        } else {
-            body_text.clone()
-        };
-        format!(
-            "Failed to parse Anthropic response: {} (body: {})",
-            e, preview
-        )
-    })?;
-
-    json["content"][0]["text"]
-        .as_str()
-        .map(|s| s.trim().to_string())
-        .ok_or_else(|| format!("Anthropic response missing content: {}", body_text))
+    let (json, body_text) = read_json_body(response, "Anthropic").await?;
+    extract_content(&json, &["content", "0", "text"], &body_text, "Anthropic")
 }

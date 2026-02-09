@@ -4,7 +4,7 @@
 mod client;
 mod process;
 
-pub use process::post_process;
+pub use process::{post_process, should_process};
 
 /// Supported LLM providers
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,18 +16,22 @@ pub enum LlmProvider {
     Groq,
 }
 
-impl LlmProvider {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for LlmProvider {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "openai" => Some(Self::OpenAi),
-            "anthropic" => Some(Self::Anthropic),
-            "openrouter" => Some(Self::OpenRouter),
-            "cerebras" => Some(Self::Cerebras),
-            "groq" => Some(Self::Groq),
-            _ => None,
+            "openai" => Ok(Self::OpenAi),
+            "anthropic" => Ok(Self::Anthropic),
+            "openrouter" => Ok(Self::OpenRouter),
+            "cerebras" => Ok(Self::Cerebras),
+            "groq" => Ok(Self::Groq),
+            _ => Err(format!("Unknown LLM provider: {s}")),
         }
     }
+}
 
+impl LlmProvider {
     pub fn base_url(&self) -> &'static str {
         match self {
             Self::OpenAi => "https://api.openai.com/v1",
