@@ -7,6 +7,17 @@
     <title>Draft - Settings</title>
   </head>
   <body>
+    <script>
+      // Apply dark mode class before any rendering to prevent white flash
+      var d = localStorage.getItem("draft-dark-mode");
+      if (d === "true" || (d === null && matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.classList.add("dark");
+      }
+    </script>
+    <style>
+      html { background: oklch(1 0 0); }
+      html.dark { background: oklch(0.145 0 0); }
+    </style>
     <div id="root"></div>
     <script type="module" src="/src/settings/main.tsx"></script>
   </body>

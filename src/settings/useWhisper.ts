@@ -16,12 +16,14 @@ export function useWhisper(selectedModel: string | null | undefined) {
   const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
   const [amplitudes, setAmplitudes] = useState<number[]>([]);
   const lastLoadedModelRef = useRef<string | null>(null);
+  const [stateQueried, setStateQueried] = useState(false);
 
   // Get initial whisper state on mount
   useEffect(() => {
     invoke<WhisperState>("get_whisper_state").then((state) => {
       setLoadedModel(state.current_model);
       lastLoadedModelRef.current = state.current_model;
+      setStateQueried(true);
     });
   }, []);
 
@@ -71,8 +73,9 @@ export function useWhisper(selectedModel: string | null | undefined) {
     return () => listeners.cleanup();
   }, []);
 
-  // Load model when selected model changes
+  // Load model when selected model changes (wait for initial state query to avoid double-loading)
   useEffect(() => {
+    if (!stateQueried) return;
     if (selectedModel && selectedModel !== lastLoadedModelRef.current && !isModelLoading) {
       console.log("Loading model:", selectedModel);
       invoke("load_model", { modelId: selectedModel }).catch((e) => {
@@ -80,7 +83,7 @@ export function useWhisper(selectedModel: string | null | undefined) {
         setTranscriptionError(String(e));
       });
     }
-  }, [selectedModel, isModelLoading]);
+  }, [selectedModel, isModelLoading, stateQueried]);
 
   const testTranscription = useCallback((deviceId: string | null) => {
     if (isTranscribing || isModelLoading || !loadedModel) return;

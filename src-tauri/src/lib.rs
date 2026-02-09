@@ -10,6 +10,7 @@ mod llm;
 mod recording;
 mod stt;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use tauri::{
@@ -17,6 +18,48 @@ use tauri::{
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
     Manager, WebviewWindow,
 };
+
+/// Tracks whether the settings frontend has finished loading.
+/// Prevents showing a blank window when the user opens settings before
+/// the webview content is ready.
+struct SettingsReady {
+    ready: AtomicBool,
+    pending_show: AtomicBool,
+}
+
+impl Default for SettingsReady {
+    fn default() -> Self {
+        Self {
+            ready: AtomicBool::new(false),
+            pending_show: AtomicBool::new(false),
+        }
+    }
+}
+
+/// Show the settings window if the frontend is ready, otherwise queue it.
+fn show_settings(app: &tauri::AppHandle) {
+    let state = app.state::<SettingsReady>();
+    if state.ready.load(Ordering::SeqCst) {
+        if let Some(window) = app.get_webview_window("settings") {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    } else {
+        state.pending_show.store(true, Ordering::SeqCst);
+    }
+}
+
+#[tauri::command]
+fn settings_ready(app: tauri::AppHandle) {
+    let state = app.state::<SettingsReady>();
+    state.ready.store(true, Ordering::SeqCst);
+    if state.pending_show.swap(false, Ordering::SeqCst) {
+        if let Some(window) = app.get_webview_window("settings") {
+            let _ = window.show();
+            let _ = window.set_focus();
+        }
+    }
+}
 
 /// Validate that window position is visible on at least one monitor.
 /// Returns true if position is valid, false if off-screen.
@@ -58,6 +101,7 @@ pub fn run() {
         // Manage state for recording
         .manage(Arc::new(recording::RecordingManager::new()))
         .manage(Arc::new(recording::HotkeyManager::new()))
+        .manage(SettingsReady::default())
         // Register commands
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -80,6 +124,7 @@ pub fn run() {
             autostart::enable_autostart,
             autostart::disable_autostart,
             autostart::is_autostart_enabled,
+            settings_ready,
         ])
         .setup(|app| {
             // Load config early for logging and other startup configuration
@@ -174,10 +219,7 @@ pub fn run() {
                 .tooltip("Draft")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "open_settings" => {
-                        if let Some(window) = app.get_webview_window("settings") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        show_settings(app);
                     }
                     "quit" => {
                         app.exit(0);
@@ -190,11 +232,7 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        let app = tray.app_handle();
-                        if let Some(window) = app.get_webview_window("settings") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        show_settings(tray.app_handle());
                     }
                 })
                 .build(app)?;
@@ -245,13 +283,12 @@ pub fn run() {
                 });
             }
 
-            // First-run: show settings immediately
+            // First-run: queue settings window to show once frontend is ready
             if first_run {
-                log::info!("First run detected - showing settings window");
-                if let Some(window) = app.get_webview_window("settings") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
+                log::info!("First run detected - will show settings when ready");
+                app.state::<SettingsReady>()
+                    .pending_show
+                    .store(true, Ordering::SeqCst);
             }
 
             log::info!("Draft initialized successfully");

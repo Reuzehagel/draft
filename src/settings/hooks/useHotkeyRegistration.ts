@@ -8,13 +8,17 @@ export function useHotkeyRegistration(hotkey: string | null | undefined) {
   const isInitialMount = useRef(true);
 
   useEffect(() => {
-    const shouldRegister = isInitialMount.current || previousHotkeyRef.current !== hotkey;
-
-    if (!shouldRegister) {
+    // Skip initial mount — backend already registers the hotkey on startup
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      previousHotkeyRef.current = hotkey;
       return;
     }
 
-    isInitialMount.current = false;
+    if (previousHotkeyRef.current === hotkey) {
+      return;
+    }
+
     previousHotkeyRef.current = hotkey;
 
     const registerHotkey = async () => {

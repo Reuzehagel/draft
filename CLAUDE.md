@@ -112,7 +112,9 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - **Rust nightly-only APIs**: `floor_char_boundary` is unstable on 1.85; use `is_char_boundary()` loop instead
 - **CMake 3.20+ required** for whisper-rs, plus Visual Studio Build Tools with C++ workload and Windows SDK
 - **Audio callback timing** must complete in <5ms
+- **Config write concurrency**: `CONFIG_LOCK` mutex in `config.rs` serializes all writes. `set_config` preserves `window_position`/`window_size` from disk (frontend doesn't manage geometry). New config writers must acquire `CONFIG_LOCK`.
 - **Tauri v2 plugins** use capabilities system in `src-tauri/capabilities/default.json`
+- **Windows API + tokio**: Win32 calls needing a message queue (e.g. `AttachThreadInput`, `SetForegroundWindow` privilege tricks) must run via `app.run_on_main_thread()` — tokio worker threads don't have message pumps
 - **Path alias**: `@/*` maps to `./src/*` in tsconfig
 
 ## Development Notes
@@ -120,6 +122,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - Pill states can be tested in dev mode via keyboard shortcuts (1-4, 0) at `localhost:5173/pill.html`
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
 - LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/SettingsApp.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
+- rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
 
 ## Feature Roadmap
 

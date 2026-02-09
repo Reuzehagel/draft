@@ -166,15 +166,15 @@ export default function SettingsApp() {
     }
   }, [config, updateConfig]);
 
+  // Signal to the backend that the frontend is ready to be shown
+  useEffect(() => {
+    if (!loading) {
+      invoke("settings_ready");
+    }
+  }, [loading]);
+
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background text-foreground">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
