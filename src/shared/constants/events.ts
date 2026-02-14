@@ -13,3 +13,4 @@ export const TEST_MICROPHONE_COMPLETE = "test-microphone-complete";
 export const LLM_PROCESSING = "llm-processing";
 export const LLM_CONFIRM_REQUEST = "llm-confirm-request";
 export const LLM_CONFIRM_TIMEOUT = "llm-confirm-timeout";
+export const OUTPUT_COMPLETE = "output-complete";

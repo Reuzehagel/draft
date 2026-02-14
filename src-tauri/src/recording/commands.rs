@@ -90,6 +90,14 @@ pub async fn llm_confirm_response(
         .take_pending_confirmation()
         .ok_or_else(|| "No pending confirmation".to_string())?;
 
+    // Restore focus immediately so the user can work during LLM processing.
+    // The pill had focus for keyboard input; give it back now.
+    if let Some(hwnd) = pending.target_window {
+        let _ = app.run_on_main_thread(move || {
+            let _ = crate::injection::restore_focus(hwnd);
+        });
+    }
+
     let state_data = recording_manager.state_data_arc();
     let pending_arc = recording_manager.pending_confirmation_arc();
 

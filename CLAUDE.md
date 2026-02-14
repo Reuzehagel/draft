@@ -89,6 +89,7 @@ The audio callback must be real-time safe: no allocations, no locks, no I/O.
 ### Event Communication
 
 Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
+
 - `amplitude` - 14-element f32 array for waveform visualization (~30fps)
 - `recording-started/stopped` - Recording state changes
 - `transcription-complete/error` - Transcription results
@@ -127,19 +128,20 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/SettingsApp.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
 - rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
 - Global hotkey system only supports F1-F24 as standalone keys (no modifier). Modifier keys (Ctrl, Alt, Shift, Fn) cannot be used alone — OS API limitation. Right vs left modifiers are not distinguished.
+- **Pill visibility/state sync**: Every pill state transition to "idle" must pair `setState("idle")` with `setVisible(false)` — except `TRANSCRIPTION_COMPLETE`, which intentionally leaves `visible=true` to avoid flicker when LLM processing follows immediately (Rust's `hide_pill_after_delay` controls that path).
 
 ## Feature Roadmap
 
-| Priority | Feature | Status |
-|----------|---------|--------|
-| 1 | LLM post-processing (auto-cleanup + voice commands) | Done |
-| 2 | Text output mode setting (clipboard copy vs inject into app) | Done |
-| 3 | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off) | Done |
-| 4 | Toggle transcription button in settings (hold-to-record vs toggle on/off) | Done |
-| 5 | LLM confirmation hotkey — after transcription, pill prompts "Enhance? Yes/No" with Y/N keyboard shortcuts and 8s auto-decline timeout. Setting: `llm_confirm_before_processing` | Done |
-| 6 | Whisper initial prompt | Planned |
-| 7 | Sound effects | Planned |
-| 8 | Transcription history | Planned |
+| Priority | Feature                                                                                                                                                                         | Status  |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1        | LLM post-processing (auto-cleanup + voice commands)                                                                                                                             | Done    |
+| 2        | Text output mode setting (clipboard copy vs inject into app)                                                                                                                    | Done    |
+| 3        | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off)                                                                          | Done    |
+| 4        | Toggle transcription button in settings (hold-to-record vs toggle on/off)                                                                                                       | Done    |
+| 5        | LLM confirmation hotkey — after transcription, pill prompts "Enhance? Yes/No" with Y/N keyboard shortcuts and 8s auto-decline timeout. Setting: `llm_confirm_before_processing` | Done    |
+| 6        | Whisper initial prompt                                                                                                                                                          | Planned |
+| 7        | Sound effects                                                                                                                                                                   | Planned |
+| 8        | Transcription history                                                                                                                                                           | Planned |
 
 ## Post-Sprint Workflow
 

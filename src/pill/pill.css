@@ -33,6 +33,7 @@ body {
   border-radius: 20px;
   background: rgba(26, 26, 26, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 150ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,6 +44,11 @@ body {
   font-family: 'Inter Variable', system-ui, sans-serif;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Done state with green border flash */
+.pill-container.done {
+  border-color: rgba(76, 175, 80, 0.8);
 }
 
 /* Error state with red tint */

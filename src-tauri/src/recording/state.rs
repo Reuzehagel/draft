@@ -314,6 +314,13 @@ impl RecordingManager {
 
         let _ = app.emit(events::RECORDING_STOPPED, ());
 
+        // Restore focus immediately so the user can keep working during transcription.
+        // output_text() will restore focus again later for text injection.
+        let target_hwnd = recording.target_window;
+        let _ = app.run_on_main_thread(move || {
+            let _ = crate::injection::restore_focus(target_hwnd);
+        });
+
         let transcription_id = {
             let mut state_data = self.state_data.lock().map_err(|_| "Lock poisoned")?;
             state_data.state = RecordingState::Transcribing;
@@ -446,6 +453,8 @@ async fn output_text(
     if let Err(e) = output_result {
         log::error!("Text output failed: {}", e);
         let _ = app.emit(events::TRANSCRIPTION_ERROR, &format!("Output failed: {}", e));
+    } else {
+        let _ = app.emit(events::OUTPUT_COMPLETE, ());
     }
 }
 

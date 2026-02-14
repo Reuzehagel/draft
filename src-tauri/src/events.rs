@@ -13,3 +13,4 @@ pub const TEST_MICROPHONE_COMPLETE: &str = "test-microphone-complete";
 pub const LLM_PROCESSING: &str = "llm-processing";
 pub const LLM_CONFIRM_REQUEST: &str = "llm-confirm-request";
 pub const LLM_CONFIRM_TIMEOUT: &str = "llm-confirm-timeout";
+pub const OUTPUT_COMPLETE: &str = "output-complete";

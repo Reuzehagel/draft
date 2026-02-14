@@ -5,9 +5,11 @@ import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
 import * as Events from "@/shared/constants/events";
 
-type PillState = "idle" | "loading" | "recording" | "transcribing" | "enhancing" | "confirming" | "error";
+type PillState = "idle" | "loading" | "recording" | "transcribing" | "enhancing" | "confirming" | "done" | "error";
 
 const ERROR_DISPLAY_MS = 2000;
+const DONE_DISPLAY_MS = 1000;
+const EXIT_TRANSITION_MS = 150;
 
 interface PillContentProps {
   state: PillState;
@@ -69,6 +71,9 @@ function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: 
     case "error":
       return <span className="text-white">{errorMessage || "Error"}</span>;
 
+    case "done":
+      return <span className="text-white/80">All done!</span>;
+
     case "idle":
     default:
       return null;
@@ -87,6 +92,7 @@ export default function PillApp() {
   const stateRef = useRef<PillState>("idle");
   useEffect(() => { stateRef.current = state; }, [state]);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const doneTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const handleConfirm = useCallback(() => {
     if (stateRef.current !== "confirming") return;
@@ -100,6 +106,7 @@ export default function PillApp() {
   const handleDecline = useCallback(() => {
     if (stateRef.current !== "confirming") return;
     setState("idle");
+    setVisible(false);
     invoke("llm_confirm_response", { confirmed: false }).catch((e) =>
       console.error("Decline failed:", e)
     );
@@ -144,6 +151,24 @@ export default function PillApp() {
     });
     listeners.add(Events.LLM_CONFIRM_TIMEOUT, () => {
       setState("idle");
+      setVisible(false);
+    });
+    listeners.add(Events.OUTPUT_COMPLETE, () => {
+      setState("done");
+      setVisible(true);
+      setContentKey((k) => k + 1);
+      if (doneTimeoutRef.current) clearTimeout(doneTimeoutRef.current);
+      // After display time, trigger fade-out, then unmount after transition
+      doneTimeoutRef.current = setTimeout(() => {
+        if (stateRef.current === "done") {
+          setVisible(false);
+          doneTimeoutRef.current = setTimeout(() => {
+            if (stateRef.current === "done") {
+              setState("idle");
+            }
+          }, EXIT_TRANSITION_MS);
+        }
+      }, DONE_DISPLAY_MS);
     });
     listeners.add(Events.TRANSCRIPTION_COMPLETE, () => {
       // Don't hide the pill here — let Rust's hide_pill_after_delay control
@@ -172,6 +197,7 @@ export default function PillApp() {
     return () => {
       listeners.cleanup();
       if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+      if (doneTimeoutRef.current) clearTimeout(doneTimeoutRef.current);
     };
   }, []);
 
@@ -209,43 +235,26 @@ export default function PillApp() {
   // For development: cycle through states with keyboard
   useEffect(() => {
     if (import.meta.env.DEV) {
+      const devStates: Record<string, PillState> = {
+        "1": "loading",
+        "2": "recording",
+        "3": "transcribing",
+        "4": "error",
+        "5": "enhancing",
+        "6": "confirming",
+        "7": "done",
+      };
+
       const handleKeyDown = (e: KeyboardEvent) => {
-        switch (e.key) {
-          case "1":
-            setState("loading");
-            setVisible(true);
-            setContentKey((k) => k + 1);
-            break;
-          case "2":
-            setState("recording");
-            setVisible(true);
-            setContentKey((k) => k + 1);
-            break;
-          case "3":
-            setState("transcribing");
-            setVisible(true);
-            setContentKey((k) => k + 1);
-            break;
-          case "4":
-            setState("error");
-            setErrorMessage("Test error");
-            setVisible(true);
-            setContentKey((k) => k + 1);
-            break;
-          case "5":
-            setState("enhancing");
-            setVisible(true);
-            setContentKey((k) => k + 1);
-            break;
-          case "6":
-            setState("confirming");
-            setVisible(true);
-            setContentKey((k) => k + 1);
-            break;
-          case "0":
-            setState("idle");
-            setVisible(false);
-            break;
+        const targetState = devStates[e.key];
+        if (targetState) {
+          setState(targetState);
+          setVisible(true);
+          setContentKey((k) => k + 1);
+          if (targetState === "error") setErrorMessage("Test error");
+        } else if (e.key === "0") {
+          setState("idle");
+          setVisible(false);
         }
       };
 
@@ -258,10 +267,10 @@ export default function PillApp() {
     return null;
   }
 
-  // Container class: scale+fade entry/exit + smooth error color transition
+  const stateClass = state === "error" || state === "done" ? state : "";
   const containerClass = [
     "pill-container",
-    state === "error" ? "error" : "",
+    stateClass,
     visible ? "pill-visible" : "pill-exit",
   ].filter(Boolean).join(" ");
 
