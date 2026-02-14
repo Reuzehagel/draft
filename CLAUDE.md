@@ -42,7 +42,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `components/` - SettingsCard, SettingRow, HotkeyInput, Toggle, ModelsCard
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
   - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
-- `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → error
+- `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → confirming → error
 - `shared/types/` - TypeScript interfaces mirroring Rust types
 - `shared/constants/events.ts` - Event names matching `src-tauri/src/events.rs`
 - `shared/utils/tauriListeners.ts` - `createListenerGroup()` helper for consistent event listener cleanup
@@ -96,6 +96,8 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 - `model-loading/loaded` - Whisper model load state
 - `test-microphone-complete` - Microphone test finished
 - `llm-processing` - LLM post-processing started (triggers "enhancing" pill state)
+- `llm-confirm-request` - Prompt user to confirm LLM processing (triggers "confirming" pill state)
+- `llm-confirm-timeout` - Confirmation timed out, raw text output used
 
 ### Model Storage
 
@@ -103,7 +105,7 @@ Whisper GGML models stored at `%APPDATA%/Draft/models/`. 8 models available (tin
 
 ### Config Storage
 
-Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript types in `src/shared/types/config.ts` must match Rust `Config` struct. Includes LLM settings: `llm_provider`, `llm_api_key`, `llm_model`, `llm_auto_process`, `llm_system_prompt`.
+Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript types in `src/shared/types/config.ts` must match Rust `Config` struct. Includes LLM settings: `llm_provider`, `llm_api_key`, `llm_model`, `llm_auto_process`, `llm_system_prompt`, `llm_confirm_before_processing`.
 
 ## Key Constraints
 
@@ -120,7 +122,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 
 ## Development Notes
 
-- Pill states can be tested in dev mode via keyboard shortcuts (1-4, 0) at `localhost:5173/pill.html`
+- Pill states can be tested in dev mode via keyboard shortcuts (1-6, 0) at `localhost:5173/pill.html`
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
 - LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/SettingsApp.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
 - rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
@@ -134,7 +136,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 | 2 | Text output mode setting (clipboard copy vs inject into app) | Done |
 | 3 | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off) | Done |
 | 4 | Toggle transcription button in settings (hold-to-record vs toggle on/off) | Done |
-| 5 | LLM confirmation hotkey — after transcription, pill expands to prompt "Apply post-processing?" with (Y)es/(N)o buttons+hotkeys. New setting: "Ask for confirmation before LLM processing" | Planned |
+| 5 | LLM confirmation hotkey — after transcription, pill prompts "Enhance? Yes/No" with Y/N keyboard shortcuts and 8s auto-decline timeout. Setting: `llm_confirm_before_processing` | Done |
 | 6 | Whisper initial prompt | Planned |
 | 7 | Sound effects | Planned |
 | 8 | Transcription history | Planned |

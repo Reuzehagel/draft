@@ -180,12 +180,25 @@ export default function PillApp() {
     if (state !== "confirming") return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "y" || e.key === "Y" || e.key === "Enter") {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const focused = document.activeElement;
+        if (focused?.classList.contains("pill-confirm-no")) {
+          handleDecline();
+        } else {
+          handleConfirm();
+        }
+      } else if (e.key === "y" || e.key === "Y") {
         e.preventDefault();
         handleConfirm();
       } else if (e.key === "n" || e.key === "N" || e.key === "Escape") {
         e.preventDefault();
         handleDecline();
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const buttons = document.querySelectorAll<HTMLButtonElement>(".pill-confirm-btn");
+        const targetIndex = e.key === "ArrowRight" ? 1 : 0;
+        buttons[targetIndex]?.focus();
       }
     };
 

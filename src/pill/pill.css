@@ -83,19 +83,17 @@ body {
   transition: background 120ms ease;
 }
 
-.pill-confirm-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+.pill-confirm-btn:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 1px;
 }
 
-.pill-confirm-btn.pill-confirm-yes:hover {
+.pill-confirm-btn.pill-confirm-yes:hover,
+.pill-confirm-btn.pill-confirm-yes:focus {
   background: rgba(76, 175, 80, 0.4);
 }
 
-.pill-confirm-btn.pill-confirm-no:hover {
+.pill-confirm-btn.pill-confirm-no:hover,
+.pill-confirm-btn.pill-confirm-no:focus {
   background: rgba(244, 67, 54, 0.4);
-}
-
-.pill-confirm-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
-  outline-offset: 1px;
 }
