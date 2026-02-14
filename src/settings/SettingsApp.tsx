@@ -315,6 +315,15 @@ export default function SettingsApp() {
           >
             <div className="overflow-hidden">
               <div className="space-y-3 pt-1">
+                <SettingRow label="Confirm before enhancing" description="Prompt Y/N before sending to LLM" inline>
+                  <Toggle
+                    checked={config?.llm_confirm_before_processing || false}
+                    onChange={(llm_confirm_before_processing) =>
+                      updateConfig({ llm_confirm_before_processing })
+                    }
+                  />
+                </SettingRow>
+
                 <SettingRow label="Provider">
                   <Select
                     value={config?.llm_provider || ""}

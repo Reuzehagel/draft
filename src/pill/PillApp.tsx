@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
 import * as Events from "@/shared/constants/events";
 
-type PillState = "idle" | "loading" | "recording" | "transcribing" | "enhancing" | "error";
+type PillState = "idle" | "loading" | "recording" | "transcribing" | "enhancing" | "confirming" | "error";
 
 const ERROR_DISPLAY_MS = 2000;
 
@@ -12,9 +13,11 @@ interface PillContentProps {
   state: PillState;
   errorMessage?: string;
   amplitudes?: number[];
+  onConfirm?: () => void;
+  onDecline?: () => void;
 }
 
-function PillContent({ state, errorMessage, amplitudes }: PillContentProps) {
+function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: PillContentProps) {
   switch (state) {
     case "loading":
       return (
@@ -43,6 +46,26 @@ function PillContent({ state, errorMessage, amplitudes }: PillContentProps) {
         </>
       );
 
+    case "confirming":
+      return (
+        <>
+          <span className="text-white/80">Enhance?</span>
+          <button
+            className="pill-confirm-btn pill-confirm-yes"
+            onClick={onConfirm}
+            autoFocus
+          >
+            Yes
+          </button>
+          <button
+            className="pill-confirm-btn pill-confirm-no"
+            onClick={onDecline}
+          >
+            No
+          </button>
+        </>
+      );
+
     case "error":
       return <span className="text-white">{errorMessage || "Error"}</span>;
 
@@ -64,6 +87,23 @@ export default function PillApp() {
   const stateRef = useRef<PillState>("idle");
   useEffect(() => { stateRef.current = state; }, [state]);
   const errorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleConfirm = useCallback(() => {
+    if (stateRef.current !== "confirming") return;
+    setState("enhancing");
+    setContentKey((k) => k + 1);
+    invoke("llm_confirm_response", { confirmed: true }).catch((e) =>
+      console.error("Confirm failed:", e)
+    );
+  }, []);
+
+  const handleDecline = useCallback(() => {
+    if (stateRef.current !== "confirming") return;
+    setState("idle");
+    invoke("llm_confirm_response", { confirmed: false }).catch((e) =>
+      console.error("Decline failed:", e)
+    );
+  }, []);
 
   useEffect(() => {
     const listeners = createListenerGroup();
@@ -97,6 +137,14 @@ export default function PillApp() {
       setVisible(true);
       setContentKey((k) => k + 1);
     });
+    listeners.add(Events.LLM_CONFIRM_REQUEST, () => {
+      setState("confirming");
+      setVisible(true);
+      setContentKey((k) => k + 1);
+    });
+    listeners.add(Events.LLM_CONFIRM_TIMEOUT, () => {
+      setState("idle");
+    });
     listeners.add(Events.TRANSCRIPTION_COMPLETE, () => {
       // Don't hide the pill here — let Rust's hide_pill_after_delay control
       // the window visibility. This prevents a flicker when LLM processing
@@ -127,6 +175,24 @@ export default function PillApp() {
     };
   }, []);
 
+  // Keyboard handler for confirming state (Y/Enter = confirm, N/Escape = decline)
+  useEffect(() => {
+    if (state !== "confirming") return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "y" || e.key === "Y" || e.key === "Enter") {
+        e.preventDefault();
+        handleConfirm();
+      } else if (e.key === "n" || e.key === "N" || e.key === "Escape") {
+        e.preventDefault();
+        handleDecline();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [state, handleConfirm, handleDecline]);
+
   // For development: cycle through states with keyboard
   useEffect(() => {
     if (import.meta.env.DEV) {
@@ -155,6 +221,11 @@ export default function PillApp() {
             break;
           case "5":
             setState("enhancing");
+            setVisible(true);
+            setContentKey((k) => k + 1);
+            break;
+          case "6":
+            setState("confirming");
             setVisible(true);
             setContentKey((k) => k + 1);
             break;
@@ -188,6 +259,8 @@ export default function PillApp() {
           state={state}
           errorMessage={errorMessage}
           amplitudes={amplitudes}
+          onConfirm={handleConfirm}
+          onDecline={handleDecline}
         />
       </div>
     </div>

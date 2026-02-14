@@ -121,6 +121,7 @@ pub fn run() {
             recording::commands::unregister_hotkey,
             recording::commands::check_recording_config,
             recording::commands::get_recording_state,
+            recording::commands::llm_confirm_response,
             autostart::enable_autostart,
             autostart::disable_autostart,
             autostart::is_autostart_enabled,

@@ -18,6 +18,9 @@ use crate::stt::WhisperHandle;
 /// Gives the target window time to process WM_ACTIVATE and be ready for input.
 const FOCUS_RESTORE_DELAY: Duration = Duration::from_millis(100);
 
+/// How long to wait for user confirmation before auto-declining
+const CONFIRM_TIMEOUT: Duration = Duration::from_secs(8);
+
 /// Recording states
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -36,11 +39,18 @@ struct ActiveRecording {
 }
 
 /// Combined recording state protected by a single mutex for atomic updates
-struct RecordingStateData {
+pub(crate) struct RecordingStateData {
     state: RecordingState,
     active_recording: Option<ActiveRecording>,
     last_target_window: Option<isize>,
     transcription_id: Option<u64>,
+}
+
+/// Data stored while waiting for user to confirm LLM processing
+pub(crate) struct PendingConfirmation {
+    pub raw_text: String,
+    pub config: crate::config::Config,
+    pub target_window: Option<isize>,
 }
 
 /// Pair of event listener IDs for transcription completion/error
@@ -65,6 +75,8 @@ pub struct RecordingManager {
     last_tap_release: Arc<Mutex<Option<Instant>>>,
     /// Whether toggle recording mode is active (in-memory only, resets on restart)
     toggle_active: Arc<AtomicBool>,
+    /// Pending LLM confirmation awaiting user Y/N
+    pending_confirmation: Arc<Mutex<Option<PendingConfirmation>>>,
 }
 
 impl Default for RecordingManager {
@@ -90,6 +102,7 @@ impl RecordingManager {
             transcription_counter: Arc::new(AtomicU64::new(0)),
             last_tap_release: Arc::new(Mutex::new(None)),
             toggle_active: Arc::new(AtomicBool::new(false)),
+            pending_confirmation: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -99,6 +112,24 @@ impl RecordingManager {
             .lock()
             .map(|guard| guard.state)
             .unwrap_or_else(|e| e.into_inner().state)
+    }
+
+    /// Take the pending confirmation, if any. Returns None if already taken.
+    pub fn take_pending_confirmation(&self) -> Option<PendingConfirmation> {
+        self.pending_confirmation
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .take()
+    }
+
+    /// Get Arc to state_data for use in async tasks
+    pub(crate) fn state_data_arc(&self) -> Arc<Mutex<RecordingStateData>> {
+        self.state_data.clone()
+    }
+
+    /// Get Arc to pending_confirmation for use in async tasks
+    pub(crate) fn pending_confirmation_arc(&self) -> Arc<Mutex<Option<PendingConfirmation>>> {
+        self.pending_confirmation.clone()
     }
 
     fn can_start_recording(&self, app: &AppHandle) -> Result<(), String> {
@@ -155,6 +186,16 @@ impl RecordingManager {
         if is_double_tap {
             self.toggle_active.store(true, Ordering::SeqCst);
             log::info!("Double-tap detected: starting toggle recording");
+        }
+
+        // Cancel any pending confirmation — output raw text in background
+        if let Some(pending) = self.take_pending_confirmation() {
+            let app_bg = app.clone();
+            let state_bg = self.state_data.clone();
+            let pc_bg = self.pending_confirmation.clone();
+            tauri::async_runtime::spawn(async move {
+                execute_raw_output(&app_bg, &state_bg, &pc_bg, pending).await;
+            });
         }
 
         // All error paths below must reset key_pressed
@@ -334,16 +375,18 @@ impl RecordingManager {
     fn register_transcription_listeners(&self, app: &AppHandle, transcription_id: u64) {
         // Completion listener
         let state_data_clone = self.state_data.clone();
+        let pending_clone = self.pending_confirmation.clone();
         let app_clone = app.clone();
         let complete_id = app.listen(events::TRANSCRIPTION_COMPLETE, move |event| {
-            handle_transcription_complete(event, &state_data_clone, &app_clone, transcription_id);
+            handle_transcription_complete(event, &state_data_clone, &pending_clone, &app_clone, transcription_id);
         });
 
         // Error listener
         let state_data_clone = self.state_data.clone();
+        let pending_clone = self.pending_confirmation.clone();
         let app_clone = app.clone();
         let error_id = app.listen(events::TRANSCRIPTION_ERROR, move |_| {
-            handle_transcription_error(&state_data_clone, &app_clone, transcription_id);
+            handle_transcription_error(&state_data_clone, &pending_clone, &app_clone, transcription_id);
         });
 
         if let Ok(mut guard) = self.transcription_listeners.lock() {
@@ -365,10 +408,79 @@ impl RecordingManager {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Shared output helpers
+// ---------------------------------------------------------------------------
+
+/// Restore focus and inject/clipboard the final text
+async fn output_text(
+    app: &AppHandle,
+    text: &str,
+    config: &crate::config::Config,
+    target_window: Option<isize>,
+) {
+    let output_result = if config.text_output_mode == "clipboard" {
+        crate::injection::copy_to_clipboard(text)
+    } else {
+        // Restore focus to the original window before injecting keystrokes.
+        // Must run on the main thread so AttachThreadInput has a proper
+        // Windows message queue (tokio worker threads don't have one).
+        if let Some(hwnd) = target_window {
+            let (tx, rx) = tokio::sync::oneshot::channel();
+            let _ = app.run_on_main_thread(move || {
+                let _ = tx.send(crate::injection::restore_focus(hwnd));
+            });
+            let focused = rx.await.unwrap_or(false);
+
+            if focused {
+                tokio::time::sleep(FOCUS_RESTORE_DELAY).await;
+            } else {
+                log::warn!(
+                    "Failed to restore focus to window (HWND: {}). Text will inject to current focus.",
+                    hwnd
+                );
+            }
+        }
+        crate::injection::inject_text(text, config.trailing_space)
+    };
+    if let Err(e) = output_result {
+        log::error!("Text output failed: {}", e);
+        let _ = app.emit(events::TRANSCRIPTION_ERROR, &format!("Output failed: {}", e));
+    }
+}
+
+/// Run LLM post-processing, output the result, and hide the pill
+pub(crate) async fn execute_llm_output(
+    app: &AppHandle,
+    state_data: &Arc<Mutex<RecordingStateData>>,
+    pending_confirmation: &Arc<Mutex<Option<PendingConfirmation>>>,
+    pending: PendingConfirmation,
+) {
+    let final_text = crate::llm::post_process(&pending.raw_text, &pending.config).await;
+    output_text(app, &final_text, &pending.config, pending.target_window).await;
+    hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(2));
+}
+
+/// Output the raw text (skip LLM) and hide the pill
+pub(crate) async fn execute_raw_output(
+    app: &AppHandle,
+    state_data: &Arc<Mutex<RecordingStateData>>,
+    pending_confirmation: &Arc<Mutex<Option<PendingConfirmation>>>,
+    pending: PendingConfirmation,
+) {
+    output_text(app, &pending.raw_text, &pending.config, pending.target_window).await;
+    hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(2));
+}
+
+// ---------------------------------------------------------------------------
+// Transcription event handlers
+// ---------------------------------------------------------------------------
+
 /// Handle transcription-complete event: reset state, run LLM, inject text
 fn handle_transcription_complete(
     event: tauri::Event,
     state_data: &Arc<Mutex<RecordingStateData>>,
+    pending_confirmation: &Arc<Mutex<Option<PendingConfirmation>>>,
     app: &AppHandle,
     expected_id: u64,
 ) {
@@ -401,12 +513,49 @@ fn handle_transcription_complete(
     };
 
     if text.trim().is_empty() {
-        hide_pill_after_delay(app, state_data, Duration::from_secs(2));
+        hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(2));
         return;
     }
 
     let config = crate::config::load_config();
     let llm_will_process = crate::llm::should_process(&config);
+    let needs_confirmation = llm_will_process && config.llm_confirm_before_processing;
+
+    if needs_confirmation {
+        // Store pending confirmation for user to approve/decline
+        {
+            let mut guard = pending_confirmation.lock().unwrap_or_else(|e| e.into_inner());
+            *guard = Some(PendingConfirmation {
+                raw_text: text,
+                config,
+                target_window,
+            });
+        }
+
+        let _ = app.emit(events::LLM_CONFIRM_REQUEST, ());
+
+        // Give the pill focus so keyboard events reach it
+        if let Some(pill) = app.get_webview_window("pill") {
+            let _ = pill.set_focus();
+        }
+
+        // Spawn timeout task
+        let pc_timeout = pending_confirmation.clone();
+        let sd_timeout = state_data.clone();
+        let app_timeout = app.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(CONFIRM_TIMEOUT).await;
+            // Only act if pending is still there (user hasn't responded yet)
+            let pending = pc_timeout.lock().unwrap_or_else(|e| e.into_inner()).take();
+            if let Some(pending) = pending {
+                log::info!("LLM confirmation timed out, outputting raw text");
+                let _ = app_timeout.emit(events::LLM_CONFIRM_TIMEOUT, ());
+                execute_raw_output(&app_timeout, &sd_timeout, &pc_timeout, pending).await;
+            }
+        });
+
+        return;
+    }
 
     if llm_will_process {
         let _ = app.emit(events::LLM_PROCESSING, ());
@@ -414,52 +563,26 @@ fn handle_transcription_complete(
 
     let app_for_task = app.clone();
     let state_for_task = state_data.clone();
+    let pc_for_task = pending_confirmation.clone();
 
     tauri::async_runtime::spawn(async move {
         let final_text = crate::llm::post_process(&text, &config).await;
-
-        let output_result = if config.text_output_mode == "clipboard" {
-            crate::injection::copy_to_clipboard(&final_text)
-        } else {
-            // Restore focus to the original window before injecting keystrokes.
-            // Must run on the main thread so AttachThreadInput has a proper
-            // Windows message queue (tokio worker threads don't have one).
-            if let Some(hwnd) = target_window {
-                let (tx, rx) = tokio::sync::oneshot::channel();
-                let _ = app_for_task.run_on_main_thread(move || {
-                    let _ = tx.send(crate::injection::restore_focus(hwnd));
-                });
-                let focused = rx.await.unwrap_or(false);
-
-                if focused {
-                    tokio::time::sleep(FOCUS_RESTORE_DELAY).await;
-                } else {
-                    log::warn!(
-                        "Failed to restore focus to window (HWND: {}). Text will inject to current focus.",
-                        hwnd
-                    );
-                }
-            }
-            crate::injection::inject_text(&final_text, config.trailing_space)
-        };
-        if let Err(e) = output_result {
-            log::error!("Text output failed: {}", e);
-            let _ = app_for_task.emit(events::TRANSCRIPTION_ERROR, &format!("Output failed: {}", e));
-        }
+        output_text(&app_for_task, &final_text, &config, target_window).await;
 
         if llm_will_process {
-            hide_pill_after_delay(&app_for_task, &state_for_task, Duration::from_secs(2));
+            hide_pill_after_delay(&app_for_task, &state_for_task, &pc_for_task, Duration::from_secs(2));
         }
     });
 
     if !llm_will_process {
-        hide_pill_after_delay(app, state_data, Duration::from_secs(2));
+        hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(2));
     }
 }
 
 /// Handle transcription-error event: reset state and hide pill
 fn handle_transcription_error(
     state_data: &Arc<Mutex<RecordingStateData>>,
+    pending_confirmation: &Arc<Mutex<Option<PendingConfirmation>>>,
     app: &AppHandle,
     expected_id: u64,
 ) {
@@ -471,7 +594,7 @@ fn handle_transcription_error(
         guard.transcription_id = None;
         guard.last_target_window = None;
     }
-    hide_pill_after_delay(app, state_data, Duration::from_secs(3));
+    hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(3));
 }
 
 /// Position and show the pill window at bottom center of the primary monitor
@@ -496,21 +619,27 @@ fn show_pill_centered(app: &AppHandle) {
     let _ = pill.show();
 }
 
-/// Hide the pill window after a delay, but only if still idle
+/// Hide the pill window after a delay, but only if still idle and no pending confirmation
 fn hide_pill_after_delay(
     app: &AppHandle,
     state_data: &Arc<Mutex<RecordingStateData>>,
+    pending_confirmation: &Arc<Mutex<Option<PendingConfirmation>>>,
     delay: Duration,
 ) {
     if let Some(pill) = app.get_webview_window("pill") {
         let state_for_hide = state_data.clone();
+        let pc_for_hide = pending_confirmation.clone();
         tauri::async_runtime::spawn(async move {
             tokio::time::sleep(delay).await;
             let is_idle = state_for_hide
                 .lock()
                 .map(|s| s.state == RecordingState::Idle)
                 .unwrap_or(true);
-            if is_idle {
+            let has_pending = pc_for_hide
+                .lock()
+                .map(|p| p.is_some())
+                .unwrap_or(false);
+            if is_idle && !has_pending {
                 let _ = pill.hide();
             }
         });

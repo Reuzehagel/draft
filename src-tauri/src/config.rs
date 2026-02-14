@@ -30,6 +30,7 @@ pub struct Config {
     pub llm_system_prompt: Option<String>,
     pub text_output_mode: String,
     pub double_tap_toggle: bool,
+    pub llm_confirm_before_processing: bool,
 }
 
 impl Default for Config {
@@ -51,6 +52,7 @@ impl Default for Config {
             llm_system_prompt: None,
             text_output_mode: "inject".to_string(),
             double_tap_toggle: false,
+            llm_confirm_before_processing: false,
         }
     }
 }

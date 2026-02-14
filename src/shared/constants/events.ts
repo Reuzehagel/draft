@@ -11,3 +11,5 @@ export const MODEL_LOADING = "model-loading";
 export const MODEL_LOADED = "model-loaded";
 export const TEST_MICROPHONE_COMPLETE = "test-microphone-complete";
 export const LLM_PROCESSING = "llm-processing";
+export const LLM_CONFIRM_REQUEST = "llm-confirm-request";
+export const LLM_CONFIRM_TIMEOUT = "llm-confirm-timeout";

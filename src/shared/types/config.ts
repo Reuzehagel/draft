@@ -19,4 +19,5 @@ export interface Config {
   llm_system_prompt: string | null;
   text_output_mode: TextOutputMode;
   double_tap_toggle: boolean;
+  llm_confirm_before_processing: boolean;
 }

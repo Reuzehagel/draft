@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 use super::hotkey::{validate_hotkey as validate_hotkey_impl, HotkeyManager};
 use super::state::RecordingManager;
@@ -77,4 +77,28 @@ pub fn get_recording_state(
     recording_manager: State<'_, Arc<RecordingManager>>,
 ) -> super::state::RecordingState {
     recording_manager.get_state()
+}
+
+/// Respond to an LLM confirmation prompt (Y/N from the pill window)
+#[tauri::command]
+pub async fn llm_confirm_response(
+    app: AppHandle,
+    confirmed: bool,
+    recording_manager: State<'_, Arc<RecordingManager>>,
+) -> Result<(), String> {
+    let pending = recording_manager
+        .take_pending_confirmation()
+        .ok_or_else(|| "No pending confirmation".to_string())?;
+
+    let state_data = recording_manager.state_data_arc();
+    let pending_arc = recording_manager.pending_confirmation_arc();
+
+    if confirmed {
+        let _ = app.emit(crate::events::LLM_PROCESSING, ());
+        super::state::execute_llm_output(&app, &state_data, &pending_arc, pending).await;
+    } else {
+        super::state::execute_raw_output(&app, &state_data, &pending_arc, pending).await;
+    }
+
+    Ok(())
 }
