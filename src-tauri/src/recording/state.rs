@@ -325,28 +325,33 @@ fn handle_transcription_complete(
     tauri::async_runtime::spawn(async move {
         let final_text = crate::llm::post_process(&text, &config).await;
 
-        if let Some(hwnd) = target_window {
-            // Run restore_focus on the main thread so AttachThreadInput has a
-            // proper Windows message queue (tokio worker threads don't have one).
-            let (tx, rx) = tokio::sync::oneshot::channel();
-            let _ = app_for_task.run_on_main_thread(move || {
-                let _ = tx.send(crate::injection::restore_focus(hwnd));
-            });
-            let focused = rx.await.unwrap_or(false);
+        let output_result = if config.text_output_mode == "clipboard" {
+            crate::injection::copy_to_clipboard(&final_text)
+        } else {
+            // Restore focus to the original window before injecting keystrokes.
+            // Must run on the main thread so AttachThreadInput has a proper
+            // Windows message queue (tokio worker threads don't have one).
+            if let Some(hwnd) = target_window {
+                let (tx, rx) = tokio::sync::oneshot::channel();
+                let _ = app_for_task.run_on_main_thread(move || {
+                    let _ = tx.send(crate::injection::restore_focus(hwnd));
+                });
+                let focused = rx.await.unwrap_or(false);
 
-            if focused {
-                tokio::time::sleep(FOCUS_RESTORE_DELAY).await;
-            } else {
-                log::warn!(
-                    "Failed to restore focus to window (HWND: {}). Text will inject to current focus.",
-                    hwnd
-                );
+                if focused {
+                    tokio::time::sleep(FOCUS_RESTORE_DELAY).await;
+                } else {
+                    log::warn!(
+                        "Failed to restore focus to window (HWND: {}). Text will inject to current focus.",
+                        hwnd
+                    );
+                }
             }
-        }
-
-        if let Err(e) = crate::injection::inject_text(&final_text, config.trailing_space) {
-            log::error!("Text injection failed: {}", e);
-            let _ = app_for_task.emit(events::TRANSCRIPTION_ERROR, &format!("Injection failed: {}", e));
+            crate::injection::inject_text(&final_text, config.trailing_space)
+        };
+        if let Err(e) = output_result {
+            log::error!("Text output failed: {}", e);
+            let _ = app_for_task.emit(events::TRANSCRIPTION_ERROR, &format!("Output failed: {}", e));
         }
 
         if llm_will_process {

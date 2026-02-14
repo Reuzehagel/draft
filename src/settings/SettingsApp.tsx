@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import type { TextOutputMode } from "@/shared/types/config";
 import { useDarkMode } from "./hooks/useDarkMode";
 import { useConfig } from "./hooks/useConfig";
 import { useHotkeyRegistration } from "./hooks/useHotkeyRegistration";
@@ -393,6 +394,21 @@ export default function SettingsApp() {
                 <ErrorMessage message={autoStartError} />
               </div>
             )}
+
+            <SettingRow label="Text output" description="How transcribed text is delivered">
+              <Select
+                value={config?.text_output_mode || "inject"}
+                onValueChange={(value) => updateConfig({ text_output_mode: value as TextOutputMode })}
+              >
+                <SelectTrigger className="w-full text-[13px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectItem value="inject" className="text-[13px]">Type into app</SelectItem>
+                  <SelectItem value="clipboard" className="text-[13px]">Copy to clipboard</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
 
             <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>
               <Toggle

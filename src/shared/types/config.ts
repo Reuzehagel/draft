@@ -1,5 +1,7 @@
 // Mirrors Rust Config struct from src-tauri/src/config.rs
 
+export type TextOutputMode = "inject" | "clipboard";
+
 export interface Config {
   version: number;
   microphone_id: string | null;
@@ -15,4 +17,5 @@ export interface Config {
   llm_model: string | null;
   llm_auto_process: boolean;
   llm_system_prompt: string | null;
+  text_output_mode: TextOutputMode;
 }

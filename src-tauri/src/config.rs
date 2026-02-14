@@ -27,6 +27,7 @@ pub struct Config {
     pub llm_model: Option<String>,
     pub llm_auto_process: bool,
     pub llm_system_prompt: Option<String>,
+    pub text_output_mode: String,
 }
 
 impl Default for Config {
@@ -46,6 +47,7 @@ impl Default for Config {
             llm_model: None,
             llm_auto_process: false,
             llm_system_prompt: None,
+            text_output_mode: "inject".to_string(),
         }
     }
 }
