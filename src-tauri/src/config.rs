@@ -12,6 +12,7 @@ use std::sync::Mutex;
 static CONFIG_LOCK: Mutex<()> = Mutex::new(());
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Config {
     pub version: u32,
     pub microphone_id: Option<String>,
@@ -28,6 +29,7 @@ pub struct Config {
     pub llm_auto_process: bool,
     pub llm_system_prompt: Option<String>,
     pub text_output_mode: String,
+    pub double_tap_toggle: bool,
 }
 
 impl Default for Config {
@@ -48,6 +50,7 @@ impl Default for Config {
             llm_auto_process: false,
             llm_system_prompt: None,
             text_output_mode: "inject".to_string(),
+            double_tap_toggle: false,
         }
     }
 }

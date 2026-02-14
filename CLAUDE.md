@@ -63,7 +63,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - `recording/` - Recording state management:
   - `commands.rs` - Start/stop recording commands
   - `hotkey.rs` - Global hotkey registration and handling
-  - `state.rs` - Recording state machine
+  - `state.rs` - Recording state machine (hold-to-record + double-tap toggle mode with tap/hold detection)
 - `injection/` - Text injection module:
   - `focus.rs` - Capture and restore window focus before/after recording
   - `text.rs` - enigo-based text injection into active application
@@ -113,6 +113,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - **CMake 3.20+ required** for whisper-rs, plus Visual Studio Build Tools with C++ workload and Windows SDK
 - **Audio callback timing** must complete in <5ms
 - **Config write concurrency**: `CONFIG_LOCK` mutex in `config.rs` serializes all writes. `set_config` preserves `window_position`/`window_size` from disk (frontend doesn't manage geometry). New config writers must acquire `CONFIG_LOCK`.
+- **Adding config fields**: Config struct has `#[serde(default)]` so missing fields use defaults (backward compat). When adding a field: (1) add to Rust `Config` struct + `Default` impl, (2) add to `config.ts` TypeScript interface, (3) add UI in SettingsApp.tsx
 - **Tauri v2 plugins** use capabilities system in `src-tauri/capabilities/default.json`
 - **Windows API + tokio**: Win32 calls needing a message queue (e.g. `AttachThreadInput`, `SetForegroundWindow` privilege tricks) must run via `app.run_on_main_thread()` — tokio worker threads don't have message pumps
 - **Path alias**: `@/*` maps to `./src/*` in tsconfig
@@ -123,15 +124,16 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
 - LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/SettingsApp.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
 - rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
+- Global hotkey system only supports F1-F24 as standalone keys (no modifier). Modifier keys (Ctrl, Alt, Shift, Fn) cannot be used alone — OS API limitation. Right vs left modifiers are not distinguished.
 
 ## Feature Roadmap
 
 | Priority | Feature | Status |
 |----------|---------|--------|
 | 1 | LLM post-processing (auto-cleanup + voice commands) | Done |
-| 2 | Text output mode setting (clipboard copy vs inject into app) | Planned |
-| 3 | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off) | Planned |
-| 4 | Toggle transcription button in settings (hold-to-record vs toggle on/off) | Planned |
+| 2 | Text output mode setting (clipboard copy vs inject into app) | Done |
+| 3 | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off) | Done |
+| 4 | Toggle transcription button in settings (hold-to-record vs toggle on/off) | Done |
 | 5 | LLM confirmation hotkey — after transcription, pill expands to prompt "Apply post-processing?" with (Y)es/(N)o buttons+hotkeys. New setting: "Ask for confirmation before LLM processing" | Planned |
 | 6 | Whisper initial prompt | Planned |
 | 7 | Sound effects | Planned |

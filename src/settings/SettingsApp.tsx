@@ -262,6 +262,12 @@ export default function SettingsApp() {
               Hold to record, release to transcribe. Function keys (F1-F24) work without modifiers.
             </p>
           </div>
+          <SettingRow label="Double-tap to toggle" description="Double-tap your hotkey to start continuous recording, tap again to stop" inline>
+            <Toggle
+              checked={config?.double_tap_toggle || false}
+              onChange={(double_tap_toggle) => updateConfig({ double_tap_toggle })}
+            />
+          </SettingRow>
         </SettingsCard>
 
         {/* Models */}

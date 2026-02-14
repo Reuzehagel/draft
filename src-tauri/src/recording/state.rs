@@ -49,12 +49,22 @@ struct TranscriptionListeners {
     error: Option<EventId>,
 }
 
+/// Press-release shorter than this is a "tap", not a hold
+const TAP_THRESHOLD: Duration = Duration::from_millis(300);
+
+/// Max time between first tap release and second press to count as double-tap
+const DOUBLE_TAP_WINDOW: Duration = Duration::from_millis(500);
+
 /// Manages recording state and transitions
 pub struct RecordingManager {
     state_data: Arc<Mutex<RecordingStateData>>,
     key_pressed: Arc<AtomicBool>,
     transcription_listeners: Arc<Mutex<TranscriptionListeners>>,
     transcription_counter: Arc<AtomicU64>,
+    /// Timestamp of last tap release (for double-tap detection)
+    last_tap_release: Arc<Mutex<Option<Instant>>>,
+    /// Whether toggle recording mode is active (in-memory only, resets on restart)
+    toggle_active: Arc<AtomicBool>,
 }
 
 impl Default for RecordingManager {
@@ -78,6 +88,8 @@ impl RecordingManager {
                 error: None,
             })),
             transcription_counter: Arc::new(AtomicU64::new(0)),
+            last_tap_release: Arc::new(Mutex::new(None)),
+            toggle_active: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -106,12 +118,12 @@ impl RecordingManager {
         Ok(())
     }
 
-    /// Handle hotkey press - start recording
+    /// Handle hotkey press - start recording or toggle-stop if active
     pub fn on_hotkey_pressed(&self, app: &AppHandle) -> Result<(), String> {
         // Capture target window before anything else (before pill shows)
         let target_window = crate::injection::capture_foreground_window();
 
-        // Ignore key repeats via compare-exchange
+        // Ignore key repeats via compare-exchange (all paths)
         if self
             .key_pressed
             .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -120,11 +132,36 @@ impl RecordingManager {
             return Ok(());
         }
 
-        // All error paths below must reset key_pressed, so use a helper that
-        // resets on Err and passes through Ok.
-        let result = self.start_recording(app, target_window);
+        // Toggle stop: if toggle mode is active and we're recording, stop + transcribe
+        if self.toggle_active.load(Ordering::SeqCst) && self.get_state() == RecordingState::Recording {
+            self.toggle_active.store(false, Ordering::SeqCst);
+            return self.stop_and_transcribe(app);
+        }
+
+        let config = load_config();
+
+        // Double-tap detection: check if this press is within the window of a recent tap
+        let is_double_tap = if config.double_tap_toggle {
+            let mut last_tap = self.last_tap_release.lock().unwrap_or_else(|e| e.into_inner());
+            if let Some(tap_time) = last_tap.take() {
+                tap_time.elapsed() < DOUBLE_TAP_WINDOW
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if is_double_tap {
+            self.toggle_active.store(true, Ordering::SeqCst);
+            log::info!("Double-tap detected: starting toggle recording");
+        }
+
+        // All error paths below must reset key_pressed
+        let result = self.start_recording(app, target_window, &config);
         if result.is_err() {
             self.key_pressed.store(false, Ordering::SeqCst);
+            self.toggle_active.store(false, Ordering::SeqCst);
         }
         result
     }
@@ -133,14 +170,13 @@ impl RecordingManager {
     /// Safety: The can_start_recording check and state transition are not atomic,
     /// but concurrent calls are prevented by the key_pressed compare_exchange in
     /// on_hotkey_pressed — only one hotkey press can pass that gate at a time.
-    fn start_recording(&self, app: &AppHandle, target_window: isize) -> Result<(), String> {
+    fn start_recording(&self, app: &AppHandle, target_window: isize, config: &crate::config::Config) -> Result<(), String> {
         if let Err(e) = self.can_start_recording(app) {
             log::warn!("{}", e);
             show_config_notification(app, &e);
             return Err(e);
         }
 
-        let config = load_config();
         let device_id = config.microphone_id.as_deref();
 
         let mut capture = AudioCapture::new(device_id)
@@ -177,7 +213,7 @@ impl RecordingManager {
         Ok(())
     }
 
-    /// Handle hotkey release - stop recording and transcribe
+    /// Handle hotkey release - stop recording and transcribe (or discard/continue for toggle mode)
     pub fn on_hotkey_released(&self, app: &AppHandle) -> Result<(), String> {
         self.key_pressed.store(false, Ordering::SeqCst);
 
@@ -185,6 +221,35 @@ impl RecordingManager {
             return Ok(());
         }
 
+        // Toggle active: recording continues after release
+        if self.toggle_active.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+
+        // Check if this was a quick tap (for double-tap detection)
+        let config = load_config();
+        if config.double_tap_toggle {
+            let hold_duration = self.state_data.lock()
+                .ok()
+                .and_then(|s| s.active_recording.as_ref().map(|r| r.start_time.elapsed()));
+
+            if let Some(duration) = hold_duration {
+                if duration < TAP_THRESHOLD {
+                    // Short tap: discard recording, record timestamp for double-tap detection
+                    self.discard_recording(app)?;
+                    let mut last_tap = self.last_tap_release.lock().unwrap_or_else(|e| e.into_inner());
+                    *last_tap = Some(Instant::now());
+                    return Ok(());
+                }
+            }
+        }
+
+        // Normal hold release: stop and transcribe
+        self.stop_and_transcribe(app)
+    }
+
+    /// Stop the current recording and start transcription
+    fn stop_and_transcribe(&self, app: &AppHandle) -> Result<(), String> {
         let recording = {
             let mut state_data = self.state_data.lock().map_err(|_| "Lock poisoned")?;
             let recording = state_data.active_recording.take();
@@ -232,6 +297,34 @@ impl RecordingManager {
             // handler from redundantly resetting state.
             self.cleanup_transcription_listeners(app);
             let _ = app.emit(events::TRANSCRIPTION_ERROR, &e);
+        }
+
+        Ok(())
+    }
+
+    /// Discard the current recording without transcribing (used for first tap in double-tap)
+    fn discard_recording(&self, app: &AppHandle) -> Result<(), String> {
+        let recording = {
+            let mut state_data = self.state_data.lock().map_err(|_| "Lock poisoned")?;
+            let recording = state_data.active_recording.take();
+            state_data.state = RecordingState::Idle;
+            recording
+        };
+
+        let Some(mut recording) = recording else {
+            log::warn!("No active recording to discard");
+            return Ok(());
+        };
+
+        recording.capture.stop();
+        let _ = recording.worker.stop(); // discard audio
+        log::info!("Recording discarded (tap detected, {:.0}ms)", recording.start_time.elapsed().as_millis());
+
+        let _ = app.emit(events::RECORDING_STOPPED, ());
+
+        // Hide pill immediately
+        if let Some(pill) = app.get_webview_window("pill") {
+            let _ = pill.hide();
         }
 
         Ok(())
