@@ -1,15 +1,20 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  AudioBook01Icon,
-  ComputerDesk01Icon,
-  Globe02Icon,
-  BulbIcon,
   Tick02Icon,
   InformationCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
 import { SettingsCard } from "../components/SettingsCard";
+import { TabBar } from "../components/TabBar";
+
+type HelpTab = "overview" | "local" | "online";
+
+const HELP_TABS: { id: HelpTab; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "local", label: "Local Models" },
+  { id: "online", label: "Online Providers" },
+];
 
 const COMPARISON_ROWS = [
   { aspect: "Privacy", local: "Audio never leaves your PC", online: "Audio sent to cloud API" },
@@ -149,122 +154,133 @@ const RECOMMENDATIONS = [
 ] as const;
 
 export function HelpPage(): React.ReactNode {
+  const [activeTab, setActiveTab] = useState<HelpTab>("overview");
+
   return (
-    <div className="p-4 space-y-3 max-w-xl mx-auto">
-      <SettingsCard
-        icon={<HugeiconsIcon icon={AudioBook01Icon} size={16} />}
-        title="Local vs Online"
-        description="Key differences between running Whisper locally and using a cloud provider"
-      >
-        <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-2 text-[13px]">
-          <div className="font-medium text-muted-foreground">Aspect</div>
-          <div className="font-medium text-muted-foreground">Local (Whisper)</div>
-          <div className="font-medium text-muted-foreground">Online</div>
-          {COMPARISON_ROWS.map((row) => (
-            <Fragment key={row.aspect}>
-              <div className="text-foreground font-medium">{row.aspect}</div>
-              <div className="text-muted-foreground">{row.local}</div>
-              <div className="text-muted-foreground">{row.online}</div>
-            </Fragment>
-          ))}
-        </div>
-      </SettingsCard>
-
-      <SettingsCard
-        icon={<HugeiconsIcon icon={ComputerDesk01Icon} size={16} />}
-        title="Local Whisper Models"
-        description="Download size, RAM usage, and accuracy tradeoffs"
-      >
-        <div className="space-y-3">
-          {LOCAL_MODELS.map((model) => (
-            <div key={model.name} className="flex items-start gap-3">
-              <Badge variant="outline" className="shrink-0 mt-0.5 font-mono text-[10px]">
-                {model.size}
-              </Badge>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13px] font-medium text-foreground">{model.name}</span>
-                  <span className="text-xs text-muted-foreground">{model.ram}</span>
+    <div className="flex flex-col h-full">
+      <TabBar tabs={HELP_TABS} activeTab={activeTab} onChange={setActiveTab} />
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
+        <div className="p-4 space-y-3 max-w-xl mx-auto">
+          {activeTab === "overview" && (
+            <>
+              <SettingsCard
+                title="Local vs Online"
+                description="Key differences between running Whisper locally and using a cloud provider"
+              >
+                <div className="grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-2 text-sm">
+                  <div className="font-medium text-muted-foreground">Aspect</div>
+                  <div className="font-medium text-muted-foreground">Local (Whisper)</div>
+                  <div className="font-medium text-muted-foreground">Online</div>
+                  {COMPARISON_ROWS.map((row, i) => (
+                    <Fragment key={row.aspect}>
+                      <div className={`text-foreground font-medium -mx-1 px-1 rounded-sm ${i % 2 === 1 ? "bg-muted/40" : ""}`}>{row.aspect}</div>
+                      <div className={`text-muted-foreground -mx-1 px-1 rounded-sm ${i % 2 === 1 ? "bg-muted/40" : ""}`}>{row.local}</div>
+                      <div className={`text-muted-foreground -mx-1 px-1 rounded-sm ${i % 2 === 1 ? "bg-muted/40" : ""}`}>{row.online}</div>
+                    </Fragment>
+                  ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
-          <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
-          <span>Each size has multilingual and English-only variants. English-only models are slightly more accurate for English speech.</span>
-        </p>
-      </SettingsCard>
+              </SettingsCard>
 
-      <SettingsCard
-        icon={<HugeiconsIcon icon={Globe02Icon} size={16} />}
-        title="Online Providers"
-        description="Pricing, accuracy, and features for each cloud STT provider"
-      >
-        <div className="space-y-4">
-          {ONLINE_PROVIDERS.map((provider) => (
-            <div key={provider.name} className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-medium text-foreground">{provider.name}</span>
-                <Badge variant="secondary" className="text-[10px] font-mono">
-                  {provider.model}
-                </Badge>
-              </div>
+              <SettingsCard
+                title="Quick Recommendations"
+                description="Best picks for common use cases"
+              >
+                <div className="space-y-3">
+                  {RECOMMENDATIONS.map((rec) => (
+                    <div key={rec.label} className="space-y-0.5 border-l-2 border-primary/20 pl-3">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">&ldquo;{rec.label}&rdquo;</span>
+                        <span className="text-xs text-primary font-medium">{rec.pick}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{rec.reason}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground/70 leading-relaxed pt-2 border-t border-border/40">
+                  Pricing and accuracy benchmarks are approximate and may change. Check each provider&rsquo;s website for current rates. WER numbers vary significantly depending on the test dataset — real-world audio with accents and background noise will have higher error rates than clean studio recordings. See{" "}
+                  <a
+                    href="https://artificialanalysis.ai/speech-to-text"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground transition-colors"
+                  >
+                    artificialanalysis.ai/speech-to-text
+                  </a>{" "}
+                  for deeper comparisons.
+                </p>
+              </SettingsCard>
+            </>
+          )}
 
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground pl-0.5">
-                <span>Pricing: {provider.pricing}</span>
-                <span>English WER: {provider.wer}</span>
-                <span>Free tier: {provider.freeTier}</span>
-              </div>
-
-              <ul className="space-y-0.5 pl-0.5">
-                {provider.highlights.map((highlight) => (
-                  <li key={highlight} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <HugeiconsIcon icon={Tick02Icon} size={12} className="shrink-0 mt-0.5 text-emerald-500" />
-                    <span>{highlight}</span>
-                  </li>
+          {activeTab === "local" && (
+            <SettingsCard
+              title="Local Whisper Models"
+              description="Download size, RAM usage, and accuracy tradeoffs"
+            >
+              <div className="space-y-3">
+                {LOCAL_MODELS.map((model) => (
+                  <div key={model.name} className="flex items-start gap-3">
+                    <Badge variant="outline" className="shrink-0 mt-0.5 font-mono text-[10px]">
+                      {model.size}
+                    </Badge>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">{model.name}</span>
+                        <span className="text-xs text-muted-foreground">{model.ram}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{model.description}</p>
+                    </div>
+                  </div>
                 ))}
-              </ul>
-
-              <p className="text-xs text-muted-foreground flex items-start gap-1.5 pl-0.5">
-                <HugeiconsIcon icon={InformationCircleIcon} size={12} className="shrink-0 mt-0.5" />
-                <span>{provider.notes}</span>
-              </p>
-            </div>
-          ))}
-        </div>
-      </SettingsCard>
-
-      <SettingsCard
-        icon={<HugeiconsIcon icon={BulbIcon} size={16} />}
-        title="Quick Recommendations"
-        description="Best picks for common use cases"
-      >
-        <div className="space-y-3">
-          {RECOMMENDATIONS.map((rec) => (
-            <div key={rec.label} className="space-y-0.5">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[13px] font-medium text-foreground">&ldquo;{rec.label}&rdquo;</span>
-                <span className="text-xs text-primary font-medium">{rec.pick}</span>
               </div>
-              <p className="text-xs text-muted-foreground">{rec.reason}</p>
-            </div>
-          ))}
+              <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
+                <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
+                <span>Each size has multilingual and English-only variants. English-only models are slightly more accurate for English speech.</span>
+              </p>
+            </SettingsCard>
+          )}
+
+          {activeTab === "online" && (
+            <SettingsCard
+              title="Online Providers"
+              description="Pricing, accuracy, and features for each cloud STT provider"
+            >
+              <div className="divide-y divide-border/30 [&>*]:py-4 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
+                {ONLINE_PROVIDERS.map((provider) => (
+                  <div key={provider.name} className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{provider.name}</span>
+                      <Badge variant="secondary" className="text-[10px] font-mono">
+                        {provider.model}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground pl-0.5">
+                      <span>Pricing: {provider.pricing}</span>
+                      <span>English WER: {provider.wer}</span>
+                      <span>Free tier: {provider.freeTier}</span>
+                    </div>
+
+                    <ul className="space-y-0.5 pl-0.5">
+                      {provider.highlights.map((highlight) => (
+                        <li key={highlight} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <HugeiconsIcon icon={Tick02Icon} size={12} className="shrink-0 mt-0.5 text-success" />
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <p className="text-xs text-muted-foreground flex items-start gap-1.5 pl-0.5">
+                      <HugeiconsIcon icon={InformationCircleIcon} size={12} className="shrink-0 mt-0.5" />
+                      <span>{provider.notes}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </SettingsCard>
+          )}
         </div>
-        <p className="text-[11px] text-muted-foreground/70 leading-relaxed pt-2 border-t border-border/40">
-          Pricing and accuracy benchmarks are approximate and may change. Check each provider&rsquo;s website for current rates. WER numbers vary significantly depending on the test dataset — real-world audio with accents and background noise will have higher error rates than clean studio recordings. See{" "}
-          <a
-            href="https://artificialanalysis.ai/speech-to-text"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-foreground transition-colors"
-          >
-            artificialanalysis.ai/speech-to-text
-          </a>{" "}
-          for deeper comparisons.
-        </p>
-      </SettingsCard>
+      </div>
     </div>
   );
 }

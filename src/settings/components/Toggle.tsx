@@ -1,12 +1,10 @@
-export function Toggle({
-  checked,
-  onChange,
-  disabled,
-}: {
+interface ToggleProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
-}) {
+}
+
+export function Toggle({ checked, onChange, disabled }: ToggleProps): React.ReactNode {
   return (
     <button
       type="button"
@@ -15,10 +13,11 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`
-        relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full
+        relative inline-flex h-5 w-9 shrink-0 items-center rounded-full
         transition-colors duration-200 ease-in-out
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
         disabled:cursor-not-allowed disabled:opacity-50
+        before:absolute before:-inset-2 before:content-['']
         ${checked ? 'bg-primary' : 'bg-input'}
       `}
     >

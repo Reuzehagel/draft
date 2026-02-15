@@ -182,13 +182,13 @@ export function ModelsCard({
   }
 
   return (
-    <div className="rounded-lg border border-border/60 bg-card/50 overflow-hidden">
-      <div className="flex items-start gap-3 px-4 py-3 border-b border-border/40 bg-muted/30">
+    <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm overflow-hidden">
+      <div className="flex items-start gap-3 px-4 py-3 border-b border-border/40 bg-muted/40">
         <div className="mt-0.5 text-muted-foreground/70">
           <HugeiconsIcon icon={Package01Icon} size={16} />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-[13px] font-medium text-foreground">Models</h2>
+          <h2 className="text-sm font-medium text-foreground">Models</h2>
           <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         </div>
       </div>
@@ -207,7 +207,7 @@ export function ModelsCard({
 
             {/* English-only toggle */}
             <div className="flex items-center justify-between py-1">
-              <span className="text-[13px] text-foreground">English only</span>
+              <span className="text-sm text-foreground">English only</span>
               <Toggle checked={localEnglish} onChange={handleEnglishToggle} />
             </div>
 
@@ -288,7 +288,7 @@ export function ModelsCard({
                   </div>
                   {transcriptionResult !== null && (
                     <div className="mt-3 p-2.5 rounded-md bg-muted/50 border border-border/40" role="status" aria-live="polite">
-                      <p className="text-[13px]">
+                      <p className="text-sm">
                         {transcriptionResult || <span className="text-muted-foreground italic">(no speech detected)</span>}
                       </p>
                     </div>

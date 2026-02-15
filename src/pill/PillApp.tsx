@@ -19,34 +19,28 @@ interface PillContentProps {
   onDecline?: () => void;
 }
 
-function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: PillContentProps) {
+function SpinnerLabel({ text }: { text: string }): React.ReactNode {
+  return (
+    <span role="status" className="flex items-center gap-2">
+      <Spinner className="text-white/80" />
+      <span className="text-white/80">{text}</span>
+    </span>
+  );
+}
+
+function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: PillContentProps): React.ReactNode {
   switch (state) {
     case "loading":
-      return (
-        <>
-          <Spinner className="text-white/80" />
-          <span className="text-white/80">Loading model...</span>
-        </>
-      );
+      return <SpinnerLabel text="Loading model..." />;
 
     case "recording":
       return <Waveform amplitudes={amplitudes} />;
 
     case "transcribing":
-      return (
-        <>
-          <Spinner className="text-white/80" />
-          <span className="text-white/80">Transcribing...</span>
-        </>
-      );
+      return <SpinnerLabel text="Transcribing..." />;
 
     case "enhancing":
-      return (
-        <>
-          <Spinner className="text-white/80" />
-          <span className="text-white/80">Enhancing...</span>
-        </>
-      );
+      return <SpinnerLabel text="Enhancing..." />;
 
     case "confirming":
       return (
@@ -55,6 +49,7 @@ function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: 
           <button
             className="pill-confirm-btn pill-confirm-yes"
             onClick={onConfirm}
+            aria-label="Yes, enhance (Y)"
             autoFocus
           >
             Yes
@@ -62,6 +57,7 @@ function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: 
           <button
             className="pill-confirm-btn pill-confirm-no"
             onClick={onDecline}
+            aria-label="No, skip (N)"
           >
             No
           </button>
@@ -69,10 +65,10 @@ function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: 
       );
 
     case "error":
-      return <span className="text-white">{errorMessage || "Error"}</span>;
+      return <span role="alert" className="text-white">{errorMessage || "Error"}</span>;
 
     case "done":
-      return <span className="text-white/80">All done!</span>;
+      return <span role="status" className="text-white/80">All done!</span>;
 
     case "idle":
     default:
@@ -80,7 +76,7 @@ function PillContent({ state, errorMessage, amplitudes, onConfirm, onDecline }: 
   }
 }
 
-export default function PillApp() {
+export default function PillApp(): React.ReactNode {
   const [state, setState] = useState<PillState>("idle");
   const [errorMessage, setErrorMessage] = useState<string>();
   const [amplitudes, setAmplitudes] = useState<number[]>();

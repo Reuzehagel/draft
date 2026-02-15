@@ -7,7 +7,7 @@ export default function Waveform({
   amplitudes,
 }: {
   amplitudes?: number[];
-}) {
+}): React.ReactNode {
   const [placeholderAmplitudes, setPlaceholderAmplitudes] = useState<number[]>(
     () => Array.from({ length: BAR_COUNT }, () => 0.5)
   );

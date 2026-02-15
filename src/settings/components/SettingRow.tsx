@@ -5,10 +5,10 @@ interface SettingRowProps {
   inline?: boolean;
 }
 
-function LabelBlock({ label, description }: { label: string; description?: string }) {
+function LabelBlock({ label, description }: { label: string; description?: string }): React.ReactNode {
   return (
     <div className="flex-1 min-w-0">
-      <span className="text-[13px] text-foreground">{label}</span>
+      <span className="text-sm text-foreground">{label}</span>
       {description && (
         <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
       )}
@@ -16,7 +16,7 @@ function LabelBlock({ label, description }: { label: string; description?: strin
   );
 }
 
-export function SettingRow({ label, description, children, inline = false }: SettingRowProps) {
+export function SettingRow({ label, description, children, inline = false }: SettingRowProps): React.ReactNode {
   if (inline) {
     return (
       <div className="flex items-center justify-between gap-4 py-1">

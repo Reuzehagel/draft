@@ -2,12 +2,7 @@ import { useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Mic01Icon,
-  KeyboardIcon,
-  Settings01Icon,
   InformationCircleIcon,
-  SparklesIcon,
-  AudioBook01Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +25,7 @@ import { HotkeyInput } from "../components/HotkeyInput";
 import { Toggle } from "../components/Toggle";
 import { ModelsCard } from "../components/ModelsCard";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { TabBar, type SettingsTab } from "../components/TabBar";
+import { SettingsTabBar, type SettingsTab } from "../components/TabBar";
 
 const LLM_DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4o-mini",
@@ -87,7 +82,7 @@ function ApiKeyRow({
   onChange: (value: string | null) => void;
   show: boolean;
   onToggleShow: () => void;
-}) {
+}): React.ReactNode {
   return (
     <SettingRow label="API Key">
       <div className="flex items-center gap-2">
@@ -119,7 +114,7 @@ function MicrophoneSelect({
   selectedId: string | null | undefined;
   microphones: Array<{ id: string; name: string }>;
   onSelect: (microphoneId: string | null) => void;
-}) {
+}): React.ReactNode {
   const selectedMic = selectedId
     ? microphones.find((m) => m.id === selectedId)
     : microphones.find((m) => m.id === "") || microphones[0];
@@ -158,7 +153,7 @@ function MicrophoneContent({
   microphones: Array<{ id: string; name: string }>;
   selectedId: string | null | undefined;
   onSelect: (microphoneId: string | null) => void;
-}) {
+}): React.ReactNode {
   if (microphonesLoading) {
     return (
       <div className="h-9 flex items-center">
@@ -235,7 +230,7 @@ export function SettingsPage({
   modelsHook,
   whisperHook,
   onNavigate,
-}: SettingsPageProps) {
+}: SettingsPageProps): React.ReactNode {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [autoStartError, setAutoStartError] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -260,13 +255,12 @@ export function SettingsPage({
 
   return (
     <div className="flex flex-col h-full">
-      <TabBar activeTab={activeTab} onChange={setActiveTab} />
-      <div className="flex-1 overflow-y-auto">
+      <SettingsTabBar activeTab={activeTab} onChange={setActiveTab} />
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
         <div className="p-4 space-y-3 max-w-xl mx-auto">
           {activeTab === "input" && (
             <>
               <SettingsCard
-                icon={<HugeiconsIcon icon={Mic01Icon} size={16} />}
                 title="Audio"
                 description="Configure your microphone input"
               >
@@ -294,13 +288,12 @@ export function SettingsPage({
               </SettingsCard>
 
               <SettingsCard
-                icon={<HugeiconsIcon icon={KeyboardIcon} size={16} />}
                 title="Hotkey"
                 description="Push-to-talk keyboard shortcut"
               >
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] text-foreground">Push-to-talk</span>
+                    <span className="text-sm text-foreground">Push-to-talk</span>
                     {hotkeyRegistering && (
                       <span className="text-xs text-primary">(Registering...)</span>
                     )}
@@ -328,7 +321,6 @@ export function SettingsPage({
           {activeTab === "transcription" && (
             <>
               <SettingsCard
-                icon={<HugeiconsIcon icon={AudioBook01Icon} size={16} />}
                 title="Transcription"
                 description={getTranscriptionDescription(config, modelsHook.models)}
               >
@@ -432,7 +424,6 @@ export function SettingsPage({
 
           {activeTab === "enhancement" && (
             <SettingsCard
-              icon={<HugeiconsIcon icon={SparklesIcon} size={16} />}
               title="AI Enhancement"
               description="Clean up and transform transcribed text"
             >
@@ -515,7 +506,6 @@ export function SettingsPage({
 
           {activeTab === "general" && (
             <SettingsCard
-              icon={<HugeiconsIcon icon={Settings01Icon} size={16} />}
               title="General"
               description="Application preferences"
             >

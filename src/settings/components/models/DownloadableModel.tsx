@@ -25,7 +25,7 @@ export function DownloadableModel({
     <div className="px-3 py-2 rounded-md hover:bg-muted/30 transition-colors">
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <span className="text-[13px] text-foreground">{name}</span>
+          <span className="text-sm text-foreground">{name}</span>
           <span className="text-xs text-muted-foreground ml-2">
             {formatFileSize(size)}
           </span>

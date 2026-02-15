@@ -26,24 +26,21 @@ export function TranscribePage({
   loadedModel,
   llmConfigured,
   sttProvider,
-}: TranscribePageProps) {
+}: TranscribePageProps): React.ReactNode {
   const isOnline = !!sttProvider;
   const isBusy = ft.isDecoding || ft.isTranscribing || ft.isEnhancing;
   const canTranscribe = !!ft.selectedFile && !isBusy && (isOnline || (!whisperBusy && !!loadedModel));
 
-  function getButtonText(): string {
-    if (ft.isDecoding) return isOnline ? "Uploading..." : "Decoding...";
-    if (ft.isTranscribing) return "Transcribing...";
-    return "Transcribe";
-  }
-  const buttonText = getButtonText();
+  let buttonText = "Transcribe";
+  if (ft.isDecoding) buttonText = isOnline ? "Uploading..." : "Decoding...";
+  else if (ft.isTranscribing) buttonText = "Transcribing...";
 
   return (
     <div className="p-4 space-y-4 max-w-xl mx-auto">
       {/* File picker */}
-      <div className="rounded-lg border border-border/60 bg-card/50 overflow-hidden">
-        <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-          <h2 className="text-[13px] font-medium text-foreground">Transcribe Audio File</h2>
+      <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 bg-muted/40">
+          <h2 className="text-sm font-medium text-foreground">Transcribe Audio File</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             {isOnline
               ? `Transcribe using ${STT_PROVIDER_LABELS[sttProvider] ?? sttProvider}`
@@ -63,9 +60,9 @@ export function TranscribePage({
               Select Audio File
             </Button>
             {ft.selectedFileName ? (
-              <span className="text-[13px] text-foreground truncate">{ft.selectedFileName}</span>
+              <span className="text-sm text-foreground truncate">{ft.selectedFileName}</span>
             ) : (
-              <span className="text-[13px] text-muted-foreground">No file selected</span>
+              <span className="text-sm text-muted-foreground">No file selected</span>
             )}
           </div>
           <p className="text-xs text-muted-foreground">
@@ -95,7 +92,7 @@ export function TranscribePage({
               </Button>
             )}
             {!isOnline && !loadedModel && (
-              <span className="text-xs text-amber-500">No model loaded</span>
+              <span className="text-xs text-warning">No model loaded</span>
             )}
           </div>
 
@@ -132,9 +129,9 @@ export function TranscribePage({
 
       {/* Result area */}
       {ft.result !== null && (
-        <div className="rounded-lg border border-border/60 bg-card/50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-            <h2 className="text-[13px] font-medium text-foreground">Transcription Result</h2>
+        <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/40 bg-muted/40">
+            <h2 className="text-sm font-medium text-foreground">Transcription Result</h2>
           </div>
           <div className="px-4 py-3 space-y-3">
             <Textarea

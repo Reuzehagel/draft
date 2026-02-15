@@ -15,7 +15,7 @@ interface HotkeyInputProps {
   onValidate?: (hotkey: string) => Promise<void>;
 }
 
-export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputProps) {
+export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputProps): React.ReactNode {
   const [isRecording, setIsRecording] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -82,7 +82,7 @@ export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputP
               ? 'border-primary bg-primary/5 text-primary'
               : displayError
                 ? 'border-destructive/50 bg-destructive/5'
-                : 'border-input bg-background hover:bg-muted/50'
+                : 'border-input bg-background hover:bg-muted/70'
             }
           `}
         >

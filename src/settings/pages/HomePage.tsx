@@ -27,26 +27,26 @@ function StatusRow({
   label: string;
   value: string;
   ok: boolean;
-}) {
+}): React.ReactNode {
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3">
+    <div className={`flex items-center gap-3 py-2.5 px-3 ${ok ? "bg-success/[0.03]" : "bg-warning/[0.05]"}`}>
       <div className="text-muted-foreground/60">
         <HugeiconsIcon icon={icon} size={16} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] text-foreground">{label}</p>
+        <p className="text-sm text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground truncate">{value}</p>
       </div>
       <HugeiconsIcon
         icon={ok ? Tick02Icon : Alert02Icon}
         size={14}
-        className={ok ? "text-emerald-500" : "text-amber-500"}
+        className={ok ? "text-success" : "text-warning"}
       />
     </div>
   );
 }
 
-export function HomePage({ config, loadedModel, microphones }: HomePageProps) {
+export function HomePage({ config, loadedModel, microphones }: HomePageProps): React.ReactNode {
   const sttProvider = config?.stt_provider;
   const isOnlineStt = !!sttProvider;
 
@@ -70,9 +70,9 @@ export function HomePage({ config, loadedModel, microphones }: HomePageProps) {
 
   return (
     <div className="p-4 space-y-3 max-w-xl mx-auto">
-      <div className="rounded-lg border border-border/60 bg-card/50 overflow-hidden">
-        <div className="px-4 py-3 border-b border-border/40 bg-muted/30">
-          <h2 className="text-[13px] font-medium text-foreground">Status</h2>
+      <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-border/40 bg-muted/40">
+          <h2 className="text-sm font-medium text-foreground">Status</h2>
           <p className="text-xs text-muted-foreground mt-0.5">At-a-glance readiness</p>
         </div>
         <div className="divide-y divide-border/40">

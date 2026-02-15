@@ -1,4 +1,9 @@
-export function Spinner({ size = 16, className = "" }: { size?: number; className?: string }) {
+interface SpinnerProps {
+  size?: number;
+  className?: string;
+}
+
+export function Spinner({ size = 16, className = "" }: SpinnerProps): React.ReactNode {
   return (
     <svg
       className={`animate-spin ${className}`}
@@ -7,6 +12,8 @@ export function Spinner({ size = 16, className = "" }: { size?: number; classNam
       viewBox="0 0 24 24"
       width={size}
       height={size}
+      role="img"
+      aria-label="Loading"
     >
       <circle
         className="opacity-25"

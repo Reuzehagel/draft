@@ -1,5 +1,16 @@
 /* Pill window animations and styles */
 
+:root {
+  --pill-bg: rgba(26, 26, 26, 0.9);
+  --pill-border: rgba(255, 255, 255, 0.08);
+  --pill-success: rgba(76, 175, 80, 0.8);
+  --pill-error: rgba(180, 40, 40, 0.9);
+  --pill-btn-bg: rgba(255, 255, 255, 0.1);
+  --pill-btn-yes: rgba(76, 175, 80, 0.4);
+  --pill-btn-no: rgba(244, 67, 54, 0.4);
+  --pill-focus: rgba(255, 255, 255, 0.5);
+}
+
 body {
   background: transparent;
   margin: 0;
@@ -31,8 +42,8 @@ body {
   width: 200px;
   height: 40px;
   border-radius: 20px;
-  background: rgba(26, 26, 26, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--pill-bg);
+  border: 1px solid var(--pill-border);
   transition: border-color 150ms ease;
   display: flex;
   align-items: center;
@@ -48,12 +59,12 @@ body {
 
 /* Done state with green border flash */
 .pill-container.done {
-  border-color: rgba(76, 175, 80, 0.8);
+  border-color: var(--pill-success);
 }
 
 /* Error state with red tint */
 .pill-container.error {
-  background: rgba(180, 40, 40, 0.9);
+  background: var(--pill-error);
 }
 
 /* Cross-fade wrapper for state content transitions */
@@ -80,26 +91,26 @@ body {
 .pill-confirm-btn {
   border: none;
   border-radius: 10px;
-  padding: 2px 10px;
+  padding: 4px 12px;
   font-size: 11px;
   font-family: inherit;
   color: white;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--pill-btn-bg);
   cursor: pointer;
   transition: background 120ms ease;
 }
 
 .pill-confirm-btn:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline: 2px solid var(--pill-focus);
   outline-offset: 1px;
 }
 
 .pill-confirm-btn.pill-confirm-yes:hover,
 .pill-confirm-btn.pill-confirm-yes:focus {
-  background: rgba(76, 175, 80, 0.4);
+  background: var(--pill-btn-yes);
 }
 
 .pill-confirm-btn.pill-confirm-no:hover,
 .pill-confirm-btn.pill-confirm-no:focus {
-  background: rgba(244, 67, 54, 0.4);
+  background: var(--pill-btn-no);
 }

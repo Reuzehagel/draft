@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  Sun01Icon,
-  Moon01Icon,
-  Tick02Icon,
-} from "@hugeicons/core-free-icons";
-import { Badge } from "@/components/ui/badge";
 import { useDarkMode } from "./hooks/useDarkMode";
 import { useConfig } from "./hooks/useConfig";
 import { useHotkeyRegistration } from "./hooks/useHotkeyRegistration";
@@ -23,7 +16,7 @@ import { SettingsPage } from "./pages/SettingsPage";
 import { HelpPage } from "./pages/HelpPage";
 import { HistoryPage } from "./pages/HistoryPage";
 
-export default function SettingsApp() {
+export default function SettingsApp(): React.ReactNode {
   const [activePage, setActivePage] = useState<Page>("home");
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { config, updateConfig, loading, saved } = useConfig();
@@ -67,72 +60,53 @@ export default function SettingsApp() {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
+      <Sidebar
+        activePage={activePage}
+        onNavigate={setActivePage}
+        isDark={isDark}
+        toggleDarkMode={toggleDarkMode}
+        version={version}
+        saved={saved}
+      />
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="shrink-0 border-b border-border/60 bg-background">
-          <div className="flex items-center justify-end px-4 py-2.5">
-            <div className="flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}
-                role="status"
-                aria-live="polite"
-              >
-                <HugeiconsIcon icon={Tick02Icon} size={12} />
-                Saved
-              </span>
-              <button
-                onClick={toggleDarkMode}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={16} />
-              </button>
-              {version && <Badge variant="outline" className="text-[10px] font-mono px-1.5 h-4 text-muted-foreground">v{version}</Badge>}
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          {activePage === "home" && (
-            <HomePage
-              config={config}
-              loadedModel={whisperHook.loadedModel}
-              microphones={microphones}
-            />
-          )}
-          {activePage === "transcribe" && (
-            <TranscribePage
-              fileTranscription={fileTranscription}
-              whisperBusy={whisperHook.isBusy}
-              loadedModel={whisperHook.loadedModel}
-              llmConfigured={llmConfigured}
-              sttProvider={config?.stt_provider ?? null}
-            />
-          )}
-          {activePage === "help" && <HelpPage />}
-          {activePage === "settings" && (
-            <SettingsPage
-              config={config}
-              updateConfig={updateConfig}
-              microphones={microphones}
-              microphonesLoading={microphonesLoading}
-              microphonesError={microphonesError}
-              isTesting={isTesting}
-              micTestAmplitudes={micTestAmplitudes}
-              startTest={startTest}
-              hotkeyError={hotkeyError}
-              hotkeyRegistering={hotkeyRegistering}
-              validateAndRegister={validateAndRegister}
-              modelsHook={modelsHook}
-              whisperHook={whisperHook}
-              onNavigate={setActivePage}
-            />
-          )}
-          {activePage === "history" && <HistoryPage />}
-        </main>
-      </div>
+      <main className="flex-1 overflow-y-auto">
+        {activePage === "home" && (
+          <HomePage
+            config={config}
+            loadedModel={whisperHook.loadedModel}
+            microphones={microphones}
+          />
+        )}
+        {activePage === "transcribe" && (
+          <TranscribePage
+            fileTranscription={fileTranscription}
+            whisperBusy={whisperHook.isBusy}
+            loadedModel={whisperHook.loadedModel}
+            llmConfigured={llmConfigured}
+            sttProvider={config?.stt_provider ?? null}
+          />
+        )}
+        {activePage === "help" && <HelpPage />}
+        {activePage === "settings" && (
+          <SettingsPage
+            config={config}
+            updateConfig={updateConfig}
+            microphones={microphones}
+            microphonesLoading={microphonesLoading}
+            microphonesError={microphonesError}
+            isTesting={isTesting}
+            micTestAmplitudes={micTestAmplitudes}
+            startTest={startTest}
+            hotkeyError={hotkeyError}
+            hotkeyRegistering={hotkeyRegistering}
+            validateAndRegister={validateAndRegister}
+            modelsHook={modelsHook}
+            whisperHook={whisperHook}
+            onNavigate={setActivePage}
+          />
+        )}
+        {activePage === "history" && <HistoryPage />}
+      </main>
     </div>
   );
 }

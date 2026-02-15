@@ -13,6 +13,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatFileSize } from "@/shared/types/models";
 
+interface ModelItemProps {
+  name: string;
+  size: number;
+  isSelected: boolean;
+  isLoaded: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  disabled: boolean;
+}
+
 export function ModelItem({
   name,
   size,
@@ -21,26 +31,19 @@ export function ModelItem({
   onSelect,
   onDelete,
   disabled,
-}: {
-  name: string;
-  size: number;
-  isSelected: boolean;
-  isLoaded: boolean;
-  onSelect: () => void;
-  onDelete: () => void;
-  disabled: boolean;
-}) {
+}: ModelItemProps): React.ReactNode {
   return (
     <div className={`
       flex items-center gap-3 px-3 py-2 rounded-md transition-colors
-      ${isSelected ? 'bg-primary/8' : 'hover:bg-muted/50'}
+      ${isSelected ? 'bg-primary/8' : 'hover:bg-muted/70'}
     `}>
       <button
         onClick={onSelect}
         disabled={disabled}
         className={`
-          w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0
+          relative w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0
           transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+          before:absolute before:-inset-3 before:content-['']
           ${isSelected
             ? 'border-primary bg-primary'
             : 'border-muted-foreground/30 hover:border-muted-foreground/50'
@@ -52,7 +55,7 @@ export function ModelItem({
         )}
       </button>
       <div className="flex-1 min-w-0">
-        <span className="text-[13px] text-foreground">{name}</span>
+        <span className="text-sm text-foreground">{name}</span>
         <span className="text-xs text-muted-foreground ml-2">
           {formatFileSize(size)}
         </span>
