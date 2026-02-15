@@ -195,19 +195,19 @@ export function HelpPage(): React.ReactNode {
                       <p className="text-xs text-muted-foreground">{rec.reason}</p>
                     </div>
                   ))}
+                  <p className="text-[11px] text-muted-foreground/70 leading-relaxed pt-2 border-t border-border/40">
+                    Pricing and accuracy benchmarks are approximate and may change. Check each provider&rsquo;s website for current rates. WER numbers vary significantly depending on the test dataset — real-world audio with accents and background noise will have higher error rates than clean studio recordings. See{" "}
+                    <a
+                      href="https://artificialanalysis.ai/speech-to-text"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-foreground transition-colors"
+                    >
+                      artificialanalysis.ai/speech-to-text
+                    </a>{" "}
+                    for deeper comparisons.
+                  </p>
                 </div>
-                <p className="text-[11px] text-muted-foreground/70 leading-relaxed pt-2 border-t border-border/40">
-                  Pricing and accuracy benchmarks are approximate and may change. Check each provider&rsquo;s website for current rates. WER numbers vary significantly depending on the test dataset — real-world audio with accents and background noise will have higher error rates than clean studio recordings. See{" "}
-                  <a
-                    href="https://artificialanalysis.ai/speech-to-text"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-foreground transition-colors"
-                  >
-                    artificialanalysis.ai/speech-to-text
-                  </a>{" "}
-                  for deeper comparisons.
-                </p>
               </SettingsCard>
             </>
           )}
@@ -232,11 +232,11 @@ export function HelpPage(): React.ReactNode {
                     </div>
                   </div>
                 ))}
+                <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
+                  <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
+                  <span>Each size has multilingual and English-only variants. English-only models are slightly more accurate for English speech.</span>
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
-                <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
-                <span>Each size has multilingual and English-only variants. English-only models are slightly more accurate for English speech.</span>
-              </p>
             </SettingsCard>
           )}
 

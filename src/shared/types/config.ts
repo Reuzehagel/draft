@@ -24,4 +24,5 @@ export interface Config {
   stt_api_key: string | null;
   stt_model: string | null;
   stt_enable_diarization: boolean;
+  whisper_initial_prompt: string | null;
 }

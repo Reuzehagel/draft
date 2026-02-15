@@ -35,6 +35,7 @@ pub struct Config {
     pub stt_api_key: Option<String>,
     pub stt_model: Option<String>,
     pub stt_enable_diarization: bool,
+    pub whisper_initial_prompt: Option<String>,
 }
 
 impl Default for Config {
@@ -61,6 +62,7 @@ impl Default for Config {
             stt_api_key: None,
             stt_model: None,
             stt_enable_diarization: false,
+            whisper_initial_prompt: None,
         }
     }
 }

@@ -226,7 +226,8 @@ fn run_test_transcription(
     );
 
     // Send to whisper for transcription
-    whisper.transcribe(audio)?;
+    let config = crate::config::load_config();
+    whisper.transcribe(audio, config.whisper_initial_prompt)?;
 
     Ok(())
 }

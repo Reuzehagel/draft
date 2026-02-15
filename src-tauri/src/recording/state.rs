@@ -364,7 +364,7 @@ impl RecordingManager {
         } else {
             // Local whisper path
             let whisper = app.state::<WhisperHandle>();
-            if let Err(e) = whisper.transcribe(audio) {
+            if let Err(e) = whisper.transcribe(audio, config.whisper_initial_prompt.clone()) {
                 log::error!("Failed to start transcription: {}", e);
                 if let Ok(mut state_data) = self.state_data.lock() {
                     state_data.state = RecordingState::Idle;

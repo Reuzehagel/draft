@@ -20,6 +20,7 @@ pub enum WhisperCommand {
         audio: Vec<f32>,
         cancel_token: Option<Arc<AtomicBool>>,
         progress_handle: Option<AppHandle>,
+        initial_prompt: Option<String>,
     },
     Shutdown,
 }
@@ -80,7 +81,7 @@ impl SharedState {
 pub struct WhisperClient(SharedState);
 
 impl WhisperClient {
-    pub fn transcribe(&self, audio: Vec<f32>) -> Result<(), String> {
+    pub fn transcribe(&self, audio: Vec<f32>, initial_prompt: Option<String>) -> Result<(), String> {
         if self.0.current_model().is_none() {
             return Err("No model loaded".to_string());
         }
@@ -88,6 +89,7 @@ impl WhisperClient {
             audio,
             cancel_token: None,
             progress_handle: None,
+            initial_prompt,
         })
     }
 
@@ -105,6 +107,7 @@ impl WhisperClient {
             audio,
             cancel_token: Some(cancel_token),
             progress_handle: Some(progress_handle),
+            initial_prompt: None,
         })
     }
 }
@@ -152,8 +155,8 @@ impl WhisperHandle {
             .send_if_not_busy(WhisperCommand::LoadModel { model_id })
     }
 
-    pub fn transcribe(&self, audio: Vec<f32>) -> Result<(), String> {
-        self.client().transcribe(audio)
+    pub fn transcribe(&self, audio: Vec<f32>, initial_prompt: Option<String>) -> Result<(), String> {
+        self.client().transcribe(audio, initial_prompt)
     }
 
     pub fn shutdown(&self) {
@@ -243,6 +246,7 @@ fn whisper_thread_main(
                 audio,
                 cancel_token,
                 progress_handle,
+                initial_prompt,
             } => {
                 let _busy = BusyGuard::new(&is_busy);
 
@@ -277,6 +281,7 @@ fn whisper_thread_main(
                             &audio,
                             cancel_token.as_ref(),
                             progress_handle.as_ref(),
+                            initial_prompt.as_deref(),
                         )
                     });
                 log::info!("Transcription took {:?}", start_time.elapsed());
@@ -333,6 +338,7 @@ fn run_transcription(
     audio: &[f32],
     cancel_token: Option<&Arc<AtomicBool>>,
     progress_handle: Option<&AppHandle>,
+    initial_prompt: Option<&str>,
 ) -> Result<String, String> {
     let mut state = ctx
         .create_state()
@@ -355,6 +361,12 @@ fn run_transcription(
     params.set_print_timestamps(false);
     params.set_suppress_blank(true);
     params.set_suppress_nst(true);
+
+    if let Some(prompt) = initial_prompt {
+        if !prompt.is_empty() {
+            params.set_initial_prompt(prompt);
+        }
+    }
 
     // Set progress callback for file transcription
     if let Some(app) = progress_handle {

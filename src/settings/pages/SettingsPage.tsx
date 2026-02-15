@@ -394,30 +394,48 @@ export function SettingsPage({
                 Not sure which to choose? See comparison guide &rarr;
               </button>
 
-              {/* Models — only shown when using local Whisper */}
+              {/* Models and Whisper settings — only shown when using local Whisper */}
               {!config?.stt_provider && (
-                <ModelsCard
-                  config={config}
-                  updateConfig={updateConfig}
-                  models={modelsHook.models}
-                  downloadedModels={modelsHook.downloadedModels}
-                  availableModels={modelsHook.availableModels}
-                  modelsLoading={modelsHook.loading}
-                  isDownloading={modelsHook.isDownloading}
-                  downloadProgress={modelsHook.downloadProgress}
-                  downloadModel={modelsHook.downloadModel}
-                  cancelDownload={modelsHook.cancelDownload}
-                  deleteModel={modelsHook.deleteModel}
-                  isModelLoading={whisperHook.isModelLoading}
-                  loadedModel={whisperHook.loadedModel}
-                  isTranscribing={whisperHook.isTranscribing}
-                  transcriptionResult={whisperHook.transcriptionResult}
-                  transcriptionError={whisperHook.transcriptionError}
-                  whisperAmplitudes={whisperHook.amplitudes}
-                  testTranscription={whisperHook.testTranscription}
-                  whisperBusy={whisperHook.isBusy}
-                  isTesting={isTesting}
-                />
+                <>
+                  <ModelsCard
+                    config={config}
+                    updateConfig={updateConfig}
+                    models={modelsHook.models}
+                    downloadedModels={modelsHook.downloadedModels}
+                    availableModels={modelsHook.availableModels}
+                    modelsLoading={modelsHook.loading}
+                    isDownloading={modelsHook.isDownloading}
+                    downloadProgress={modelsHook.downloadProgress}
+                    downloadModel={modelsHook.downloadModel}
+                    cancelDownload={modelsHook.cancelDownload}
+                    deleteModel={modelsHook.deleteModel}
+                    isModelLoading={whisperHook.isModelLoading}
+                    loadedModel={whisperHook.loadedModel}
+                    isTranscribing={whisperHook.isTranscribing}
+                    transcriptionResult={whisperHook.transcriptionResult}
+                    transcriptionError={whisperHook.transcriptionError}
+                    whisperAmplitudes={whisperHook.amplitudes}
+                    testTranscription={whisperHook.testTranscription}
+                    whisperBusy={whisperHook.isBusy}
+                    isTesting={isTesting}
+                  />
+
+                  <SettingsCard
+                    title="Whisper Prompt"
+                    description="Guide transcription style and vocabulary"
+                  >
+                    <Textarea
+                      value={config?.whisper_initial_prompt || ""}
+                      onChange={(e) => updateConfig({ whisper_initial_prompt: e.target.value || null })}
+                      placeholder="e.g. Draft, Tauri, React. Use proper punctuation and capitalization."
+                      rows={2}
+                      className="text-[13px] min-h-[48px] resize-y"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Helps Whisper with domain terms, spelling, and formatting preferences
+                    </p>
+                  </SettingsCard>
+                </>
               )}
             </>
           )}
@@ -427,17 +445,18 @@ export function SettingsPage({
               title="AI Enhancement"
               description="Clean up and transform transcribed text"
             >
-              <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
-                <Toggle
-                  checked={config?.llm_auto_process || false}
-                  onChange={(llm_auto_process) => updateConfig({ llm_auto_process })}
-                />
-              </SettingRow>
+              <div>
+                <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
+                  <Toggle
+                    checked={config?.llm_auto_process || false}
+                    onChange={(llm_auto_process) => updateConfig({ llm_auto_process })}
+                  />
+                </SettingRow>
 
-              <div
-                className="grid transition-[grid-template-rows] duration-200 ease-out"
-                style={{ gridTemplateRows: config?.llm_auto_process ? "1fr" : "0fr" }}
-              >
+                <div
+                  className="grid transition-[grid-template-rows] duration-200 ease-out"
+                  style={{ gridTemplateRows: config?.llm_auto_process ? "1fr" : "0fr" }}
+                >
                 <div className="overflow-hidden">
                   <div className="space-y-3 pt-1">
                     <SettingRow label="Confirm before enhancing" description="Prompt Y/N before sending to LLM" inline>
@@ -500,6 +519,7 @@ export function SettingsPage({
                     </p>
                   </div>
                 </div>
+              </div>
               </div>
             </SettingsCard>
           )}
