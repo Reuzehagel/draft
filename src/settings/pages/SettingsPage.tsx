@@ -324,64 +324,66 @@ export function SettingsPage({
                 title="Transcription"
                 description={getTranscriptionDescription(config, modelsHook.models)}
               >
-                <SettingRow label="Engine">
-                  <Select
-                    value={config?.stt_provider || "local"}
-                    onValueChange={(value) =>
-                      updateConfig({ stt_provider: value === "local" ? null : value })
-                    }
-                  >
-                    <SelectTrigger className="w-full text-[13px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      <SelectItem value="local" className="text-[13px]">
-                        Local (Whisper)
-                      </SelectItem>
-                      {STT_PROVIDERS.map((p) => (
-                        <SelectItem key={p.value} value={p.value} className="text-[13px]">
-                          {p.label}
+                <div>
+                  <SettingRow label="Engine">
+                    <Select
+                      value={config?.stt_provider || "local"}
+                      onValueChange={(value) =>
+                        updateConfig({ stt_provider: value === "local" ? null : value })
+                      }
+                    >
+                      <SelectTrigger className="w-full text-[13px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent alignItemWithTrigger={false}>
+                        <SelectItem value="local" className="text-[13px]">
+                          Local (Whisper)
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
+                        {STT_PROVIDERS.map((p) => (
+                          <SelectItem key={p.value} value={p.value} className="text-[13px]">
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
 
-                <div
-                  className="grid transition-[grid-template-rows] duration-200 ease-out"
-                  style={{ gridTemplateRows: config?.stt_provider ? "1fr" : "0fr" }}
-                >
-                  <div className="overflow-hidden">
-                    <div className="space-y-3 pt-1">
-                      <ApiKeyRow
-                        value={config?.stt_api_key || ""}
-                        onChange={(stt_api_key) => updateConfig({ stt_api_key })}
-                        show={showSttApiKey}
-                        onToggleShow={() => setShowSttApiKey(!showSttApiKey)}
-                      />
-
-                      <SettingRow label="Model" description="Leave empty for provider default">
-                        <Input
-                          type="text"
-                          value={config?.stt_model || ""}
-                          onChange={(e) => updateConfig({ stt_model: e.target.value || null })}
-                          placeholder={STT_DEFAULT_MODELS[config?.stt_provider ?? ""] ?? "Provider default"}
-                          className="text-[13px] font-mono"
+                  <div
+                    className="grid transition-[grid-template-rows] duration-200 ease-out"
+                    style={{ gridTemplateRows: config?.stt_provider ? "1fr" : "0fr" }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="space-y-3 pt-1">
+                        <ApiKeyRow
+                          value={config?.stt_api_key || ""}
+                          onChange={(stt_api_key) => updateConfig({ stt_api_key })}
+                          show={showSttApiKey}
+                          onToggleShow={() => setShowSttApiKey(!showSttApiKey)}
                         />
-                      </SettingRow>
 
-                      {STT_SUPPORTS_DIARIZATION.includes(config?.stt_provider ?? "") && (
-                        <SettingRow
-                          label="Speaker diarization"
-                          description="Identify and label different speakers"
-                          inline
-                        >
-                          <Toggle
-                            checked={config?.stt_enable_diarization || false}
-                            onChange={(stt_enable_diarization) => updateConfig({ stt_enable_diarization })}
+                        <SettingRow label="Model" description="Leave empty for provider default">
+                          <Input
+                            type="text"
+                            value={config?.stt_model || ""}
+                            onChange={(e) => updateConfig({ stt_model: e.target.value || null })}
+                            placeholder={STT_DEFAULT_MODELS[config?.stt_provider ?? ""] ?? "Provider default"}
+                            className="text-[13px] font-mono"
                           />
                         </SettingRow>
-                      )}
+
+                        {STT_SUPPORTS_DIARIZATION.includes(config?.stt_provider ?? "") && (
+                          <SettingRow
+                            label="Speaker diarization"
+                            description="Identify and label different speakers"
+                            inline
+                          >
+                            <Toggle
+                              checked={config?.stt_enable_diarization || false}
+                              onChange={(stt_enable_diarization) => updateConfig({ stt_enable_diarization })}
+                            />
+                          </SettingRow>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -395,48 +397,53 @@ export function SettingsPage({
               </button>
 
               {/* Models and Whisper settings — only shown when using local Whisper */}
-              {!config?.stt_provider && (
-                <>
-                  <ModelsCard
-                    config={config}
-                    updateConfig={updateConfig}
-                    models={modelsHook.models}
-                    downloadedModels={modelsHook.downloadedModels}
-                    availableModels={modelsHook.availableModels}
-                    modelsLoading={modelsHook.loading}
-                    isDownloading={modelsHook.isDownloading}
-                    downloadProgress={modelsHook.downloadProgress}
-                    downloadModel={modelsHook.downloadModel}
-                    cancelDownload={modelsHook.cancelDownload}
-                    deleteModel={modelsHook.deleteModel}
-                    isModelLoading={whisperHook.isModelLoading}
-                    loadedModel={whisperHook.loadedModel}
-                    isTranscribing={whisperHook.isTranscribing}
-                    transcriptionResult={whisperHook.transcriptionResult}
-                    transcriptionError={whisperHook.transcriptionError}
-                    whisperAmplitudes={whisperHook.amplitudes}
-                    testTranscription={whisperHook.testTranscription}
-                    whisperBusy={whisperHook.isBusy}
-                    isTesting={isTesting}
-                  />
-
-                  <SettingsCard
-                    title="Whisper Prompt"
-                    description="Guide transcription style and vocabulary"
-                  >
-                    <Textarea
-                      value={config?.whisper_initial_prompt || ""}
-                      onChange={(e) => updateConfig({ whisper_initial_prompt: e.target.value || null })}
-                      placeholder="e.g. Draft, Tauri, React. Use proper punctuation and capitalization."
-                      rows={2}
-                      className="text-[13px] min-h-[48px] resize-y"
+              <div
+                className="grid transition-[grid-template-rows] duration-200 ease-out"
+                style={{ gridTemplateRows: !config?.stt_provider ? "1fr" : "0fr" }}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-3">
+                    <ModelsCard
+                      config={config}
+                      updateConfig={updateConfig}
+                      models={modelsHook.models}
+                      downloadedModels={modelsHook.downloadedModels}
+                      availableModels={modelsHook.availableModels}
+                      modelsLoading={modelsHook.loading}
+                      isDownloading={modelsHook.isDownloading}
+                      downloadProgress={modelsHook.downloadProgress}
+                      downloadModel={modelsHook.downloadModel}
+                      cancelDownload={modelsHook.cancelDownload}
+                      deleteModel={modelsHook.deleteModel}
+                      isModelLoading={whisperHook.isModelLoading}
+                      loadedModel={whisperHook.loadedModel}
+                      isTranscribing={whisperHook.isTranscribing}
+                      transcriptionResult={whisperHook.transcriptionResult}
+                      transcriptionError={whisperHook.transcriptionError}
+                      whisperAmplitudes={whisperHook.amplitudes}
+                      testTranscription={whisperHook.testTranscription}
+                      whisperBusy={whisperHook.isBusy}
+                      isTesting={isTesting}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Helps Whisper with domain terms, spelling, and formatting preferences
-                    </p>
-                  </SettingsCard>
-                </>
-              )}
+
+                    <SettingsCard
+                      title="Whisper Prompt"
+                      description="Guide transcription style and vocabulary"
+                    >
+                      <Textarea
+                        value={config?.whisper_initial_prompt || ""}
+                        onChange={(e) => updateConfig({ whisper_initial_prompt: e.target.value || null })}
+                        placeholder="e.g. Draft, Tauri, React. Use proper punctuation and capitalization."
+                        rows={2}
+                        className="text-[13px] min-h-[48px] resize-y"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Helps Whisper with domain terms, spelling, and formatting preferences
+                      </p>
+                    </SettingsCard>
+                  </div>
+                </div>
+              </div>
             </>
           )}
 
