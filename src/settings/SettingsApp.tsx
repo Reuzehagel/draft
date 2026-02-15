@@ -20,6 +20,7 @@ import { Sidebar, type Page } from "./components/Sidebar";
 import { HomePage } from "./pages/HomePage";
 import { TranscribePage } from "./pages/TranscribePage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { HelpPage } from "./pages/HelpPage";
 import { HistoryPage } from "./pages/HistoryPage";
 
 export default function SettingsApp() {
@@ -110,6 +111,7 @@ export default function SettingsApp() {
               sttProvider={config?.stt_provider ?? null}
             />
           )}
+          {activePage === "help" && <HelpPage />}
           {activePage === "settings" && (
             <SettingsPage
               config={config}
@@ -125,6 +127,7 @@ export default function SettingsApp() {
               validateAndRegister={validateAndRegister}
               modelsHook={modelsHook}
               whisperHook={whisperHook}
+              onNavigate={setActivePage}
             />
           )}
           {activePage === "history" && <HistoryPage />}

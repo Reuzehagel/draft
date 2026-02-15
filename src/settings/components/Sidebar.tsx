@@ -2,15 +2,17 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Home01Icon,
   FileAudioIcon,
+  HelpCircleIcon,
   Settings01Icon,
   Clock01Icon,
 } from "@hugeicons/core-free-icons";
 
-export type Page = "home" | "transcribe" | "settings" | "history";
+export type Page = "home" | "transcribe" | "help" | "settings" | "history";
 
 const NAV_ITEMS: { page: Page; label: string; icon: typeof Home01Icon }[] = [
   { page: "home", label: "Home", icon: Home01Icon },
   { page: "transcribe", label: "Transcribe", icon: FileAudioIcon },
+  { page: "help", label: "Help", icon: HelpCircleIcon },
   { page: "settings", label: "Settings", icon: Settings01Icon },
   { page: "history", label: "History", icon: Clock01Icon },
 ];
