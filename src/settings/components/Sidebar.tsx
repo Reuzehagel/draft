@@ -16,9 +16,11 @@ const NAV_ITEMS: { page: Page; label: string; icon: typeof Home01Icon }[] = [
   { page: "home", label: "Home", icon: Home01Icon },
   { page: "transcribe", label: "Transcribe", icon: FileAudioIcon },
   { page: "help", label: "Help", icon: HelpCircleIcon },
-  { page: "settings", label: "Settings", icon: Settings01Icon },
   { page: "history", label: "History", icon: Clock01Icon },
 ];
+
+const BOTTOM_NAV: { page: Page; label: string; icon: typeof Home01Icon } =
+  { page: "settings", label: "Settings", icon: Settings01Icon };
 
 interface SidebarProps {
   activePage: Page;
@@ -60,6 +62,29 @@ export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, versio
           );
         })}
       </nav>
+      <div className="px-2 pb-1">
+        {(() => {
+          const { page, label, icon } = BOTTOM_NAV;
+          const isActive = activePage === page;
+          return (
+            <button
+              onClick={() => onNavigate(page)}
+              aria-current={isActive ? "page" : undefined}
+              className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              }`}
+            >
+              {isActive && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary" />
+              )}
+              <HugeiconsIcon icon={icon} size={18} />
+              {label}
+            </button>
+          );
+        })()}
+      </div>
       <div className="px-3 py-3 border-t border-sidebar-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
