@@ -14,3 +14,7 @@ pub const LLM_PROCESSING: &str = "llm-processing";
 pub const LLM_CONFIRM_REQUEST: &str = "llm-confirm-request";
 pub const LLM_CONFIRM_TIMEOUT: &str = "llm-confirm-timeout";
 pub const OUTPUT_COMPLETE: &str = "output-complete";
+pub const FILE_TRANSCRIPTION_STARTED: &str = "file-transcription-started";
+pub const FILE_DECODE_PROGRESS: &str = "file-decode-progress";
+pub const FILE_TRANSCRIPTION_ERROR: &str = "file-transcription-error";
+pub const FILE_TRANSCRIPTION_PROGRESS: &str = "file-transcription-progress";

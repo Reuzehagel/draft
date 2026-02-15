@@ -13,11 +13,11 @@
     "windows": [
       {
         "label": "settings",
-        "title": "Draft - Settings",
-        "width": 540,
-        "height": 700,
-        "minWidth": 440,
-        "minHeight": 540,
+        "title": "Draft",
+        "width": 800,
+        "height": 600,
+        "minWidth": 600,
+        "minHeight": 500,
         "resizable": true,
         "visible": false,
         "url": "settings.html"

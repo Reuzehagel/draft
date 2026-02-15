@@ -37,7 +37,7 @@ audioadapter-buffers = "2.0"
 crossbeam = "0.8"
 
 # Sprint 3 dependencies (model download/management)
-reqwest = { version = "0.12", features = ["stream", "json"] }
+reqwest = { version = "0.12", features = ["stream", "json", "multipart"] }
 sha2 = "0.10"
 hex = "0.4"
 futures-util = "0.3"
@@ -50,6 +50,10 @@ whisper-rs = "0.15"
 enigo = "0.6"
 arboard = "3"
 windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
+
+# File transcription dependencies
+symphonia = { version = "0.5.5", features = ["mp3", "aac", "flac", "ogg", "wav", "pcm", "isomp4", "aiff"] }
+tauri-plugin-dialog = "2.6.0"
 
 # Release profile optimizations for whisper-rs native code performance
 [profile.release]

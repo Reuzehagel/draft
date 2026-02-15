@@ -14,3 +14,7 @@ export const LLM_PROCESSING = "llm-processing";
 export const LLM_CONFIRM_REQUEST = "llm-confirm-request";
 export const LLM_CONFIRM_TIMEOUT = "llm-confirm-timeout";
 export const OUTPUT_COMPLETE = "output-complete";
+export const FILE_TRANSCRIPTION_STARTED = "file-transcription-started";
+export const FILE_DECODE_PROGRESS = "file-decode-progress";
+export const FILE_TRANSCRIPTION_ERROR = "file-transcription-error";
+export const FILE_TRANSCRIPTION_PROGRESS = "file-transcription-progress";

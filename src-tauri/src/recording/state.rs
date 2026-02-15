@@ -138,6 +138,12 @@ impl RecordingManager {
             return Err(format!("Cannot start recording: currently {:?}", state));
         }
 
+        // Skip whisper checks when online STT is configured
+        let config = load_config();
+        if crate::stt::online::is_online_stt(&config) {
+            return Ok(());
+        }
+
         let whisper = app.state::<WhisperHandle>();
         if whisper.is_busy() {
             return Err("Cannot start recording: whisper is busy".to_string());
@@ -332,19 +338,45 @@ impl RecordingManager {
         self.cleanup_transcription_listeners(app);
         self.register_transcription_listeners(app, transcription_id);
 
-        let whisper = app.state::<WhisperHandle>();
-        if let Err(e) = whisper.transcribe(audio) {
-            log::error!("Failed to start transcription: {}", e);
-            if let Ok(mut state_data) = self.state_data.lock() {
-                state_data.state = RecordingState::Idle;
-                state_data.transcription_id = None;
+        // Check if online STT is configured
+        let config = load_config();
+        if crate::stt::online::is_online_stt(&config) {
+            // Online path: encode to WAV, upload to API
+            let wav_bytes = crate::stt::online::wav::encode_wav(&audio, 16000);
+            let app_clone = app.clone();
+            tauri::async_runtime::spawn(async move {
+                match crate::stt::online::transcribe_online(
+                    &config,
+                    wav_bytes,
+                    "recording.wav",
+                    "audio/wav",
+                )
+                .await
+                {
+                    Ok(text) => {
+                        let _ = app_clone.emit(events::TRANSCRIPTION_COMPLETE, &text);
+                    }
+                    Err(e) => {
+                        let _ = app_clone.emit(events::TRANSCRIPTION_ERROR, &e);
+                    }
+                }
+            });
+        } else {
+            // Local whisper path
+            let whisper = app.state::<WhisperHandle>();
+            if let Err(e) = whisper.transcribe(audio) {
+                log::error!("Failed to start transcription: {}", e);
+                if let Ok(mut state_data) = self.state_data.lock() {
+                    state_data.state = RecordingState::Idle;
+                    state_data.transcription_id = None;
+                }
+                // Cleanup listeners before emitting the error event. Since Tauri
+                // dispatches events asynchronously, the listener is already
+                // unregistered by the time the event fires, preventing the error
+                // handler from redundantly resetting state.
+                self.cleanup_transcription_listeners(app);
+                let _ = app.emit(events::TRANSCRIPTION_ERROR, &e);
             }
-            // Cleanup listeners before emitting the error event. Since Tauri
-            // dispatches events asynchronously, the listener is already
-            // unregistered by the time the event fires, preventing the error
-            // handler from redundantly resetting state.
-            self.cleanup_transcription_listeners(app);
-            let _ = app.emit(events::TRANSCRIPTION_ERROR, &e);
         }
 
         Ok(())

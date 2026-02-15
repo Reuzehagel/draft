@@ -4,7 +4,9 @@
 
 pub mod commands;
 pub mod download;
+pub mod file;
 pub mod models;
+pub mod online;
 pub mod whisper;
 
 pub use commands::DownloadState;

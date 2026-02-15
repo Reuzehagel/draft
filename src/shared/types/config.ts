@@ -20,4 +20,8 @@ export interface Config {
   text_output_mode: TextOutputMode;
   double_tap_toggle: boolean;
   llm_confirm_before_processing: boolean;
+  stt_provider: string | null;
+  stt_api_key: string | null;
+  stt_model: string | null;
+  stt_enable_diarization: boolean;
 }

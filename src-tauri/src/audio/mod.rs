@@ -5,5 +5,5 @@ mod amplitude;
 mod buffer;
 pub mod capture;
 pub mod devices;
-mod resampler;
+pub mod resampler;
 pub mod worker;

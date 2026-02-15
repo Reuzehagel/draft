@@ -2,6 +2,7 @@
 //! Sends transcribed text through an LLM for cleanup or voice command execution
 
 mod client;
+pub mod commands;
 mod process;
 
 pub use process::{post_process, should_process};

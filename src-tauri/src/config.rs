@@ -31,6 +31,10 @@ pub struct Config {
     pub text_output_mode: String,
     pub double_tap_toggle: bool,
     pub llm_confirm_before_processing: bool,
+    pub stt_provider: Option<String>,
+    pub stt_api_key: Option<String>,
+    pub stt_model: Option<String>,
+    pub stt_enable_diarization: bool,
 }
 
 impl Default for Config {
@@ -53,6 +57,10 @@ impl Default for Config {
             text_output_mode: "inject".to_string(),
             double_tap_toggle: false,
             llm_confirm_before_processing: false,
+            stt_provider: None,
+            stt_api_key: None,
+            stt_model: None,
+            stt_enable_diarization: false,
         }
     }
 }

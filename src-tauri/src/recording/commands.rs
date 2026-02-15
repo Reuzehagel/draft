@@ -55,8 +55,10 @@ pub fn check_recording_config(
         .map(|mics| !mics.is_empty())
         .unwrap_or(false);
 
-    // Check if a model is downloaded
-    let model_downloaded = config
+    let is_online = crate::stt::online::is_online_stt(&config);
+
+    // When online STT is active, model checks are not needed
+    let model_downloaded = is_online || config
         .selected_model
         .as_ref()
         .and_then(|id| crate::stt::models::find_model(id))
@@ -66,7 +68,7 @@ pub fn check_recording_config(
     ConfigCheck {
         hotkey_set: config.hotkey.is_some(),
         model_downloaded,
-        model_loaded: whisper.current_model().is_some(),
+        model_loaded: is_online || whisper.current_model().is_some(),
         microphone_available,
     }
 }

@@ -94,6 +94,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec!["--minimized"]),
         ))
+        .plugin(tauri_plugin_dialog::init())
         // Manage state for microphone testing
         .manage(audio::devices::TestState::default())
         // Manage state for model downloads
@@ -101,6 +102,7 @@ pub fn run() {
         // Manage state for recording
         .manage(Arc::new(recording::RecordingManager::new()))
         .manage(Arc::new(recording::HotkeyManager::new()))
+        .manage(stt::file::FileTranscriptionState::default())
         .manage(SettingsReady::default())
         // Register commands
         .invoke_handler(tauri::generate_handler![
@@ -125,6 +127,10 @@ pub fn run() {
             autostart::enable_autostart,
             autostart::disable_autostart,
             autostart::is_autostart_enabled,
+            stt::file::transcribe_file,
+            stt::file::cancel_file_transcription,
+            stt::file::save_text_file,
+            llm::commands::enhance_text,
             settings_ready,
         ])
         .setup(|app| {

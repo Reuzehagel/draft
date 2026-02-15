@@ -16,7 +16,11 @@ use crate::events;
 /// Commands sent to the whisper thread
 pub enum WhisperCommand {
     LoadModel { model_id: String },
-    Transcribe { audio: Vec<f32> },
+    Transcribe {
+        audio: Vec<f32>,
+        cancel_token: Option<Arc<AtomicBool>>,
+        progress_handle: Option<AppHandle>,
+    },
     Shutdown,
 }
 
@@ -80,7 +84,28 @@ impl WhisperClient {
         if self.0.current_model().is_none() {
             return Err("No model loaded".to_string());
         }
-        self.0.send_if_not_busy(WhisperCommand::Transcribe { audio })
+        self.0.send_if_not_busy(WhisperCommand::Transcribe {
+            audio,
+            cancel_token: None,
+            progress_handle: None,
+        })
+    }
+
+    /// Transcribe with cancel token and progress reporting (for file transcription)
+    pub fn transcribe_file(
+        &self,
+        audio: Vec<f32>,
+        cancel_token: Arc<AtomicBool>,
+        progress_handle: AppHandle,
+    ) -> Result<(), String> {
+        if self.0.current_model().is_none() {
+            return Err("No model loaded".to_string());
+        }
+        self.0.send_if_not_busy(WhisperCommand::Transcribe {
+            audio,
+            cancel_token: Some(cancel_token),
+            progress_handle: Some(progress_handle),
+        })
     }
 }
 
@@ -128,11 +153,7 @@ impl WhisperHandle {
     }
 
     pub fn transcribe(&self, audio: Vec<f32>) -> Result<(), String> {
-        if self.state.current_model().is_none() {
-            return Err("No model loaded".to_string());
-        }
-        self.state
-            .send_if_not_busy(WhisperCommand::Transcribe { audio })
+        self.client().transcribe(audio)
     }
 
     pub fn shutdown(&self) {
@@ -218,7 +239,11 @@ fn whisper_thread_main(
                 }
             }
 
-            WhisperCommand::Transcribe { audio } => {
+            WhisperCommand::Transcribe {
+                audio,
+                cancel_token,
+                progress_handle,
+            } => {
                 let _busy = BusyGuard::new(&is_busy);
 
                 // Validate audio length (minimum 0.1s at 16kHz = 1600 samples)
@@ -246,7 +271,14 @@ fn whisper_thread_main(
                 let result = context
                     .as_ref()
                     .ok_or_else(|| "No model loaded".to_string())
-                    .and_then(|ctx| run_transcription(ctx, &audio));
+                    .and_then(|ctx| {
+                        run_transcription(
+                            ctx,
+                            &audio,
+                            cancel_token.as_ref(),
+                            progress_handle.as_ref(),
+                        )
+                    });
                 log::info!("Transcription took {:?}", start_time.elapsed());
 
                 match result {
@@ -296,7 +328,12 @@ fn load_whisper_model(model_id: &str) -> Result<WhisperContext, String> {
     Ok(ctx)
 }
 
-fn run_transcription(ctx: &WhisperContext, audio: &[f32]) -> Result<String, String> {
+fn run_transcription(
+    ctx: &WhisperContext,
+    audio: &[f32],
+    cancel_token: Option<&Arc<AtomicBool>>,
+    progress_handle: Option<&AppHandle>,
+) -> Result<String, String> {
     let mut state = ctx
         .create_state()
         .map_err(|e| format!("Failed to create whisper state: {}", e))?;
@@ -319,9 +356,30 @@ fn run_transcription(ctx: &WhisperContext, audio: &[f32]) -> Result<String, Stri
     params.set_suppress_blank(true);
     params.set_suppress_nst(true);
 
-    state
-        .full(params, audio)
-        .map_err(|e| format!("Whisper inference failed: {}", e))?;
+    // Set progress callback for file transcription
+    if let Some(app) = progress_handle {
+        let app_for_progress = app.clone();
+        params.set_progress_callback_safe(move |progress: i32| {
+            let _ = app_for_progress.emit(events::FILE_TRANSCRIPTION_PROGRESS, progress);
+        });
+    }
+
+    // Set abort callback for cancellation
+    if let Some(token) = cancel_token {
+        let token_for_abort = token.clone();
+        params.set_abort_callback_safe(move || token_for_abort.load(Ordering::SeqCst));
+    }
+
+    let full_result = state.full(params, audio);
+
+    // Check if cancelled
+    if let Some(token) = cancel_token {
+        if token.load(Ordering::SeqCst) {
+            return Err("Transcription cancelled".to_string());
+        }
+    }
+
+    full_result.map_err(|e| format!("Whisper inference failed: {}", e))?;
 
     let text: String = (0..state.full_n_segments())
         .filter_map(|i| state.get_segment(i))

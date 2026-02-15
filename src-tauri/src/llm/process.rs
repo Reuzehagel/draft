@@ -6,7 +6,7 @@ use crate::config::Config;
 use super::LlmProvider;
 use super::client;
 
-const DEFAULT_SYSTEM_PROMPT: &str = "\
+pub(crate) const DEFAULT_SYSTEM_PROMPT: &str = "\
 You are a minimal dictation cleanup tool. Keep the speaker's exact words — only fix genuine errors.
 
 Rules:
