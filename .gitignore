@@ -29,3 +29,7 @@ src-tauri/target/
 # Sprint 0 test project build artifacts
 tests/**/target/
 tests/**/*.wav
+
+# Claude Code local files
+.agents/
+.claude/skills/
