@@ -36,6 +36,12 @@ pub struct Config {
     pub stt_model: Option<String>,
     pub stt_enable_diarization: bool,
     pub whisper_initial_prompt: Option<String>,
+    pub sound_effects_enabled: bool,
+    pub sound_volume: f32,
+    pub sound_start_enabled: bool,
+    pub sound_done_enabled: bool,
+    pub sound_error_enabled: bool,
+    pub sound_confirm_enabled: bool,
 }
 
 impl Default for Config {
@@ -63,6 +69,12 @@ impl Default for Config {
             stt_model: None,
             stt_enable_diarization: false,
             whisper_initial_prompt: None,
+            sound_effects_enabled: true,
+            sound_volume: 0.5,
+            sound_start_enabled: true,
+            sound_done_enabled: true,
+            sound_error_enabled: true,
+            sound_confirm_enabled: true,
         }
     }
 }

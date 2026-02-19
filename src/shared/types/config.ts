@@ -25,4 +25,10 @@ export interface Config {
   stt_model: string | null;
   stt_enable_diarization: boolean;
   whisper_initial_prompt: string | null;
+  sound_effects_enabled: boolean;
+  sound_volume: number;
+  sound_start_enabled: boolean;
+  sound_done_enabled: boolean;
+  sound_error_enabled: boolean;
+  sound_confirm_enabled: boolean;
 }

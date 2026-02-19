@@ -58,6 +58,13 @@ const STT_DEFAULT_MODELS: Record<string, string> = {
 
 const STT_SUPPORTS_DIARIZATION = ["deepgram", "assemblyai", "mistral", "elevenlabs"];
 
+const SOUND_TOGGLES: Array<{ label: string; key: keyof Config & `sound_${string}_enabled` }> = [
+  { label: "Start sound", key: "sound_start_enabled" },
+  { label: "Done sound", key: "sound_done_enabled" },
+  { label: "Error sound", key: "sound_error_enabled" },
+  { label: "Confirm sound", key: "sound_confirm_enabled" },
+];
+
 function getTranscriptionDescription(
   config: Config | null,
   models: ModelInfo[],
@@ -532,57 +539,117 @@ export function SettingsPage({
           )}
 
           {activeTab === "general" && (
-            <SettingsCard
-              title="General"
-              description="Application preferences"
-            >
-              <div className="space-y-1">
-                <SettingRow label="Start with Windows" inline>
-                  <Toggle
-                    checked={config?.auto_start || false}
-                    onChange={handleAutoStartToggle}
-                  />
-                </SettingRow>
-                {autoStartError && (
-                  <div className="pb-1">
-                    <ErrorMessage message={autoStartError} />
-                  </div>
-                )}
+            <>
+              <SettingsCard
+                title="General"
+                description="Application preferences"
+              >
+                <div className="space-y-1">
+                  <SettingRow label="Start with Windows" inline>
+                    <Toggle
+                      checked={config?.auto_start || false}
+                      onChange={handleAutoStartToggle}
+                    />
+                  </SettingRow>
+                  {autoStartError && (
+                    <div className="pb-1">
+                      <ErrorMessage message={autoStartError} />
+                    </div>
+                  )}
 
-                <SettingRow label="Text output" description="How transcribed text is delivered">
-                  <Select
-                    value={config?.text_output_mode || "inject"}
-                    onValueChange={(value) => updateConfig({ text_output_mode: value as TextOutputMode })}
+                  <SettingRow label="Text output" description="How transcribed text is delivered">
+                    <Select
+                      value={config?.text_output_mode || "inject"}
+                      onValueChange={(value) => updateConfig({ text_output_mode: value as TextOutputMode })}
+                    >
+                      <SelectTrigger className="w-full text-[13px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent alignItemWithTrigger={false}>
+                        <SelectItem value="inject" className="text-[13px]">Type into app</SelectItem>
+                        <SelectItem value="clipboard" className="text-[13px]">Copy to clipboard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+
+                  <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>
+                    <Toggle
+                      checked={config?.trailing_space || false}
+                      onChange={(trailing_space) => updateConfig({ trailing_space })}
+                    />
+                  </SettingRow>
+
+                  <SettingRow
+                    label="Enable logging"
+                    description="Logs to %APPDATA%\Draft\logs (restart required)"
+                    inline
                   >
-                    <SelectTrigger className="w-full text-[13px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      <SelectItem value="inject" className="text-[13px]">Type into app</SelectItem>
-                      <SelectItem value="clipboard" className="text-[13px]">Copy to clipboard</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
+                    <Toggle
+                      checked={config?.logging_enabled || false}
+                      onChange={(logging_enabled) => updateConfig({ logging_enabled })}
+                    />
+                  </SettingRow>
+                </div>
+              </SettingsCard>
 
-                <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>
-                  <Toggle
-                    checked={config?.trailing_space || false}
-                    onChange={(trailing_space) => updateConfig({ trailing_space })}
-                  />
-                </SettingRow>
+              <SettingsCard
+                title="Sound Effects"
+                description="Audio feedback for recording events"
+              >
+                <div className="space-y-1">
+                  <SettingRow label="Enable sounds" inline>
+                    <Toggle
+                      checked={config?.sound_effects_enabled ?? true}
+                      onChange={(sound_effects_enabled) => updateConfig({ sound_effects_enabled })}
+                    />
+                  </SettingRow>
 
-                <SettingRow
-                  label="Enable logging"
-                  description="Logs to %APPDATA%\Draft\logs (restart required)"
-                  inline
-                >
-                  <Toggle
-                    checked={config?.logging_enabled || false}
-                    onChange={(logging_enabled) => updateConfig({ logging_enabled })}
-                  />
-                </SettingRow>
-              </div>
-            </SettingsCard>
+                  <SettingRow label="Volume">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={Math.round((config?.sound_volume ?? 0.5) * 100)}
+                        onChange={(e) => updateConfig({ sound_volume: Number(e.target.value) / 100 })}
+                        className="flex-1 h-1.5 accent-primary"
+                        disabled={!config?.sound_effects_enabled}
+                      />
+                      <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
+                        {Math.round((config?.sound_volume ?? 0.5) * 100)}%
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        disabled={!config?.sound_effects_enabled}
+                        onClick={() => invoke("test_sound")}
+                      >
+                        Test
+                      </Button>
+                    </div>
+                  </SettingRow>
+
+                  <div
+                    className="grid transition-[grid-template-rows] duration-200 ease-out"
+                    style={{ gridTemplateRows: config?.sound_effects_enabled ? "1fr" : "0fr" }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="space-y-1 pt-1">
+                        {SOUND_TOGGLES.map(({ label, key }) => (
+                          <SettingRow key={key} label={label} inline>
+                            <Toggle
+                              checked={config?.[key] ?? true}
+                              onChange={(value) => updateConfig({ [key]: value })}
+                            />
+                          </SettingRow>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </SettingsCard>
+            </>
           )}
         </div>
       </div>
