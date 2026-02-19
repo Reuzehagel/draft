@@ -254,6 +254,8 @@ impl RecordingManager {
         }
 
         let _ = app.emit(events::RECORDING_STARTED, ());
+        let player = app.state::<Option<crate::sound::SoundPlayer>>();
+        crate::sound::play_if_enabled(player.inner(), crate::sound::SoundEffect::Start);
         show_pill_centered(app);
 
         log::info!("Recording started");
@@ -484,8 +486,12 @@ async fn output_text(
     };
     if let Err(e) = output_result {
         log::error!("Text output failed: {}", e);
+        let player = app.state::<Option<crate::sound::SoundPlayer>>();
+        crate::sound::play_if_enabled(player.inner(), crate::sound::SoundEffect::Error);
         let _ = app.emit(events::TRANSCRIPTION_ERROR, &format!("Output failed: {}", e));
     } else {
+        let player = app.state::<Option<crate::sound::SoundPlayer>>();
+        crate::sound::play_if_enabled(player.inner(), crate::sound::SoundEffect::Done);
         let _ = app.emit(events::OUTPUT_COMPLETE, ());
     }
 }
@@ -574,6 +580,8 @@ fn handle_transcription_complete(
         }
 
         let _ = app.emit(events::LLM_CONFIRM_REQUEST, ());
+        let player = app.state::<Option<crate::sound::SoundPlayer>>();
+        crate::sound::play_if_enabled(player.inner(), crate::sound::SoundEffect::Confirm);
 
         // Give the pill focus so keyboard events reach it
         if let Some(pill) = app.get_webview_window("pill") {
@@ -635,6 +643,8 @@ fn handle_transcription_error(
         guard.transcription_id = None;
         guard.last_target_window = None;
     }
+    let player = app.state::<Option<crate::sound::SoundPlayer>>();
+    crate::sound::play_if_enabled(player.inner(), crate::sound::SoundEffect::Error);
     hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(3));
 }
 

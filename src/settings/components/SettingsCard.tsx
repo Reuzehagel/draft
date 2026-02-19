@@ -13,7 +13,7 @@ export function SettingsCard({ title, description, children }: SettingsCardProps
           <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
         )}
       </div>
-      <div className="px-4 py-3 space-y-3 divide-y divide-border/30 [&>*+*]:pt-3">{children}</div>
+      <div className="px-4 py-3 space-y-3">{children}</div>
     </div>
   );
 }

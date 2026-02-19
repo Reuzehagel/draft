@@ -4,7 +4,8 @@
       "Skill(commit-commands:commit)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "Bash(cargo check:*)"
+      "Bash(cargo check:*)",
+      "WebFetch(domain:docs.mistral.ai)"
     ]
   }
 }

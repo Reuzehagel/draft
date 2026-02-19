@@ -139,8 +139,8 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 | 3        | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off)                                                                          | Done    |
 | 4        | Toggle transcription button in settings (hold-to-record vs toggle on/off)                                                                                                       | Done    |
 | 5        | LLM confirmation hotkey — after transcription, pill prompts "Enhance? Yes/No" with Y/N keyboard shortcuts and 8s auto-decline timeout. Setting: `llm_confirm_before_processing` | Done    |
-| 6        | Whisper initial prompt                                                                                                                                                          | Planned |
-| 7        | Sound effects                                                                                                                                                                   | Planned |
+| 6        | Whisper initial prompt                                                                                                                                                          | Done    |
+| 7        | Sound effects                                                                                                                                                                   | Done    |
 | 8        | Transcription history                                                                                                                                                           | Planned |
 
 ## Post-Sprint Workflow
