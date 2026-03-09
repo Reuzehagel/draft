@@ -2,6 +2,7 @@ import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Clock01Icon, Delete02Icon, Copy01Icon, SparklesIcon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 import type { Config } from "@/shared/types/config";
 import type { HistoryEntry } from "@/shared/types/history";
 import { SettingsCard } from "../components/SettingsCard";
@@ -100,13 +102,13 @@ function HistoryEntryRow({
             onClick={handleCopy}
             title="Copy to clipboard"
           >
-            <HugeiconsIcon icon={Copy01Icon} size={12} />
+            <HugeiconsIcon icon={Copy01Icon} data-icon />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger
               render={
                 <Button variant="ghost" size="icon-xs" title="Delete">
-                  <HugeiconsIcon icon={Delete02Icon} size={12} />
+                  <HugeiconsIcon icon={Delete02Icon} data-icon />
                 </Button>
               }
             />
@@ -182,23 +184,22 @@ export function HistoryPage({ config, updateConfig }: HistoryPageProps): React.R
       </SettingsCard>
 
       {loading ? null : entries.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-4">
-            <HugeiconsIcon icon={Clock01Icon} size={48} className="text-muted-foreground/30" />
-            <div className="text-center flex flex-col gap-1">
-              <h3 className="text-sm font-medium text-foreground">No transcriptions yet</h3>
-              <p className="text-xs text-muted-foreground max-w-[220px]">
-                Your transcription history will appear here once you start recording.
-              </p>
-            </div>
-          </div>
-        </div>
+        <Empty className="py-12">
+          <EmptyHeader>
+            <EmptyMedia>
+              <HugeiconsIcon icon={Clock01Icon} size={48} className="text-muted-foreground/30" />
+            </EmptyMedia>
+            <EmptyTitle>No transcriptions yet</EmptyTitle>
+            <EmptyDescription>
+              Your transcription history will appear here once you start recording.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <SettingsCard
           title={`Transcriptions (${entries.length})`}
           description="Click text to expand, hover for actions"
-        >
-          <div className="flex justify-end -mt-1 -mb-1">
+          headerAction={
             <AlertDialog>
               <AlertDialogTrigger
                 render={
@@ -222,14 +223,17 @@ export function HistoryPage({ config, updateConfig }: HistoryPageProps): React.R
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </div>
-          <div className="flex flex-col divide-y divide-border -mx-3">
-            {entries.map((entry) => (
-              <HistoryEntryRow
-                key={entry.id}
-                entry={entry}
-                onDelete={deleteEntry}
-              />
+          }
+        >
+          <div className="flex flex-col -mx-3">
+            {entries.map((entry, i) => (
+              <div key={entry.id}>
+                {i > 0 && <Separator />}
+                <HistoryEntryRow
+                  entry={entry}
+                  onDelete={deleteEntry}
+                />
+              </div>
             ))}
           </div>
         </SettingsCard>
