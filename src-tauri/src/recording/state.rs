@@ -38,12 +38,20 @@ struct ActiveRecording {
     target_window: isize,
 }
 
+/// Metadata about a completed transcription, threaded through the pipeline for history
+#[derive(Debug, Clone)]
+pub(crate) struct TranscriptionMeta {
+    pub duration_ms: u64,
+    pub stt_model: Option<String>,
+}
+
 /// Combined recording state protected by a single mutex for atomic updates
 pub(crate) struct RecordingStateData {
     state: RecordingState,
     active_recording: Option<ActiveRecording>,
     last_target_window: Option<isize>,
     transcription_id: Option<u64>,
+    transcription_meta: Option<TranscriptionMeta>,
 }
 
 /// Data stored while waiting for user to confirm LLM processing
@@ -51,6 +59,7 @@ pub(crate) struct PendingConfirmation {
     pub raw_text: String,
     pub config: crate::config::Config,
     pub target_window: Option<isize>,
+    pub meta: Option<TranscriptionMeta>,
 }
 
 /// Pair of event listener IDs for transcription completion/error
@@ -93,6 +102,7 @@ impl RecordingManager {
                 active_recording: None,
                 last_target_window: None,
                 transcription_id: None,
+                transcription_meta: None,
             })),
             key_pressed: Arc::new(AtomicBool::new(false)),
             transcription_listeners: Arc::new(Mutex::new(TranscriptionListeners {
@@ -329,19 +339,28 @@ impl RecordingManager {
             let _ = crate::injection::restore_focus(target_hwnd);
         });
 
+        let config = load_config();
+
         let transcription_id = {
+            let stt_model = if crate::stt::online::is_online_stt(&config) {
+                config.stt_provider.clone()
+            } else {
+                config.selected_model.clone()
+            };
+
             let mut state_data = self.state_data.lock().map_err(|_| "Lock poisoned")?;
             state_data.state = RecordingState::Transcribing;
             let id = self.transcription_counter.fetch_add(1, Ordering::SeqCst);
             state_data.transcription_id = Some(id);
+            state_data.transcription_meta = Some(TranscriptionMeta {
+                duration_ms: duration.as_millis() as u64,
+                stt_model,
+            });
             id
         };
 
         self.cleanup_transcription_listeners(app);
         self.register_transcription_listeners(app, transcription_id);
-
-        // Check if online STT is configured
-        let config = load_config();
         if crate::stt::online::is_online_stt(&config) {
             // Online path: encode to WAV, upload to API
             let wav_bytes = crate::stt::online::wav::encode_wav(&audio, 16000);
@@ -371,6 +390,7 @@ impl RecordingManager {
                 if let Ok(mut state_data) = self.state_data.lock() {
                     state_data.state = RecordingState::Idle;
                     state_data.transcription_id = None;
+                    state_data.transcription_meta = None;
                 }
                 // Cleanup listeners before emitting the error event. Since Tauri
                 // dispatches events asynchronously, the listener is already
@@ -505,6 +525,7 @@ pub(crate) async fn execute_llm_output(
 ) {
     let final_text = crate::llm::post_process(&pending.raw_text, &pending.config).await;
     output_text(app, &final_text, &pending.config, pending.target_window).await;
+    save_history_entry(app, &pending.raw_text, &final_text, pending.meta.as_ref(), &pending.config, true);
     hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(2));
 }
 
@@ -516,6 +537,7 @@ pub(crate) async fn execute_raw_output(
     pending: PendingConfirmation,
 ) {
     output_text(app, &pending.raw_text, &pending.config, pending.target_window).await;
+    save_history_entry(app, &pending.raw_text, &pending.raw_text, pending.meta.as_ref(), &pending.config, false);
     hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(2));
 }
 
@@ -539,7 +561,7 @@ fn handle_transcription_complete(
         }
     };
 
-    let target_window = {
+    let (target_window, meta) = {
         let mut guard = match state_data.lock() {
             Ok(guard) => guard,
             Err(_) => return,
@@ -556,7 +578,9 @@ fn handle_transcription_complete(
 
         guard.state = RecordingState::Idle;
         guard.transcription_id = None;
-        guard.last_target_window.take()
+        let target = guard.last_target_window.take();
+        let meta = guard.transcription_meta.take();
+        (target, meta)
     };
 
     if text.trim().is_empty() {
@@ -576,6 +600,7 @@ fn handle_transcription_complete(
                 raw_text: text,
                 config,
                 target_window,
+                meta,
             });
         }
 
@@ -617,6 +642,7 @@ fn handle_transcription_complete(
     tauri::async_runtime::spawn(async move {
         let final_text = crate::llm::post_process(&text, &config).await;
         output_text(&app_for_task, &final_text, &config, target_window).await;
+        save_history_entry(&app_for_task, &text, &final_text, meta.as_ref(), &config, llm_will_process);
 
         if llm_will_process {
             hide_pill_after_delay(&app_for_task, &state_for_task, &pc_for_task, Duration::from_secs(2));
@@ -641,11 +667,52 @@ fn handle_transcription_error(
         }
         guard.state = RecordingState::Idle;
         guard.transcription_id = None;
+        guard.transcription_meta = None;
         guard.last_target_window = None;
     }
     let player = app.state::<Option<crate::sound::SoundPlayer>>();
     crate::sound::play_if_enabled(player.inner(), crate::sound::SoundEffect::Error);
     hide_pill_after_delay(app, state_data, pending_confirmation, Duration::from_secs(3));
+}
+
+/// Save a completed transcription to the history database
+fn save_history_entry(
+    app: &AppHandle,
+    raw_text: &str,
+    final_text: &str,
+    meta: Option<&TranscriptionMeta>,
+    config: &crate::config::Config,
+    llm_applied: bool,
+) {
+    if !config.history_enabled {
+        return;
+    }
+
+    let Some(meta) = meta else {
+        log::warn!("No transcription metadata available for history");
+        return;
+    };
+
+    let entry = crate::history::NewHistoryEntry {
+        raw_text: raw_text.to_string(),
+        final_text: final_text.to_string(),
+        duration_ms: meta.duration_ms,
+        stt_model: meta.stt_model.clone(),
+        llm_applied,
+        llm_provider: if llm_applied { config.llm_provider.clone() } else { None },
+        llm_model: if llm_applied { config.llm_model.clone() } else { None },
+        output_mode: config.text_output_mode.clone(),
+    };
+
+    let history = app.state::<crate::history::HistoryManager>();
+    match history.insert(entry, config.history_max_entries) {
+        Ok(saved) => {
+            let _ = app.emit(events::HISTORY_ENTRY_ADDED, &saved);
+        }
+        Err(e) => {
+            log::error!("Failed to save history entry: {e}");
+        }
+    }
 }
 
 /// Position and show the pill window at bottom center of the primary monitor

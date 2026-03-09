@@ -54,6 +54,9 @@ windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32
 # Sound effects
 rodio = "0.20"
 
+# History database
+rusqlite = { version = "0.31", features = ["bundled"] }
+
 # File transcription dependencies
 symphonia = { version = "0.5.5", features = ["mp3", "aac", "flac", "ogg", "wav", "pcm", "isomp4", "aiff"] }
 tauri-plugin-dialog = "2.6.0"

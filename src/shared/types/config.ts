@@ -31,4 +31,6 @@ export interface Config {
   sound_done_enabled: boolean;
   sound_error_enabled: boolean;
   sound_confirm_enabled: boolean;
+  history_enabled: boolean;
+  history_max_entries: number;
 }

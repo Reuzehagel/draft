@@ -18,3 +18,4 @@ export const FILE_TRANSCRIPTION_STARTED = "file-transcription-started";
 export const FILE_DECODE_PROGRESS = "file-decode-progress";
 export const FILE_TRANSCRIPTION_ERROR = "file-transcription-error";
 export const FILE_TRANSCRIPTION_PROGRESS = "file-transcription-progress";
+export const HISTORY_ENTRY_ADDED = "history-entry-added";

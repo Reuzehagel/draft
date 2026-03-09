@@ -5,6 +5,7 @@ mod audio;
 mod autostart;
 mod config;
 mod events;
+mod history;
 mod injection;
 mod llm;
 mod recording;
@@ -106,6 +107,10 @@ pub fn run() {
         .manage(sound::SoundPlayer::try_new())
         .manage(stt::file::FileTranscriptionState::default())
         .manage(SettingsReady::default())
+        .manage(
+            history::HistoryManager::new()
+                .expect("Failed to initialize history database"),
+        )
         // Register commands
         .invoke_handler(tauri::generate_handler![
             config::get_config,
@@ -134,6 +139,9 @@ pub fn run() {
             stt::file::save_text_file,
             llm::commands::enhance_text,
             sound::test_sound,
+            history::commands::get_history,
+            history::commands::delete_history_entry,
+            history::commands::clear_history,
             settings_ready,
         ])
         .setup(|app| {

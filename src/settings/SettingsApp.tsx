@@ -108,7 +108,9 @@ export default function SettingsApp(): React.ReactNode {
               toggleDarkMode={toggleDarkMode}
             />
           )}
-          {activePage === "history" && <HistoryPage />}
+          {activePage === "history" && (
+            <HistoryPage config={config} updateConfig={updateConfig} />
+          )}
           {activePage === "debug" && (
             <DebugPage config={config} updateConfig={updateConfig} />
           )}
