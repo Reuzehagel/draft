@@ -7,7 +7,8 @@
       "Bash(cargo check:*)",
       "WebFetch(domain:docs.mistral.ai)",
       "WebFetch(domain:handy.computer)",
-      "Bash(npx shadcn@latest:*)"
+      "Bash(npx shadcn@latest:*)",
+      "Bash(bunx tsc --noEmit)"
     ]
   }
 }

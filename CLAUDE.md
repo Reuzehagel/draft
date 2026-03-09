@@ -37,9 +37,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ### Frontend Structure (`src/`)
 
-- `settings/` - Settings window React app with microphone, hotkey, model management
-  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest
-  - `components/` - SettingsCard, SettingRow, HotkeyInput, Toggle, ModelsCard
+- `settings/` - Settings window React app with page-based navigation via sidebar
+  - `pages/` - GeneralPage, ModelsPage, PostProcessPage, HistoryPage, AdvancedPage, TranscribePage, DebugPage, InfoPage
+  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest, useHistory, useFileTranscription
+  - `components/` - SettingsCard, SettingRow, HotkeyInput, ModelsCard, Sidebar, PageHeader, ApiKeyInput, ErrorMessage
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
   - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
 - `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → confirming → error
@@ -76,6 +77,12 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `client.rs` - HTTP clients for OpenAI-compatible and Anthropic APIs
   - `process.rs` - Post-processing orchestration (auto-cleanup, voice commands)
   - Supports 5 providers: OpenAI, Anthropic, OpenRouter, Cerebras, Groq
+- `history/` - Transcription history module:
+  - `db.rs` - SQLite database for history storage
+  - `commands.rs` - `get_history`, `delete_history_entry`, `clear_history` commands
+- `sound/` - Sound effects module:
+  - `playback.rs` - rodio-based audio playback for UI sound effects
+  - `assets/` - Bundled sound effect files
 - `autostart.rs` - Windows startup integration
 
 ### Audio Pipeline Flow
@@ -116,16 +123,17 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - **CMake 3.20+ required** for whisper-rs, plus Visual Studio Build Tools with C++ workload and Windows SDK
 - **Audio callback timing** must complete in <5ms
 - **Config write concurrency**: `CONFIG_LOCK` mutex in `config.rs` serializes all writes. `set_config` preserves `window_position`/`window_size` from disk (frontend doesn't manage geometry). New config writers must acquire `CONFIG_LOCK`.
-- **Adding config fields**: Config struct has `#[serde(default)]` so missing fields use defaults (backward compat). When adding a field: (1) add to Rust `Config` struct + `Default` impl, (2) add to `config.ts` TypeScript interface, (3) add UI in SettingsApp.tsx
+- **Adding config fields**: Config struct has `#[serde(default)]` so missing fields use defaults (backward compat). When adding a field: (1) add to Rust `Config` struct + `Default` impl, (2) add to `config.ts` TypeScript interface, (3) add UI in the relevant settings page
 - **Tauri v2 plugins** use capabilities system in `src-tauri/capabilities/default.json`
 - **Windows API + tokio**: Win32 calls needing a message queue (e.g. `AttachThreadInput`, `SetForegroundWindow` privilege tricks) must run via `app.run_on_main_thread()` — tokio worker threads don't have message pumps
 - **Path alias**: `@/*` maps to `./src/*` in tsconfig
+- **shadcn/ui**: Uses `base-lyra` style with `base` primitives (not radix) and `hugeicons` icon library. Triggers use `render` prop (not `asChild`). Settings form rows use `SettingRow` which wraps `Field`/`FieldContent`/`FieldLabel`/`FieldDescription` from shadcn's field component.
 
 ## Development Notes
 
 - Pill states can be tested in dev mode via keyboard shortcuts (1-6, 0) at `localhost:5173/pill.html`
 - Sprint verification tests in `tests/sprint0/` for isolated dependency testing (cpal, enigo, whisper, windows-focus)
-- LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/SettingsApp.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
+- LLM default models are defined in both `src-tauri/src/llm/mod.rs` (`default_model()`) and `src/settings/pages/PostProcessPage.tsx` (`LLM_DEFAULT_MODELS`) - keep in sync
 - rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
 - Global hotkey system only supports F1-F24 as standalone keys (no modifier). Modifier keys (Ctrl, Alt, Shift, Fn) cannot be used alone — OS API limitation. Right vs left modifiers are not distinguished.
 - **Pill visibility/state sync**: Every pill state transition to "idle" must pair `setState("idle")` with `setVisible(false)` — except `TRANSCRIPTION_COMPLETE`, which intentionally leaves `visible=true` to avoid flicker when LLM processing follows immediately (Rust's `hide_pill_after_delay` controls that path).
@@ -141,7 +149,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 | 5        | LLM confirmation hotkey — after transcription, pill prompts "Enhance? Yes/No" with Y/N keyboard shortcuts and 8s auto-decline timeout. Setting: `llm_confirm_before_processing` | Done    |
 | 6        | Whisper initial prompt                                                                                                                                                          | Done    |
 | 7        | Sound effects                                                                                                                                                                   | Done    |
-| 8        | Transcription history                                                                                                                                                           | Planned |
+| 8        | Transcription history                                                                                                                                                           | Done    |
 
 ## Post-Sprint Workflow
 
