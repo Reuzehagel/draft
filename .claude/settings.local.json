@@ -5,7 +5,9 @@
       "WebSearch",
       "WebFetch(domain:github.com)",
       "Bash(cargo check:*)",
-      "WebFetch(domain:docs.mistral.ai)"
+      "WebFetch(domain:docs.mistral.ai)",
+      "WebFetch(domain:handy.computer)",
+      "Bash(npx shadcn@latest:*)"
     ]
   }
 }

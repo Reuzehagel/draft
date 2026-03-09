@@ -10,14 +10,17 @@ import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { useFileTranscription } from "./hooks/useFileTranscription";
 import { Sidebar, type Page } from "./components/Sidebar";
-import { HomePage } from "./pages/HomePage";
-import { TranscribePage } from "./pages/TranscribePage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { HelpPage } from "./pages/HelpPage";
+import { GeneralPage } from "./pages/GeneralPage";
+import { ModelsPage } from "./pages/ModelsPage";
+import { PostProcessPage } from "./pages/PostProcessPage";
+import { AdvancedPage } from "./pages/AdvancedPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { DebugPage } from "./pages/DebugPage";
+import { InfoPage } from "./pages/InfoPage";
+import { TranscribePage } from "./pages/TranscribePage";
 
 export default function SettingsApp(): React.ReactNode {
-  const [activePage, setActivePage] = useState<Page>("home");
+  const [activePage, setActivePage] = useState<Page>("general");
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { config, updateConfig, loading, saved } = useConfig();
   const {
@@ -42,7 +45,6 @@ export default function SettingsApp(): React.ReactNode {
     }
   }, [loading, config, modelsHook.downloadedModels, updateConfig]);
 
-  // Signal to the backend that the frontend is ready to be shown
   useEffect(() => {
     if (!loading) {
       invoke("settings_ready");
@@ -53,10 +55,7 @@ export default function SettingsApp(): React.ReactNode {
     return null;
   }
 
-  const llmConfigured = !!(
-    config?.llm_provider &&
-    config?.llm_api_key
-  );
+  const llmConfigured = !!(config?.llm_provider && config?.llm_api_key);
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -69,43 +68,61 @@ export default function SettingsApp(): React.ReactNode {
         saved={saved}
       />
 
-      <main className="flex-1 overflow-y-auto">
-        {activePage === "home" && (
-          <HomePage
-            config={config}
-            loadedModel={whisperHook.loadedModel}
-            microphones={microphones}
-          />
-        )}
-        {activePage === "transcribe" && (
-          <TranscribePage
-            fileTranscription={fileTranscription}
-            whisperBusy={whisperHook.isBusy}
-            loadedModel={whisperHook.loadedModel}
-            llmConfigured={llmConfigured}
-            sttProvider={config?.stt_provider ?? null}
-          />
-        )}
-        {activePage === "help" && <HelpPage />}
-        {activePage === "settings" && (
-          <SettingsPage
-            config={config}
-            updateConfig={updateConfig}
-            microphones={microphones}
-            microphonesLoading={microphonesLoading}
-            microphonesError={microphonesError}
-            isTesting={isTesting}
-            micTestAmplitudes={micTestAmplitudes}
-            startTest={startTest}
-            hotkeyError={hotkeyError}
-            hotkeyRegistering={hotkeyRegistering}
-            validateAndRegister={validateAndRegister}
-            modelsHook={modelsHook}
-            whisperHook={whisperHook}
-            onNavigate={setActivePage}
-          />
-        )}
-        {activePage === "history" && <HistoryPage />}
+      <main className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
+        <div className="p-5 max-w-lg mx-auto">
+          {activePage === "general" && (
+            <GeneralPage
+              config={config}
+              updateConfig={updateConfig}
+              microphones={microphones}
+              microphonesLoading={microphonesLoading}
+              microphonesError={microphonesError}
+              isTesting={isTesting}
+              micTestAmplitudes={micTestAmplitudes}
+              startTest={startTest}
+              hotkeyError={hotkeyError}
+              hotkeyRegistering={hotkeyRegistering}
+              validateAndRegister={validateAndRegister}
+            />
+          )}
+          {activePage === "models" && (
+            <ModelsPage
+              config={config}
+              updateConfig={updateConfig}
+              modelsHook={modelsHook}
+              whisperHook={whisperHook}
+              isTesting={isTesting}
+            />
+          )}
+          {activePage === "post-process" && (
+            <PostProcessPage
+              config={config}
+              updateConfig={updateConfig}
+            />
+          )}
+          {activePage === "advanced" && (
+            <AdvancedPage
+              config={config}
+              updateConfig={updateConfig}
+              isDark={isDark}
+              toggleDarkMode={toggleDarkMode}
+            />
+          )}
+          {activePage === "history" && <HistoryPage />}
+          {activePage === "debug" && (
+            <DebugPage config={config} updateConfig={updateConfig} />
+          )}
+          {activePage === "info" && <InfoPage version={version} />}
+          {activePage === "transcribe" && (
+            <TranscribePage
+              fileTranscription={fileTranscription}
+              whisperBusy={whisperHook.isBusy}
+              loadedModel={whisperHook.loadedModel}
+              llmConfigured={llmConfigured}
+              sttProvider={config?.stt_provider ?? null}
+            />
+          )}
+        </div>
       </main>
     </div>
   );

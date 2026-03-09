@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import type { Config } from "@/shared/types/config";
 import { WaveformBars } from "@/components/WaveformBars";
-import { Toggle } from "./Toggle";
+import { Switch } from "@/components/ui/switch";
+import { SettingsCard } from "./SettingsCard";
 import { ErrorMessage } from "./ErrorMessage";
 import { TierPicker } from "./models/TierPicker";
 import { ModelStatusArea } from "./models/ModelStatusArea";
@@ -182,17 +183,11 @@ export function ModelsCard({
   }
 
   return (
-    <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm overflow-hidden">
-      <div className="flex items-start gap-3 px-4 py-3 border-b border-border/40 bg-muted/40">
-        <div className="mt-0.5 text-muted-foreground/70">
-          <HugeiconsIcon icon={Package01Icon} size={16} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-medium text-foreground">Models</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-        </div>
-      </div>
-      <div className="px-4 py-3 space-y-3">
+    <SettingsCard
+      title="Models"
+      description={description}
+      icon={<HugeiconsIcon icon={Package01Icon} size={16} />}
+    >
         {modelsLoading ? (
           <div className="py-4 flex items-center justify-center">
             <div className="flex items-center gap-2 text-muted-foreground" role="status" aria-live="polite">
@@ -208,7 +203,7 @@ export function ModelsCard({
             {/* English-only toggle */}
             <div className="flex items-center justify-between py-1">
               <span className="text-sm text-foreground">English only</span>
-              <Toggle checked={localEnglish} onChange={handleEnglishToggle} />
+              <Switch checked={localEnglish} onCheckedChange={handleEnglishToggle} />
             </div>
 
             {/* Model Status */}
@@ -307,7 +302,6 @@ export function ModelsCard({
             )}
           </div>
         )}
-      </div>
-    </div>
+    </SettingsCard>
   );
 }

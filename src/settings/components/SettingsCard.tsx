@@ -1,19 +1,29 @@
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+
 interface SettingsCardProps {
   title: string;
   description?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }
 
-export function SettingsCard({ title, description, children }: SettingsCardProps): React.ReactNode {
+export function SettingsCard({ title, description, icon, children }: SettingsCardProps): React.ReactNode {
   return (
-    <div className="rounded-lg border border-border/60 bg-card/80 shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-border/40 bg-muted/40">
-        <h2 className="text-sm font-medium text-foreground">{title}</h2>
-        {description && (
-          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
-        )}
-      </div>
-      <div className="px-4 py-3 space-y-3">{children}</div>
-    </div>
+    <Card size="sm">
+      <CardHeader className={icon ? "flex flex-row items-start gap-3" : undefined}>
+        {icon && <div className="mt-0.5 text-muted-foreground/70">{icon}</div>}
+        <div>
+          <CardTitle>{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">{children}</CardContent>
+    </Card>
   );
 }

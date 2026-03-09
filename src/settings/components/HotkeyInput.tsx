@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { ErrorMessage } from "./ErrorMessage";
 
 const MODIFIER_KEYS = new Set(["Control", "Alt", "Shift", "Meta"]);
@@ -66,30 +68,22 @@ export function HotkeyInput({ value, onChange, error, onValidate }: HotkeyInputP
   const displayError = error || validationError;
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <button
+        <Input
+          readOnly
+          value={isRecording ? "Press keys..." : value || "Click to set hotkey"}
           onClick={() => {
             setIsRecording(!isRecording);
             if (!isRecording) setValidationError(null);
           }}
           onKeyDown={handleKeyDown}
-          className={`
-            flex-1 h-8 px-3 rounded-md text-[13px] font-mono text-left
-            border transition-all duration-150
-            focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1
-            ${isRecording
-              ? 'border-primary bg-primary/5 text-primary'
-              : displayError
-                ? 'border-destructive/50 bg-destructive/5'
-                : 'border-input bg-background hover:bg-muted/70'
-            }
-          `}
-        >
-          {isRecording
-            ? "Press keys..."
-            : value || "Click to set hotkey"}
-        </button>
+          className={cn(
+            "flex-1 text-[13px] cursor-pointer",
+            isRecording && "ring-2 ring-primary border-primary",
+            displayError && !isRecording && "border-destructive/50",
+          )}
+        />
         {value && (
           <Button
             variant="ghost"

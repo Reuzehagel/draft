@@ -1,26 +1,47 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  Home01Icon,
   FileAudioIcon,
-  HelpCircleIcon,
   Settings01Icon,
+  Package01Icon,
+  SparklesIcon,
   Clock01Icon,
+  InformationCircleIcon,
   Sun01Icon,
   Moon01Icon,
+  SlidersHorizontalIcon,
+  Bug01Icon,
 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
-export type Page = "home" | "transcribe" | "help" | "settings" | "history";
+export type Page =
+  | "transcribe"
+  | "general"
+  | "models"
+  | "post-process"
+  | "advanced"
+  | "history"
+  | "debug"
+  | "info";
 
-const NAV_ITEMS: { page: Page; label: string; icon: typeof Home01Icon }[] = [
-  { page: "home", label: "Home", icon: Home01Icon },
+type NavItem = { page: Page; label: string; icon: typeof Settings01Icon };
+
+const FEATURE_NAV: NavItem[] = [
   { page: "transcribe", label: "Transcribe", icon: FileAudioIcon },
-  { page: "help", label: "Help", icon: HelpCircleIcon },
-  { page: "history", label: "History", icon: Clock01Icon },
 ];
 
-const BOTTOM_NAV: { page: Page; label: string; icon: typeof Home01Icon } =
-  { page: "settings", label: "Settings", icon: Settings01Icon };
+const SETTINGS_NAV: NavItem[] = [
+  { page: "general", label: "General", icon: Settings01Icon },
+  { page: "models", label: "Models", icon: Package01Icon },
+  { page: "post-process", label: "Post Process", icon: SparklesIcon },
+];
+
+const OTHER_NAV: NavItem[] = [
+  { page: "advanced", label: "Advanced", icon: SlidersHorizontalIcon },
+  { page: "history", label: "History", icon: Clock01Icon },
+  { page: "debug", label: "Debug", icon: Bug01Icon },
+  { page: "info", label: "Info", icon: InformationCircleIcon },
+];
 
 interface SidebarProps {
   activePage: Page;
@@ -31,61 +52,64 @@ interface SidebarProps {
   saved: boolean;
 }
 
+function NavButton({
+  item,
+  isActive,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  onClick: () => void;
+}): React.ReactNode {
+  return (
+    <button
+      onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
+      className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-colors ${
+        isActive
+          ? "bg-primary/10 text-primary font-medium"
+          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      }`}
+    >
+      <HugeiconsIcon icon={item.icon} size={16} />
+      {item.label}
+    </button>
+  );
+}
+
+function NavGroup({ items, activePage, onNavigate }: { items: NavItem[]; activePage: Page; onNavigate: (page: Page) => void }): React.ReactNode {
+  return (
+    <div className="flex flex-col gap-0.5">
+      {items.map((item) => (
+        <NavButton
+          key={item.page}
+          item={item}
+          isActive={activePage === item.page}
+          onClick={() => onNavigate(item.page)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, version, saved }: SidebarProps): React.ReactNode {
   return (
-    <aside className="w-[180px] shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
-      <div className="px-4 py-4">
-        <span className="text-base font-bold tracking-tight text-sidebar-foreground">
+    <aside className="w-[172px] shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
+      <div className="px-4 py-3">
+        <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
           Draft
         </span>
       </div>
-      <nav className="flex-1 px-2 space-y-0.5">
-        {NAV_ITEMS.map(({ page, label, icon }) => {
-          const isActive = activePage === page;
-          return (
-            <button
-              key={page}
-              onClick={() => onNavigate(page)}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              {isActive && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary" />
-              )}
-              <HugeiconsIcon icon={icon} size={18} />
-              {label}
-            </button>
-          );
-        })}
+
+      <nav className="flex-1 px-2 flex flex-col gap-3 overflow-hidden">
+        <NavGroup items={FEATURE_NAV} activePage={activePage} onNavigate={onNavigate} />
+        <Separator className="mx-1" />
+        <NavGroup items={SETTINGS_NAV} activePage={activePage} onNavigate={onNavigate} />
+        <Separator className="mx-1" />
+        <NavGroup items={OTHER_NAV} activePage={activePage} onNavigate={onNavigate} />
       </nav>
-      <div className="px-2 pb-1">
-        {(() => {
-          const { page, label, icon } = BOTTOM_NAV;
-          const isActive = activePage === page;
-          return (
-            <button
-              onClick={() => onNavigate(page)}
-              aria-current={isActive ? "page" : undefined}
-              className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              {isActive && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-primary" />
-              )}
-              <HugeiconsIcon icon={icon} size={18} />
-              {label}
-            </button>
-          );
-        })()}
-      </div>
-      <div className="px-3 py-3 border-t border-sidebar-border flex items-center justify-between">
+
+      <div className="px-3 py-2.5 border-t border-sidebar-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
             onClick={toggleDarkMode}
@@ -93,7 +117,7 @@ export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, versio
             title={isDark ? "Switch to light mode" : "Switch to dark mode"}
             aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           >
-            <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={16} />
+            <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={14} />
           </button>
           <span
             className={`text-[11px] text-success transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}
