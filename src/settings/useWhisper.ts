@@ -8,7 +8,7 @@ interface WhisperState {
   current_model: string | null;
 }
 
-export function useWhisper(selectedModel: string | null | undefined) {
+export function useWhisper(selectedModel: string | null | undefined, sttProvider?: string | null) {
   const [isModelLoading, setIsModelLoading] = useState(false);
   const [loadedModel, setLoadedModel] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -31,6 +31,11 @@ export function useWhisper(selectedModel: string | null | undefined) {
   useEffect(() => {
     isTranscribingRef.current = isTranscribing;
   }, [isTranscribing]);
+
+  const sttProviderRef = useRef(sttProvider);
+  useEffect(() => {
+    sttProviderRef.current = sttProvider;
+  }, [sttProvider]);
 
   // Listen for whisper events
   useEffect(() => {
@@ -59,7 +64,11 @@ export function useWhisper(selectedModel: string | null | undefined) {
     listeners.add<string>(Events.TRANSCRIPTION_ERROR, (event) => {
       setIsModelLoading(false);
       setIsTranscribing(false);
-      setTranscriptionError(event.payload);
+      // Only show transcription errors in the Whisper UI when using local engine
+      // Online STT errors (e.g. Mistral 429) are handled by ModelsPage directly
+      if (!sttProviderRef.current) {
+        setTranscriptionError(event.payload);
+      }
       setAmplitudes([]);
       console.error("Transcription error:", event.payload);
     });

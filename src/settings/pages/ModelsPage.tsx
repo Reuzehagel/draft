@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -11,9 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Config } from "@/shared/types/config";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import { STT_PROVIDER_LABELS } from "@/shared/constants/providers";
+import { createListenerGroup } from "@/shared/utils/tauriListeners";
+import { parseApiError } from "@/shared/utils/parseApiError";
+import * as Events from "@/shared/constants/events";
 import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
 import { ApiKeyInput } from "../components/ApiKeyInput";
+import { ErrorMessage } from "../components/ErrorMessage";
 import { ModelsCard } from "../components/ModelsCard";
 import { PageHeader } from "../components/PageHeader";
 
@@ -66,6 +71,26 @@ export function ModelsPage({
   whisperHook,
   isTesting,
 }: ModelsPageProps): React.ReactNode {
+  const [onlineSttError, setOnlineSttError] = useState<string | null>(null);
+  const sttProviderRef = useRef(config?.stt_provider);
+  useEffect(() => { sttProviderRef.current = config?.stt_provider; }, [config?.stt_provider]);
+
+  // Listen for transcription errors when using an online STT provider
+  useEffect(() => {
+    const listeners = createListenerGroup();
+    listeners.add<string>(Events.TRANSCRIPTION_ERROR, (event) => {
+      if (sttProviderRef.current) {
+        setOnlineSttError(parseApiError(event.payload));
+      }
+    });
+    return () => listeners.cleanup();
+  }, []);
+
+  // Clear online error when switching providers
+  useEffect(() => {
+    setOnlineSttError(null);
+  }, [config?.stt_provider]);
+
   const engineItems = [
     { label: "Local (Whisper)", value: "local" },
     ...STT_PROVIDERS.map((p) => ({ label: p.label, value: p.value })),
@@ -130,6 +155,8 @@ export function ModelsPage({
               />
             </SettingRow>
           )}
+
+          {onlineSttError && <ErrorMessage message={onlineSttError} />}
         </SettingsCard>
       )}
 

@@ -30,7 +30,7 @@ export default function SettingsApp(): React.ReactNode {
   const { isTesting, amplitudes: micTestAmplitudes, startTest } = useMicrophoneTest();
   const { registrationError: hotkeyError, isRegistering: hotkeyRegistering, validateAndRegister } = useHotkeyRegistration(config?.hotkey);
   const modelsHook = useModels();
-  const whisperHook = useWhisper(config?.selected_model);
+  const whisperHook = useWhisper(config?.selected_model, config?.stt_provider);
   const fileTranscription = useFileTranscription();
   const [version, setVersion] = useState<string | null>(null);
 

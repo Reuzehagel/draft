@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { createListenerGroup } from "@/shared/utils/tauriListeners";
+import { parseApiError } from "@/shared/utils/parseApiError";
 import Spinner from "./components/Spinner";
 import Waveform from "./components/Waveform";
 import * as Events from "@/shared/constants/events";
@@ -175,7 +176,7 @@ export default function PillApp(): React.ReactNode {
     });
     listeners.add<string>(Events.TRANSCRIPTION_ERROR, (event) => {
       setState("error");
-      setErrorMessage(event.payload);
+      setErrorMessage(parseApiError(event.payload));
       setVisible(true);
       setContentKey((k) => k + 1);
       // Clear any previous error timeout to prevent stale dismissals
