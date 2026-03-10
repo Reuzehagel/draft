@@ -47,6 +47,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - `shared/types/` - TypeScript interfaces mirroring Rust types
 - `shared/constants/events.ts` - Event names matching `src-tauri/src/events.rs`
 - `shared/utils/tauriListeners.ts` - `createListenerGroup()` helper for consistent event listener cleanup
+  - `shared/utils/parseApiError.ts` - Parses raw API error strings into user-friendly messages
 - `components/` - Shared components (`WaveformBars`, `Spinner`) and shadcn/ui components
 
 ### Backend Structure (`src-tauri/src/`)
@@ -103,7 +104,7 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 
 - `amplitude` - 14-element f32 array for waveform visualization (~30fps)
 - `recording-started/stopped` - Recording state changes
-- `transcription-complete/error` - Transcription results
+- `transcription-complete/error` - Transcription results. Note: `transcription-error` is emitted by both local Whisper and online STT paths. Frontend routes errors: `useWhisper` filters to local-only (ModelsCard), `ModelsPage` filters to online-only (Provider Settings card), pill shows all errors.
 - `download-progress` - Model download progress (model, progress%, bytes)
 - `model-loading/loaded` - Whisper model load state
 - `test-microphone-complete` - Microphone test finished
