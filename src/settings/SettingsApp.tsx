@@ -15,7 +15,6 @@ import { ModelsPage } from "./pages/ModelsPage";
 import { PostProcessPage } from "./pages/PostProcessPage";
 import { AdvancedPage } from "./pages/AdvancedPage";
 import { HistoryPage } from "./pages/HistoryPage";
-import { DebugPage } from "./pages/DebugPage";
 import { InfoPage } from "./pages/InfoPage";
 import { TranscribePage } from "./pages/TranscribePage";
 
@@ -110,9 +109,6 @@ export default function SettingsApp(): React.ReactNode {
           )}
           {activePage === "history" && (
             <HistoryPage config={config} updateConfig={updateConfig} />
-          )}
-          {activePage === "debug" && (
-            <DebugPage config={config} updateConfig={updateConfig} />
           )}
           {activePage === "info" && <InfoPage version={version} />}
           {activePage === "transcribe" && (

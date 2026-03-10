@@ -14,10 +14,10 @@
       {
         "label": "settings",
         "title": "Draft",
-        "width": 800,
-        "height": 600,
-        "minWidth": 600,
-        "minHeight": 500,
+        "width": 700,
+        "height": 500,
+        "minWidth": 500,
+        "minHeight": 400,
         "resizable": true,
         "visible": false,
         "url": "settings.html"

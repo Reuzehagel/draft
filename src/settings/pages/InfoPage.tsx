@@ -13,6 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 import { SettingsCard } from "../components/SettingsCard";
 import { PageHeader } from "../components/PageHeader";
 
@@ -42,16 +48,10 @@ const LOCAL_MODELS = [
 
 const ONLINE_PROVIDERS = [
   {
-    name: "OpenAI", model: "whisper-1",
-    pricing: "$0.006/min", freeTier: "None", wer: "~4.3%",
-    highlights: ["Reliable, simple API", "gpt-4o-transcribe at ~4.1% WER", "gpt-4o-mini-transcribe at half price"],
-    notes: "whisper-1 has no diarization; gpt-4o models do",
-  },
-  {
-    name: "Deepgram", model: "nova-3",
-    pricing: "$0.0077/min", freeTier: "$200 free credits", wer: "~6.5%",
-    highlights: ["Very fast response times", "Speaker diarization", "Smart formatting"],
-    notes: "Generous free credits to try before committing",
+    name: "ElevenLabs", model: "scribe_v1",
+    pricing: "~$0.0067/min", freeTier: "Limited free plan", wer: "~3.2%",
+    highlights: ["Excellent accuracy", "Speaker diarization", "Scribe v2 at ~2.3% WER"],
+    notes: "Pricing varies by subscription tier",
   },
   {
     name: "AssemblyAI", model: "best",
@@ -66,10 +66,16 @@ const ONLINE_PROVIDERS = [
     notes: "Voxtral Small available at ~3.0% WER",
   },
   {
-    name: "ElevenLabs", model: "scribe_v1",
-    pricing: "~$0.0067/min", freeTier: "Limited free plan", wer: "~3.2%",
-    highlights: ["Excellent accuracy", "Speaker diarization", "Scribe v2 at ~2.3% WER"],
-    notes: "Pricing varies by subscription tier",
+    name: "OpenAI", model: "whisper-1",
+    pricing: "$0.006/min", freeTier: "None", wer: "~4.3%",
+    highlights: ["Reliable, simple API", "gpt-4o-transcribe at ~4.1% WER", "gpt-4o-mini-transcribe at half price"],
+    notes: "whisper-1 has no diarization; gpt-4o models do",
+  },
+  {
+    name: "Deepgram", model: "nova-3",
+    pricing: "$0.0077/min", freeTier: "$200 free credits", wer: "~6.5%",
+    highlights: ["Very fast response times", "Speaker diarization", "Smart formatting"],
+    notes: "Generous free credits to try before committing",
   },
 ] as const;
 
@@ -156,38 +162,61 @@ export function InfoPage({ version }: InfoPageProps): React.ReactNode {
       )}
 
       {activeTab === "online" && (
-        <SettingsCard title="Online Providers" description="Pricing, accuracy, and features">
-          <div className="divide-y divide-border/30 [&>*]:py-4 [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">
+        <SettingsCard title="Online Providers" description="Cost, accuracy, and features at a glance">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Provider</TableHead>
+                <TableHead>Cost/min</TableHead>
+                <TableHead>WER</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ONLINE_PROVIDERS.map((provider) => (
+                <TableRow key={provider.name}>
+                  <TableCell className="font-medium">{provider.name}</TableCell>
+                  <TableCell>{provider.pricing}</TableCell>
+                  <TableCell>{provider.wer}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <Accordion>
             {ONLINE_PROVIDERS.map((provider) => (
-              <div key={provider.name} className="flex flex-col gap-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">{provider.name}</span>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {provider.model}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">
-                    {provider.wer}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground pl-0.5">
-                  <span>Pricing: {provider.pricing}</span>
-                  <span>Free: {provider.freeTier}</span>
-                </div>
-                <ul className="flex flex-col gap-0.5 pl-0.5">
-                  {provider.highlights.map((h) => (
-                    <li key={h} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                      <HugeiconsIcon icon={Tick02Icon} size={12} className="shrink-0 mt-0.5 text-success" />
-                      <span>{h}</span>
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-xs text-muted-foreground flex items-start gap-1.5 pl-0.5">
-                  <HugeiconsIcon icon={InformationCircleIcon} size={12} className="shrink-0 mt-0.5" />
-                  <span>{provider.notes}</span>
-                </p>
-              </div>
+              <AccordionItem key={provider.name} value={provider.name}>
+                <AccordionTrigger>
+                  <div className="flex items-center gap-2">
+                    <span>{provider.name}</span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {provider.model}
+                    </Badge>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex flex-col gap-2 text-muted-foreground">
+                    <div className="flex gap-3 text-xs">
+                      <span>Pricing: {provider.pricing}</span>
+                      <span>Free: {provider.freeTier}</span>
+                    </div>
+                    <ul className="flex flex-col gap-0.5">
+                      {provider.highlights.map((h) => (
+                        <li key={h} className="flex items-start gap-1.5 text-xs">
+                          <HugeiconsIcon icon={Tick02Icon} size={12} className="shrink-0 mt-0.5 text-success" />
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs flex items-start gap-1.5">
+                      <HugeiconsIcon icon={InformationCircleIcon} size={12} className="shrink-0 mt-0.5" />
+                      <span>{provider.notes}</span>
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
+
           <p className="text-[11px] text-muted-foreground/70 leading-relaxed pt-2 border-t border-border/40">
             WER from{" "}
             <a

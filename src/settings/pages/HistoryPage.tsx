@@ -95,19 +95,23 @@ function HistoryEntryRow({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
+          {copied && (
+            <span className="text-[10px] text-muted-foreground mr-0.5">Copied!</span>
+          )}
           <Button
             variant="ghost"
             size="icon-xs"
             onClick={handleCopy}
             title="Copy to clipboard"
+            className={copied ? "" : "opacity-0 group-hover:opacity-100 transition-opacity"}
           >
             <HugeiconsIcon icon={Copy01Icon} data-icon />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger
               render={
-                <Button variant="ghost" size="icon-xs" title="Delete">
+                <Button variant="ghost" size="icon-xs" title="Delete" className="opacity-0 group-hover:opacity-100 transition-opacity">
                   <HugeiconsIcon icon={Delete02Icon} data-icon />
                 </Button>
               }
@@ -139,9 +143,6 @@ function HistoryEntryRow({
         tabIndex={-1}
       >
         {truncated}
-        {copied && (
-          <span className="ml-1.5 text-[10px] text-muted-foreground">Copied!</span>
-        )}
       </button>
       {entry.llm_applied && entry.raw_text !== entry.final_text && expanded && (
         <div className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-muted pl-2 mt-0.5">

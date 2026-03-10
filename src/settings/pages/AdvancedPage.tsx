@@ -86,6 +86,19 @@ export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: A
           </div>
         </div>
       </SettingsCard>
+
+      <SettingsCard title="Logging">
+        <SettingRow
+          label="Enable logging"
+          description="Logs to %APPDATA%\Draft\logs (restart required)"
+          inline
+        >
+          <Switch
+            checked={config?.logging_enabled || false}
+            onCheckedChange={(logging_enabled) => updateConfig({ logging_enabled })}
+          />
+        </SettingRow>
+      </SettingsCard>
     </div>
   );
 }

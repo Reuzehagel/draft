@@ -9,7 +9,6 @@ import {
   Sun01Icon,
   Moon01Icon,
   SlidersHorizontalIcon,
-  Bug01Icon,
 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +20,6 @@ export type Page =
   | "post-process"
   | "advanced"
   | "history"
-  | "debug"
   | "info";
 
 type NavItem = { page: Page; label: string; icon: typeof Settings01Icon };
@@ -39,7 +37,6 @@ const SETTINGS_NAV: NavItem[] = [
 const OTHER_NAV: NavItem[] = [
   { page: "advanced", label: "Advanced", icon: SlidersHorizontalIcon },
   { page: "history", label: "History", icon: Clock01Icon },
-  { page: "debug", label: "Debug", icon: Bug01Icon },
   { page: "info", label: "Info", icon: InformationCircleIcon },
 ];
 
