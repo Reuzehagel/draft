@@ -132,6 +132,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - **Windows API + tokio**: Win32 calls needing a message queue (e.g. `AttachThreadInput`, `SetForegroundWindow` privilege tricks) must run via `app.run_on_main_thread()` — tokio worker threads don't have message pumps
 - **Path alias**: `@/*` maps to `./src/*` in tsconfig
 - **shadcn/ui**: Uses `base-lyra` style with `base` primitives (not radix) and `hugeicons` icon library. Triggers use `render` prop (not `asChild`). Settings form rows use `SettingRow` which wraps `Field`/`FieldContent`/`FieldLabel`/`FieldDescription` from shadcn's field component.
+- **Frontend changes**: When making any changes to the frontend, load the `shadcn` skill first to ensure correct usage of shadcn/ui components, patterns, and conventions specific to this project.
 
 ## Development Notes
 

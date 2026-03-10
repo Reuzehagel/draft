@@ -2,10 +2,56 @@ import { invoke } from "@tauri-apps/api/core";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Config } from "@/shared/types/config";
 import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
 import { PageHeader } from "../components/PageHeader";
+
+/** Default config values (mirrors Rust Config::default). Excludes window geometry (managed by Rust). */
+const DEFAULT_CONFIG: Omit<Config, "window_position" | "window_size"> = {
+  version: 1,
+  microphone_id: null,
+  selected_model: null,
+  hotkey: null,
+  auto_start: false,
+  trailing_space: false,
+  logging_enabled: false,
+  llm_provider: null,
+  llm_api_key: null,
+  llm_model: null,
+  llm_auto_process: false,
+  llm_system_prompt: null,
+  text_output_mode: "inject",
+  double_tap_toggle: false,
+  llm_confirm_before_processing: false,
+  stt_provider: null,
+  stt_api_key: null,
+  stt_model: null,
+  stt_enable_diarization: false,
+  whisper_initial_prompt: null,
+  sound_effects_enabled: true,
+  sound_volume: 0.5,
+  sound_start_enabled: true,
+  sound_done_enabled: true,
+  sound_error_enabled: true,
+  sound_confirm_enabled: true,
+  history_enabled: true,
+  history_max_entries: 500,
+};
+
+/** Keys that hold sensitive/credential data, preserved during soft reset */
+const SENSITIVE_KEYS: (keyof Config)[] = ["llm_api_key", "stt_api_key"];
 
 const SOUND_TOGGLES: Array<{ label: string; key: keyof Config & `sound_${string}_enabled` }> = [
   { label: "Start sound", key: "sound_start_enabled" },
@@ -98,6 +144,64 @@ export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: A
             onCheckedChange={(logging_enabled) => updateConfig({ logging_enabled })}
           />
         </SettingRow>
+      </SettingsCard>
+
+      <SettingsCard title="Reset" description="Restore settings to their original values">
+        <div className="flex gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger render={<Button variant="outline" />}>
+              Reset to defaults
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset to defaults?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will reset all settings to their default values but keep your API keys.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!config) return;
+                    const preserved: Partial<Config> = {};
+                    for (const key of SENSITIVE_KEYS) {
+                      if (config[key] != null) {
+                        (preserved as Record<string, unknown>)[key] = config[key];
+                      }
+                    }
+                    updateConfig({ ...DEFAULT_CONFIG, ...preserved });
+                  }}
+                >
+                  Reset
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog>
+            <AlertDialogTrigger render={<Button variant="outline" />}>
+              Reset everything
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset everything?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will erase all settings including API keys and return everything to a blank state. This cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => updateConfig({ ...DEFAULT_CONFIG })}
+                >
+                  Erase everything
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </SettingsCard>
     </div>
   );
