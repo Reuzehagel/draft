@@ -32,13 +32,13 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ### Dual-Window Tauri Application
 
-- **Settings window** (`settings.html`): Main configuration UI, 500x600, hides to tray on close
+- **Settings window** (`settings.html`): Main configuration UI, 700x500 (min 500x400), hides to tray on close
 - **Pill window** (`pill.html`): 200x40 transparent overlay showing recording/transcription state
 
 ### Frontend Structure (`src/`)
 
 - `settings/` - Settings window React app with page-based navigation via sidebar
-  - `pages/` - GeneralPage, ModelsPage, PostProcessPage, HistoryPage, AdvancedPage, TranscribePage, DebugPage, InfoPage
+  - `pages/` - GeneralPage, ModelsPage, PostProcessPage, HistoryPage, AdvancedPage, TranscribePage, InfoPage
   - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest, useHistory, useFileTranscription
   - `components/` - SettingsCard, SettingRow, HotkeyInput, ModelsCard, Sidebar, PageHeader, ApiKeyInput, ErrorMessage
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
@@ -47,7 +47,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - `shared/types/` - TypeScript interfaces mirroring Rust types
 - `shared/constants/events.ts` - Event names matching `src-tauri/src/events.rs`
 - `shared/utils/tauriListeners.ts` - `createListenerGroup()` helper for consistent event listener cleanup
-- `components/` - Shared components (`WaveformBars`) and shadcn/ui components
+- `components/` - Shared components (`WaveformBars`, `Spinner`) and shadcn/ui components
 
 ### Backend Structure (`src-tauri/src/`)
 
@@ -73,8 +73,12 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `download.rs` - Streaming download with progress, verification, cancellation
   - `commands.rs` - `list_models`, `download_model`, `cancel_download`, `delete_model` commands
   - `whisper.rs` - Whisper model loading and transcription
+  - `file.rs` - File-based transcription via symphonia (used by TranscribePage)
+  - `online/` - Online STT providers: OpenAI, Deepgram, AssemblyAI, Mistral, ElevenLabs
+    - `wav.rs` - WAV encoding helper for API uploads
 - `llm/` - LLM post-processing module:
   - `client.rs` - HTTP clients for OpenAI-compatible and Anthropic APIs
+  - `commands.rs` - `enhance_text` command
   - `process.rs` - Post-processing orchestration (auto-cleanup, voice commands)
   - Supports 5 providers: OpenAI, Anthropic, OpenRouter, Cerebras, Groq
 - `history/` - Transcription history module:
@@ -113,7 +117,7 @@ Whisper GGML models stored at `%APPDATA%/Draft/models/`. 8 models available (tin
 
 ### Config Storage
 
-Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript types in `src/shared/types/config.ts` must match Rust `Config` struct. Includes LLM settings: `llm_provider`, `llm_api_key`, `llm_model`, `llm_auto_process`, `llm_system_prompt`, `llm_confirm_before_processing`.
+Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript types in `src/shared/types/config.ts` must match Rust `Config` struct. Includes LLM settings (`llm_provider`, `llm_api_key`, `llm_model`, `llm_auto_process`, `llm_system_prompt`, `llm_confirm_before_processing`) and online STT settings (`stt_provider`, `stt_api_key`, `stt_model`, `stt_enable_diarization`).
 
 ## Key Constraints
 
@@ -137,19 +141,6 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
 - Global hotkey system only supports F1-F24 as standalone keys (no modifier). Modifier keys (Ctrl, Alt, Shift, Fn) cannot be used alone — OS API limitation. Right vs left modifiers are not distinguished.
 - **Pill visibility/state sync**: Every pill state transition to "idle" must pair `setState("idle")` with `setVisible(false)` — except `TRANSCRIPTION_COMPLETE`, which intentionally leaves `visible=true` to avoid flicker when LLM processing follows immediately (Rust's `hide_pill_after_delay` controls that path).
-
-## Feature Roadmap
-
-| Priority | Feature                                                                                                                                                                         | Status  |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1        | LLM post-processing (auto-cleanup + voice commands)                                                                                                                             | Done    |
-| 2        | Text output mode setting (clipboard copy vs inject into app)                                                                                                                    | Done    |
-| 3        | Double-tap hotkey for toggle transcription (e.g., double-tap FN to toggle continuous dictation on/off)                                                                          | Done    |
-| 4        | Toggle transcription button in settings (hold-to-record vs toggle on/off)                                                                                                       | Done    |
-| 5        | LLM confirmation hotkey — after transcription, pill prompts "Enhance? Yes/No" with Y/N keyboard shortcuts and 8s auto-decline timeout. Setting: `llm_confirm_before_processing` | Done    |
-| 6        | Whisper initial prompt                                                                                                                                                          | Done    |
-| 7        | Sound effects                                                                                                                                                                   | Done    |
-| 8        | Transcription history                                                                                                                                                           | Done    |
 
 ## Post-Sprint Workflow
 
