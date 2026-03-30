@@ -5,6 +5,7 @@ export interface ModelInfo {
   name: string;
   size: number;
   downloaded: boolean;
+  engine: "whisper" | "parakeet";
 }
 
 export interface DownloadProgress {
