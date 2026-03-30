@@ -1,5 +1,6 @@
 //! Model download implementation
 //! Handles streaming downloads with progress, cancellation, and verification
+//! Supports both single-file (Whisper GGML) and archive (Parakeet ONNX) models
 
 use crate::events;
 use futures_util::StreamExt;
@@ -23,7 +24,6 @@ pub struct DownloadProgress {
 /// Check available disk space (returns available bytes)
 fn get_available_space() -> Result<u64, String> {
     let models_dir = super::models::models_dir();
-    // Use parent directory if models dir doesn't exist yet
     let check_path = if models_dir.exists() {
         models_dir
     } else {
@@ -33,8 +33,6 @@ fn get_available_space() -> Result<u64, String> {
             .unwrap_or_else(|| std::path::PathBuf::from("."))
     };
 
-    // On Windows, we can use the fs2 approach or just skip the check
-    // For simplicity, we'll use a platform-specific check
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStrExt;
@@ -48,7 +46,6 @@ fn get_available_space() -> Result<u64, String> {
         let mut total_bytes: u64 = 0;
         let mut total_free_bytes: u64 = 0;
 
-        // GetDiskFreeSpaceExW
         #[link(name = "kernel32")]
         unsafe extern "system" {
             fn GetDiskFreeSpaceExW(
@@ -60,7 +57,6 @@ fn get_available_space() -> Result<u64, String> {
         }
 
         unsafe {
-            // Validate path is properly null-terminated before FFI call
             if wide_path.is_empty() || wide_path.last() != Some(&0) {
                 return Err("Invalid path format for disk space check".to_string());
             }
@@ -73,7 +69,6 @@ fn get_available_space() -> Result<u64, String> {
             );
 
             if result == 0 {
-                // Include OS error for better diagnostics
                 let error = std::io::Error::last_os_error();
                 return Err(format!("Failed to get disk space: {}", error));
             }
@@ -84,9 +79,56 @@ fn get_available_space() -> Result<u64, String> {
 
     #[cfg(not(windows))]
     {
-        // On Unix, use statvfs
-        Ok(u64::MAX) // Skip check on non-Windows for now
+        Ok(u64::MAX)
     }
+}
+
+/// Extract a tar.gz archive to a directory
+fn extract_archive(archive_path: &std::path::Path, target_dir: &std::path::Path) -> Result<(), String> {
+    use std::fs;
+
+    let file = fs::File::open(archive_path)
+        .map_err(|e| format!("Failed to open archive: {}", e))?;
+
+    let gz = flate2::read::GzDecoder::new(file);
+    let mut archive = tar::Archive::new(gz);
+
+    // Extract to a temporary directory first
+    let extracting_dir = target_dir.with_extension("extracting");
+    if extracting_dir.exists() {
+        let _ = fs::remove_dir_all(&extracting_dir);
+    }
+    fs::create_dir_all(&extracting_dir)
+        .map_err(|e| format!("Failed to create extraction directory: {}", e))?;
+
+    archive.unpack(&extracting_dir)
+        .map_err(|e| format!("Failed to extract archive: {}", e))?;
+
+    // Check if archive contained a single subdirectory (common pattern)
+    let entries: Vec<_> = fs::read_dir(&extracting_dir)
+        .map_err(|e| format!("Failed to read extraction dir: {}", e))?
+        .filter_map(|e| e.ok())
+        .collect();
+
+    if entries.len() == 1 && entries[0].path().is_dir() {
+        // Single subdirectory: move it to the target
+        let inner_dir = entries[0].path();
+        if target_dir.exists() {
+            let _ = fs::remove_dir_all(target_dir);
+        }
+        fs::rename(&inner_dir, target_dir)
+            .map_err(|e| format!("Failed to move extracted directory: {}", e))?;
+        let _ = fs::remove_dir_all(&extracting_dir);
+    } else {
+        // Multiple files: rename the extracting dir to target
+        if target_dir.exists() {
+            let _ = fs::remove_dir_all(target_dir);
+        }
+        fs::rename(&extracting_dir, target_dir)
+            .map_err(|e| format!("Failed to rename extraction directory: {}", e))?;
+    }
+
+    Ok(())
 }
 
 /// Download a model with progress updates
@@ -97,7 +139,6 @@ pub async fn download_model(
 ) -> Result<(), String> {
     let model = find_model(model_id).ok_or_else(|| format!("Unknown model: {}", model_id))?;
 
-    // Ensure models directory exists
     ensure_models_dir()?;
 
     // Check disk space (model size + 100MB buffer)
@@ -111,13 +152,12 @@ pub async fn download_model(
         ));
     }
 
-    let url = model_url(model.filename);
+    let url = model_url(model);
     let temp_path = model_temp_path(model.filename);
     let final_path = model_path(model.filename);
 
     log::info!("Starting download of {} from {}", model_id, url);
 
-    // Create HTTP client and start download
     let client = reqwest::Client::new();
     let response = client
         .get(&url)
@@ -131,7 +171,6 @@ pub async fn download_model(
 
     let total_bytes = response.content_length().unwrap_or(model.size);
 
-    // Open temp file for writing
     let mut file = tokio::fs::File::create(&temp_path)
         .await
         .map_err(|e| format!("Failed to create temp file: {}", e))?;
@@ -140,11 +179,9 @@ pub async fn download_model(
     let mut downloaded_bytes: u64 = 0;
     let mut last_progress: u8 = 0;
 
-    // Stream the download
     let mut stream = response.bytes_stream();
 
     while let Some(chunk_result) = stream.next().await {
-        // Check for cancellation
         if cancel_token.load(Ordering::Relaxed) {
             log::info!("Download cancelled for {}", model_id);
             drop(file);
@@ -154,19 +191,15 @@ pub async fn download_model(
 
         let chunk = chunk_result.map_err(|e| format!("Download error: {}", e))?;
 
-        // Write to file
         file.write_all(&chunk)
             .await
             .map_err(|e| format!("Failed to write: {}", e))?;
 
-        // Update hash
         hasher.update(&chunk);
 
-        // Update progress
         downloaded_bytes += chunk.len() as u64;
         let progress = ((downloaded_bytes as f64 / total_bytes as f64) * 100.0).round().min(100.0) as u8;
 
-        // Emit progress event if changed
         if progress != last_progress {
             last_progress = progress;
             let _ = app.emit(
@@ -181,7 +214,6 @@ pub async fn download_model(
         }
     }
 
-    // Flush and close file
     file.flush()
         .await
         .map_err(|e| format!("Failed to flush: {}", e))?;
@@ -202,14 +234,26 @@ pub async fn download_model(
 
     log::info!("Checksum verified for {}", model_id);
 
-    // Atomic rename to final path
-    tokio::fs::rename(&temp_path, &final_path)
-        .await
-        .map_err(|e| format!("Failed to save model: {}", e))?;
+    if model.is_archive {
+        // Extract archive to directory
+        let temp = temp_path.clone();
+        let final_dir = final_path.clone();
+        tokio::task::spawn_blocking(move || extract_archive(&temp, &final_dir))
+            .await
+            .map_err(|e| format!("Extraction task failed: {}", e))?
+            .map_err(|e| format!("Failed to extract model: {}", e))?;
+
+        // Clean up the archive file
+        let _ = tokio::fs::remove_file(&temp_path).await;
+    } else {
+        // Atomic rename for single-file models
+        tokio::fs::rename(&temp_path, &final_path)
+            .await
+            .map_err(|e| format!("Failed to save model: {}", e))?;
+    }
 
     log::info!("Successfully downloaded {} to {:?}", model_id, final_path);
 
-    // Emit 100% progress
     let _ = app.emit(
         events::DOWNLOAD_PROGRESS,
         DownloadProgress {
