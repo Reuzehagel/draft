@@ -92,7 +92,7 @@ export function ModelsPage({
   }, [config?.stt_provider]);
 
   const engineItems = [
-    { label: "Local (Whisper)", value: "local" },
+    { label: "Local", value: "local" },
     ...STT_PROVIDERS.map((p) => ({ label: p.label, value: p.value })),
   ];
 
@@ -186,7 +186,7 @@ export function ModelsPage({
             isTesting={isTesting}
           />
 
-          <SettingsCard title="Whisper Prompt" description="Guide transcription style and vocabulary">
+          <SettingsCard title="Whisper Prompt" description="Only applies to Whisper models">
             <Textarea
               value={config?.whisper_initial_prompt || ""}
               onChange={(e) => updateConfig({ whisper_initial_prompt: e.target.value || null })}
@@ -195,7 +195,7 @@ export function ModelsPage({
               className="text-[13px] min-h-[48px] resize-y"
             />
             <p className="text-xs text-muted-foreground">
-              Helps Whisper with domain terms, spelling, and formatting preferences
+              Helps Whisper with domain terms, spelling, and formatting preferences. Has no effect on Parakeet.
             </p>
           </SettingsCard>
         </>
