@@ -70,10 +70,10 @@ cargo test --manifest-path src-tauri/Cargo.toml
   - `focus.rs` - Capture and restore window focus before/after recording
   - `text.rs` - enigo-based text injection into active application
 - `stt/` - Speech-to-text module:
-  - `models.rs` - Whisper GGML model definitions, paths, checksums
+  - `models.rs` - Whisper GGML and Parakeet ONNX model definitions, paths, checksums
   - `download.rs` - Streaming download with progress, verification, cancellation
   - `commands.rs` - `list_models`, `download_model`, `cancel_download`, `delete_model` commands
-  - `whisper.rs` - Whisper model loading and transcription
+  - `engine.rs` - Multi-engine model loading and transcription; supports both Whisper and Parakeet via transcribe-rs `SpeechModel` trait
   - `file.rs` - File-based transcription via symphonia (used by TranscribePage)
   - `online/` - Online STT providers: OpenAI, Deepgram, AssemblyAI, Mistral, ElevenLabs
     - `wav.rs` - WAV encoding helper for API uploads
@@ -114,7 +114,7 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 
 ### Model Storage
 
-Whisper GGML models stored at `%APPDATA%/Draft/models/`. 8 models available (tiny, base, small, medium + English variants) downloaded from Hugging Face with SHA256 verification.
+Models stored at `%APPDATA%/Draft/models/`. Whisper GGML models are single files (tiny, base, small, medium); Parakeet ONNX models are directory-based bundles. All downloaded from Hugging Face with SHA256 verification.
 
 ### Config Storage
 
@@ -125,7 +125,7 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - **Always use bun, never npm** - This project uses bun as the package manager
 - **Rust 2024 edition** requires rustc 1.85+
 - **Rust nightly-only APIs**: `floor_char_boundary` is unstable on 1.85; use `is_char_boundary()` loop instead
-- **CMake 3.20+ required** for whisper-rs, plus Visual Studio Build Tools with C++ workload and Windows SDK
+- **CMake 3.20+ required** for transcribe-rs (wraps whisper-rs + ONNX Runtime), plus Visual Studio Build Tools with C++ workload and Windows SDK
 - **Audio callback timing** must complete in <5ms
 - **Config write concurrency**: `CONFIG_LOCK` mutex in `config.rs` serializes all writes. `set_config` preserves `window_position`/`window_size` from disk (frontend doesn't manage geometry). New config writers must acquire `CONFIG_LOCK`.
 - **Adding config fields**: Config struct has `#[serde(default)]` so missing fields use defaults (backward compat). When adding a field: (1) add to Rust `Config` struct + `Default` impl, (2) add to `config.ts` TypeScript interface, (3) add UI in the relevant settings page
