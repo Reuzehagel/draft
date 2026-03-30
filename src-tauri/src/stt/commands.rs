@@ -7,8 +7,8 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
 use super::download;
+use super::engine::EngineHandle;
 use super::models::{self, ModelInfo};
-use super::whisper::WhisperHandle;
 use crate::audio::capture::AudioCapture;
 use crate::audio::worker::AudioWorker;
 
@@ -84,12 +84,12 @@ pub fn cancel_download(state: tauri::State<'_, DownloadState>) -> Result<(), Str
 #[tauri::command]
 pub fn delete_model(
     model_id: String,
-    whisper: tauri::State<'_, WhisperHandle>,
+    engine: tauri::State<'_, EngineHandle>,
 ) -> Result<(), String> {
     let model =
         models::find_model(&model_id).ok_or_else(|| format!("Unknown model: {}", model_id))?;
 
-    if whisper.current_model().as_deref() == Some(&model_id) {
+    if engine.current_model().as_deref() == Some(&model_id) {
         return Err("Cannot delete the currently loaded model. Load a different model first.".to_string());
     }
 
@@ -99,32 +99,36 @@ pub fn delete_model(
         return Err("Model not downloaded".to_string());
     }
 
-    std::fs::remove_file(&path).map_err(|e| format!("Failed to delete model: {}", e))?;
+    if model.is_archive {
+        std::fs::remove_dir_all(&path).map_err(|e| format!("Failed to delete model: {}", e))?;
+    } else {
+        std::fs::remove_file(&path).map_err(|e| format!("Failed to delete model: {}", e))?;
+    }
 
     log::info!("Deleted model {} from {:?}", model_id, path);
     Ok(())
 }
 
-/// Whisper state returned to frontend
+/// Engine state returned to frontend
 #[derive(Debug, Clone, Serialize)]
-pub struct WhisperState {
+pub struct EngineState {
     pub is_busy: bool,
     pub current_model: Option<String>,
 }
 
 /// Get current whisper state (busy status and loaded model)
 #[tauri::command]
-pub fn get_whisper_state(whisper: tauri::State<'_, WhisperHandle>) -> WhisperState {
-    WhisperState {
-        is_busy: whisper.is_busy(),
-        current_model: whisper.current_model(),
+pub fn get_whisper_state(engine: tauri::State<'_, EngineHandle>) -> EngineState {
+    EngineState {
+        is_busy: engine.is_busy(),
+        current_model: engine.current_model(),
     }
 }
 
 /// Load a whisper model by ID
 #[tauri::command]
 pub fn load_model(
-    whisper: tauri::State<'_, WhisperHandle>,
+    engine: tauri::State<'_, EngineHandle>,
     model_id: String,
 ) -> Result<(), String> {
     // Validate model exists
@@ -132,12 +136,12 @@ pub fn load_model(
         .ok_or_else(|| format!("Unknown model: {}", model_id))?;
 
     // Check if model is downloaded
-    if !models::is_model_downloaded(model.filename) {
+    if !models::is_model_downloaded(model) {
         return Err(format!("Model {} is not downloaded", model_id));
     }
 
-    // Send load command to whisper thread
-    whisper.load_model(model_id)
+    // Send load command to engine thread
+    engine.load_model(model_id)
 }
 
 /// Test transcription: record 3s of audio and transcribe it
@@ -145,25 +149,25 @@ pub fn load_model(
 #[tauri::command]
 pub async fn test_transcription(
     app: AppHandle,
-    whisper: tauri::State<'_, WhisperHandle>,
+    engine: tauri::State<'_, EngineHandle>,
     device_id: Option<String>,
 ) -> Result<(), String> {
-    // Check if whisper is busy
-    if whisper.is_busy() {
+    // Check if engine is busy
+    if engine.is_busy() {
         return Err("Whisper is busy".to_string());
     }
 
     // Check if model is loaded
-    if whisper.current_model().is_none() {
+    if engine.current_model().is_none() {
         return Err("No model loaded".to_string());
     }
 
     // Get a clonable client for the spawned thread
-    let whisper_client = whisper.client();
+    let engine_client = engine.client();
 
     // Spawn the test in a background task
     std::thread::spawn(move || {
-        let result = run_test_transcription(&app, device_id.as_deref(), &whisper_client);
+        let result = run_test_transcription(&app, device_id.as_deref(), &engine_client);
         if let Err(e) = result {
             log::error!("Test transcription failed: {}", e);
             let _ = app.emit(crate::events::TRANSCRIPTION_ERROR, &e);
@@ -177,7 +181,7 @@ pub async fn test_transcription(
 fn run_test_transcription(
     app: &AppHandle,
     device_id: Option<&str>,
-    whisper: &super::whisper::WhisperClient,
+    engine: &super::engine::EngineClient,
 ) -> Result<(), String> {
     log::info!("Starting test transcription for device: {:?}", device_id);
 
@@ -225,9 +229,9 @@ fn run_test_transcription(
         audio.len() as f32 / 16000.0
     );
 
-    // Send to whisper for transcription
+    // Send to engine for transcription
     let config = crate::config::load_config();
-    whisper.transcribe(audio, config.whisper_initial_prompt)?;
+    engine.transcribe(audio, config.whisper_initial_prompt)?;
 
     Ok(())
 }
