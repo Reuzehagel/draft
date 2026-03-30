@@ -192,22 +192,22 @@ pub fn run() {
             // Clean up orphaned temp files from interrupted downloads
             stt::models::cleanup_temp_files();
 
-            // Create WhisperHandle and manage it
-            let whisper_handle = stt::WhisperHandle::new(app.handle().clone());
+            // Create EngineHandle and manage it
+            let engine_handle = stt::EngineHandle::new(app.handle().clone());
 
             // Auto-load selected model on startup if it exists
             if let Some(ref model_id) = loaded_config.selected_model {
                 if let Some(model) = stt::models::find_model(model_id) {
-                    if stt::models::is_model_downloaded(model.filename) {
+                    if stt::models::is_model_downloaded(model) {
                         log::info!("Auto-loading model on startup: {}", model_id);
-                        if let Err(e) = whisper_handle.load_model(model_id.clone()) {
+                        if let Err(e) = engine_handle.load_model(model_id.clone()) {
                             log::error!("Failed to auto-load model: {}", e);
                         }
                     }
                 }
             }
 
-            app.manage(whisper_handle);
+            app.manage(engine_handle);
 
             // Register hotkey from config on startup
             if let Some(ref hotkey) = loaded_config.hotkey {

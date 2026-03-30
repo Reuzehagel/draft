@@ -6,7 +6,7 @@ use tauri::{AppHandle, Emitter, State};
 
 use super::hotkey::{validate_hotkey as validate_hotkey_impl, HotkeyManager};
 use super::state::RecordingManager;
-use crate::stt::WhisperHandle;
+use crate::stt::EngineHandle;
 
 /// Configuration check result
 #[derive(Debug, Serialize)]
@@ -46,7 +46,7 @@ pub fn unregister_hotkey(
 /// Check if recording configuration is complete
 #[tauri::command]
 pub fn check_recording_config(
-    whisper: State<'_, WhisperHandle>,
+    engine: State<'_, EngineHandle>,
 ) -> ConfigCheck {
     let config = crate::config::load_config();
 
@@ -62,13 +62,13 @@ pub fn check_recording_config(
         .selected_model
         .as_ref()
         .and_then(|id| crate::stt::models::find_model(id))
-        .map(|m| crate::stt::models::is_model_downloaded(m.filename))
+        .map(|m| crate::stt::models::is_model_downloaded(m))
         .unwrap_or(false);
 
     ConfigCheck {
         hotkey_set: config.hotkey.is_some(),
         model_downloaded,
-        model_loaded: is_online || whisper.current_model().is_some(),
+        model_loaded: is_online || engine.current_model().is_some(),
         microphone_available,
     }
 }

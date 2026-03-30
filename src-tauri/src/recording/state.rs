@@ -12,7 +12,7 @@ use crate::audio::capture::AudioCapture;
 use crate::audio::worker::AudioWorker;
 use crate::config::load_config;
 use crate::events;
-use crate::stt::WhisperHandle;
+use crate::stt::EngineHandle;
 
 /// Delay after restoring focus before injecting text.
 /// Gives the target window time to process WM_ACTIVATE and be ready for input.
@@ -154,11 +154,11 @@ impl RecordingManager {
             return Ok(());
         }
 
-        let whisper = app.state::<WhisperHandle>();
-        if whisper.is_busy() {
-            return Err("Cannot start recording: whisper is busy".to_string());
+        let engine = app.state::<EngineHandle>();
+        if engine.is_busy() {
+            return Err("Cannot start recording: engine is busy".to_string());
         }
-        if whisper.current_model().is_none() {
+        if engine.current_model().is_none() {
             return Err("Cannot start recording: no model loaded".to_string());
         }
 
@@ -384,8 +384,8 @@ impl RecordingManager {
             });
         } else {
             // Local whisper path
-            let whisper = app.state::<WhisperHandle>();
-            if let Err(e) = whisper.transcribe(audio, config.whisper_initial_prompt.clone()) {
+            let engine = app.state::<EngineHandle>();
+            if let Err(e) = engine.transcribe(audio, config.whisper_initial_prompt.clone()) {
                 log::error!("Failed to start transcription: {}", e);
                 if let Ok(mut state_data) = self.state_data.lock() {
                     state_data.state = RecordingState::Idle;
@@ -770,7 +770,7 @@ fn show_config_notification(app: &AppHandle, error: &str) {
 
     let message = if error.contains("no model loaded") {
         "Please download and select a model in Settings"
-    } else if error.contains("whisper is busy") {
+    } else if error.contains("engine is busy") {
         "Please wait for the current operation to complete"
     } else {
         "Please check your settings"
