@@ -63,7 +63,8 @@ tar = "0.4"
 flate2 = "1.0"
 
 [target.'cfg(windows)'.dependencies]
-transcribe-rs = { version = "0.3", features = ["whisper-vulkan", "ort-directml"] }
+transcribe-rs = { version = "0.3", features = ["whisper-cpp", "ort-directml"] }
+# TODO: Switch whisper-cpp to whisper-vulkan after installing Vulkan SDK
 
 # Release profile optimizations for whisper-rs native code performance
 [profile.release]
