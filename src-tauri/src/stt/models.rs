@@ -1,8 +1,16 @@
 //! Model metadata and path resolution
-//! Defines available Whisper models and their storage locations
+//! Defines available Whisper and Parakeet models and their storage locations
 
 use serde::Serialize;
 use std::path::PathBuf;
+
+/// Engine type for a model
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Engine {
+    Whisper,
+    Parakeet,
+}
 
 /// Model metadata returned to frontend
 #[derive(Debug, Clone, Serialize)]
@@ -11,6 +19,7 @@ pub struct ModelInfo {
     pub name: String,
     pub size: u64,
     pub downloaded: bool,
+    pub engine: Engine,
 }
 
 /// Internal model definition with download info
@@ -21,69 +30,67 @@ pub struct ModelDef {
     pub size: u64,
     pub filename: &'static str,
     pub sha256: &'static str,
+    pub engine: Engine,
+    /// URL override (None = use HF_BASE_URL/filename)
+    pub url: Option<&'static str>,
+    /// Whether the download is a tar.gz archive that needs extraction
+    pub is_archive: bool,
 }
 
 /// Hugging Face base URL for whisper.cpp GGML models
 const HF_BASE_URL: &str = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
 
-/// Available Whisper GGML models
-/// SHA256 checksums from Hugging Face repository
-pub const WHISPER_MODELS: &[ModelDef] = &[
+/// All available models (Whisper + Parakeet)
+pub const MODELS: &[ModelDef] = &[
     ModelDef {
         id: "tiny",
-        name: "Tiny",
+        name: "Whisper Tiny",
         size: 77_704_715,
         filename: "ggml-tiny.bin",
         sha256: "be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21",
-    },
-    ModelDef {
-        id: "tiny.en",
-        name: "Tiny (English)",
-        size: 77_704_715,
-        filename: "ggml-tiny.en.bin",
-        sha256: "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
+        engine: Engine::Whisper,
+        url: None,
+        is_archive: false,
     },
     ModelDef {
         id: "base",
-        name: "Base",
+        name: "Whisper Base",
         size: 147_964_211,
         filename: "ggml-base.bin",
         sha256: "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
-    },
-    ModelDef {
-        id: "base.en",
-        name: "Base (English)",
-        size: 147_964_211,
-        filename: "ggml-base.en.bin",
-        sha256: "a03779c86df3323075f5e796b3f285183caff6c3d1016b3b70d7820fe5db71d8",
+        engine: Engine::Whisper,
+        url: None,
+        is_archive: false,
     },
     ModelDef {
         id: "small",
-        name: "Small",
+        name: "Whisper Small",
         size: 487_601_967,
         filename: "ggml-small.bin",
         sha256: "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
-    },
-    ModelDef {
-        id: "small.en",
-        name: "Small (English)",
-        size: 487_601_967,
-        filename: "ggml-small.en.bin",
-        sha256: "20d7e4228e060834da3fc80f865448f1cfe013c00cc63c7e66c9c1f9a6c44568",
+        engine: Engine::Whisper,
+        url: None,
+        is_archive: false,
     },
     ModelDef {
         id: "medium",
-        name: "Medium",
+        name: "Whisper Medium",
         size: 1_533_774_781,
         filename: "ggml-medium.bin",
         sha256: "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
+        engine: Engine::Whisper,
+        url: None,
+        is_archive: false,
     },
     ModelDef {
-        id: "medium.en",
-        name: "Medium (English)",
-        size: 1_533_774_781,
-        filename: "ggml-medium.en.bin",
-        sha256: "cbfb2c89f28ace2ad21a4cfce847f10e102cc5b8fff3caa8a1b64e21477bfa95",
+        id: "parakeet-0.6b",
+        name: "Parakeet 0.6B",
+        size: 501_219_328,
+        filename: "parakeet-tdt-0.6b-v3-int8",
+        sha256: "43d37191602727524a7d8c6da0eef11c4ba24320f5b4730f1a2497befc2efa77",
+        engine: Engine::Parakeet,
+        url: Some("https://blob.handy.computer/parakeet-v3-int8.tar.gz"),
+        is_archive: true,
     },
 ];
 
@@ -95,7 +102,7 @@ pub fn models_dir() -> PathBuf {
         .join("models")
 }
 
-/// Get the full path for a model file
+/// Get the full path for a model file or directory
 pub fn model_path(filename: &str) -> PathBuf {
     models_dir().join(filename)
 }
@@ -106,8 +113,12 @@ pub fn model_temp_path(filename: &str) -> PathBuf {
 }
 
 /// Get the download URL for a model
-pub fn model_url(filename: &str) -> String {
-    format!("{}/{}", HF_BASE_URL, filename)
+pub fn model_url(model: &ModelDef) -> String {
+    if let Some(url) = model.url {
+        url.to_string()
+    } else {
+        format!("{}/{}", HF_BASE_URL, model.filename)
+    }
 }
 
 /// Ensure the models directory exists
@@ -134,25 +145,31 @@ pub fn cleanup_temp_files() {
     }
 }
 
-/// Check if a model file exists
-pub fn is_model_downloaded(filename: &str) -> bool {
-    model_path(filename).exists()
+/// Check if a model is downloaded
+pub fn is_model_downloaded(model: &ModelDef) -> bool {
+    let path = model_path(model.filename);
+    if model.is_archive {
+        path.exists() && path.is_dir()
+    } else {
+        path.exists() && path.is_file()
+    }
 }
 
 /// Find a model definition by ID
 pub fn find_model(id: &str) -> Option<&'static ModelDef> {
-    WHISPER_MODELS.iter().find(|m| m.id == id)
+    MODELS.iter().find(|m| m.id == id)
 }
 
 /// Get model info for all models with download status
 pub fn get_all_models() -> Vec<ModelInfo> {
-    WHISPER_MODELS
+    MODELS
         .iter()
         .map(|m| ModelInfo {
             id: m.id.to_string(),
             name: m.name.to_string(),
             size: m.size,
-            downloaded: is_model_downloaded(m.filename),
+            downloaded: is_model_downloaded(m),
+            engine: m.engine,
         })
         .collect()
 }
