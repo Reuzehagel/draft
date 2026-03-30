@@ -43,9 +43,6 @@ hex = "0.4"
 futures-util = "0.3"
 tokio = { version = "1", features = ["fs"] }
 
-# Sprint 4 dependencies (Whisper integration)
-whisper-rs = "0.15"
-
 # Sprint 6 dependencies (Text injection)
 enigo = "0.6"
 arboard = "3"
@@ -60,6 +57,13 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 # File transcription dependencies
 symphonia = { version = "0.5.5", features = ["mp3", "aac", "flac", "ogg", "wav", "pcm", "isomp4", "aiff"] }
 tauri-plugin-dialog = "2.6.0"
+
+# Archive extraction for ONNX model packages
+tar = "0.4"
+flate2 = "1.0"
+
+[target.'cfg(windows)'.dependencies]
+transcribe-rs = { version = "0.3", features = ["whisper-vulkan", "ort-directml"] }
 
 # Release profile optimizations for whisper-rs native code performance
 [profile.release]
