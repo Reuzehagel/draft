@@ -7,7 +7,7 @@ interface TierPickerProps {
 
 export function TierPicker({ activeTierId, onSelect }: TierPickerProps): React.ReactNode {
   return (
-    <div className="grid grid-cols-3 gap-2.5">
+    <div className="grid grid-cols-2 gap-2.5">
       {TIERS.map((tier) => {
         const isSelected = activeTierId === tier.id;
         return (
