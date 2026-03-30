@@ -17,7 +17,7 @@ use tauri::{AppHandle, Emitter};
 use crate::audio::resampler::AudioResampler;
 use crate::events;
 
-use super::whisper::WhisperHandle;
+use super::engine::EngineHandle;
 
 /// Managed state for file transcription cancellation
 #[derive(Default)]
@@ -173,7 +173,7 @@ fn decode_audio_file(
 #[tauri::command]
 pub async fn transcribe_file(
     app: AppHandle,
-    whisper: tauri::State<'_, WhisperHandle>,
+    engine: tauri::State<'_, EngineHandle>,
     file_state: tauri::State<'_, FileTranscriptionState>,
     path: String,
 ) -> Result<(), String> {
@@ -188,10 +188,10 @@ pub async fn transcribe_file(
 
     if !is_online {
         // Local whisper checks
-        if whisper.is_busy() {
+        if engine.is_busy() {
             return Err("Whisper is busy".to_string());
         }
-        if whisper.current_model().is_none() {
+        if engine.current_model().is_none() {
             return Err("No model loaded".to_string());
         }
     }
@@ -218,12 +218,12 @@ pub async fn transcribe_file(
         });
     } else {
         // Local whisper path
-        let whisper_client = whisper.client();
+        let engine_client = engine.client();
         let cancel = cancel_token.clone();
         let file_state_inner = file_state.inner().clone();
 
         std::thread::spawn(move || {
-            let result = run_local_file_transcription(&app, &path, &cancel, &whisper_client);
+            let result = run_local_file_transcription(&app, &path, &cancel, &engine_client);
             file_state_inner.clear();
 
             if let Err(e) = result {
@@ -241,7 +241,7 @@ fn run_local_file_transcription(
     app: &AppHandle,
     path: &str,
     cancel_token: &Arc<AtomicBool>,
-    whisper_client: &super::whisper::WhisperClient,
+    engine_client: &super::engine::EngineClient,
 ) -> Result<(), String> {
     let audio = decode_audio_file(path, app, Some(cancel_token))?;
 
@@ -251,7 +251,7 @@ fn run_local_file_transcription(
 
     let _ = app.emit(events::FILE_TRANSCRIPTION_STARTED, ());
 
-    whisper_client.transcribe_file(audio, cancel_token.clone(), app.clone())?;
+    engine_client.transcribe(audio, None)?;
     Ok(())
 }
 
