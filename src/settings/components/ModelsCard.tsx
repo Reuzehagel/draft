@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import type { ModelInfo, DownloadProgress } from "@/shared/types/models";
 import type { Config } from "@/shared/types/config";
 import { WaveformBars } from "@/components/WaveformBars";
-import { Switch } from "@/components/ui/switch";
 import { SettingsCard } from "./SettingsCard";
 import { ErrorMessage } from "./ErrorMessage";
 import { TierPicker } from "./models/TierPicker";
@@ -17,8 +16,6 @@ import { DownloadableModel } from "./models/DownloadableModel";
 import {
   TIERS,
   getTierFromModelId,
-  isEnglishOnly,
-  getModelId,
   type Tier,
 } from "./models/tierConfig";
 
@@ -72,11 +69,6 @@ export function ModelsCard({
 
   // Pending tier: selected a tier whose model isn't downloaded yet
   const [pendingTierId, setPendingTierId] = useState<string | null>(null);
-  // Local english toggle state
-  const [localEnglish, setLocalEnglish] = useState(() => {
-    if (config?.selected_model) return isEnglishOnly(config.selected_model);
-    return true;
-  });
 
   // Track previous config.selected_model to detect external changes (e.g. from All Models section)
   const prevSelectedModelRef = useRef(config?.selected_model);
@@ -90,8 +82,6 @@ export function ModelsCard({
       if (tier) {
         // Config changed to a tiered model — sync local state
         if (pendingTierId) setPendingTierId(null);
-        const english = isEnglishOnly(selectedModel);
-        if (english !== localEnglish) setLocalEnglish(english);
       }
     }
   }
@@ -104,8 +94,8 @@ export function ModelsCard({
     activeTier = getTierFromModelId(config.selected_model);
   }
 
-  // The effective model ID based on tier + language
-  const effectiveModelId = activeTier ? getModelId(activeTier, localEnglish) : null;
+  // The effective model ID based on tier
+  const effectiveModelId = activeTier?.modelId ?? null;
   const effectiveModel = effectiveModelId
     ? models.find((m) => m.id === effectiveModelId)
     : undefined;
@@ -118,7 +108,7 @@ export function ModelsCard({
   }
 
   const handleTierSelect = (tier: Tier) => {
-    const modelId = getModelId(tier, localEnglish);
+    const modelId = tier.modelId;
     const model = models.find((m) => m.id === modelId);
     if (model?.downloaded) {
       setPendingTierId(null);
@@ -128,19 +118,6 @@ export function ModelsCard({
     }
   };
 
-  const handleEnglishToggle = (english: boolean) => {
-    setLocalEnglish(english);
-    if (activeTier) {
-      const modelId = getModelId(activeTier, english);
-      const model = models.find((m) => m.id === modelId);
-      if (model?.downloaded) {
-        setPendingTierId(null);
-        updateConfig({ selected_model: modelId });
-      } else if (!pendingTierId) {
-        setPendingTierId(activeTier.id);
-      }
-    }
-  };
 
   const handleDownload = async (modelId: string) => {
     setDownloadError(null);
@@ -199,12 +176,6 @@ export function ModelsCard({
           <div className="space-y-3">
             {/* Tier Picker */}
             <TierPicker activeTierId={activeTier?.id ?? null} onSelect={handleTierSelect} />
-
-            {/* English-only toggle */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm text-foreground">English only</span>
-              <Switch checked={localEnglish} onCheckedChange={handleEnglishToggle} />
-            </div>
 
             {/* Model Status */}
             <ModelStatusArea
