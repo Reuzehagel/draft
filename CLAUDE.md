@@ -148,6 +148,18 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - Global hotkey system only supports F1-F24 as standalone keys (no modifier). Modifier keys (Ctrl, Alt, Shift, Fn) cannot be used alone — OS API limitation. Right vs left modifiers are not distinguished.
 - **Pill visibility/state sync**: Every pill state transition to "idle" must pair `setState("idle")` with `setVisible(false)` — except `TRANSCRIPTION_COMPLETE`, which intentionally leaves `visible=true` to avoid flicker when LLM processing follows immediately (Rust's `hide_pill_after_delay` controls that path).
 
+## Release Process
+
+When shipping a new version:
+1. Update `CHANGELOG.md` with what changed (keepachangelog format)
+2. Bump version in both `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml` (must stay in sync)
+3. Commit with message `release: v{version}`
+4. Push to main — GitHub Actions detects the version change, builds, signs, and creates a GitHub Release
+
+The workflow (`.github/workflows/release.yml`) only triggers when `src-tauri/tauri.conf.json` changes on main, and only builds if the version field actually changed. `tauri-apps/tauri-action` generates the `latest.json` manifest that the auto-updater checks.
+
+Required GitHub repo secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+
 ## Post-Sprint Workflow
 
 After completing a sprint, follow this mandatory review and refinement process:
