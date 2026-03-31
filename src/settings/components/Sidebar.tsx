@@ -12,6 +12,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { UpdateCard } from "./UpdateCard";
+import type { UpdateStatus } from "@/shared/types/updater";
 
 export type Page =
   | "transcribe"
@@ -47,6 +49,7 @@ interface SidebarProps {
   toggleDarkMode: () => void;
   version: string | null;
   saved: boolean;
+  updateStatus: UpdateStatus;
 }
 
 function NavButton({
@@ -89,7 +92,7 @@ function NavGroup({ items, activePage, onNavigate }: { items: NavItem[]; activeP
   );
 }
 
-export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, version, saved }: SidebarProps): React.ReactNode {
+export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, version, saved, updateStatus }: SidebarProps): React.ReactNode {
   return (
     <aside className="w-[172px] shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
       <div className="px-4 py-3">
@@ -105,6 +108,8 @@ export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, versio
         <Separator className="mx-1" />
         <NavGroup items={OTHER_NAV} activePage={activePage} onNavigate={onNavigate} />
       </nav>
+
+      <UpdateCard status={updateStatus} />
 
       <div className="px-3 py-2.5 border-t border-sidebar-border flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -9,6 +9,7 @@ import { useMicrophoneTest } from "./hooks/useMicrophoneTest";
 import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { useFileTranscription } from "./hooks/useFileTranscription";
+import { useUpdateStatus } from "./hooks/useUpdateStatus";
 import { Sidebar, type Page } from "./components/Sidebar";
 import { GeneralPage } from "./pages/GeneralPage";
 import { ModelsPage } from "./pages/ModelsPage";
@@ -33,6 +34,7 @@ export default function SettingsApp(): React.ReactNode {
   const whisperHook = useWhisper(config?.selected_model, config?.stt_provider);
   const fileTranscription = useFileTranscription();
   const [version, setVersion] = useState<string | null>(null);
+  const updateStatus = useUpdateStatus();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -65,6 +67,7 @@ export default function SettingsApp(): React.ReactNode {
         toggleDarkMode={toggleDarkMode}
         version={version}
         saved={saved}
+        updateStatus={updateStatus}
       />
 
       <main className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
