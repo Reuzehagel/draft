@@ -48,6 +48,7 @@ const DEFAULT_CONFIG: Omit<Config, "window_position" | "window_size"> = {
   sound_confirm_enabled: true,
   history_enabled: true,
   history_max_entries: 500,
+  auto_update_enabled: true,
 };
 
 /** Keys that hold sensitive/credential data, preserved during soft reset */
@@ -142,6 +143,15 @@ export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: A
           <Switch
             checked={config?.logging_enabled || false}
             onCheckedChange={(logging_enabled) => updateConfig({ logging_enabled })}
+          />
+        </SettingRow>
+      </SettingsCard>
+
+      <SettingsCard title="Updates">
+        <SettingRow label="Auto-update" description="Check for updates on startup" inline>
+          <Switch
+            checked={config?.auto_update_enabled ?? true}
+            onCheckedChange={(auto_update_enabled) => updateConfig({ auto_update_enabled })}
           />
         </SettingRow>
       </SettingsCard>
