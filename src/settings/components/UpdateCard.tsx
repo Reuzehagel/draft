@@ -49,12 +49,12 @@ export function UpdateCard({ status }: UpdateCardProps): React.ReactNode {
   if (status.status === "error") {
     return (
       <button
-        className="mx-2 mb-2 rounded-lg bg-card border border-destructive/50 p-3 flex items-center gap-2 w-full text-left hover:bg-accent transition-colors"
+        className="mx-2 mb-2 rounded-lg bg-card border border-destructive/50 p-3 flex items-center gap-2 text-left hover:bg-accent transition-colors overflow-hidden"
         onClick={() => invoke("check_for_update")}
         title="Click to retry"
       >
         <HugeiconsIcon icon={Alert01Icon} size={16} className="text-destructive shrink-0" />
-        <p className="text-[10px] text-muted-foreground truncate">{status.message}</p>
+        <p className="text-[10px] text-muted-foreground truncate min-w-0">{status.message}</p>
       </button>
     );
   }

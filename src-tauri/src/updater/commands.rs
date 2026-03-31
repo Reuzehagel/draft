@@ -29,11 +29,10 @@ pub async fn do_check_for_update(app: tauri::AppHandle) -> Result<(), String> {
             return Ok(());
         }
         Err(e) => {
-            log::error!("Update check failed: {}", e);
-            emit_status(&app, UpdateStatus::Error {
-                message: e.to_string(),
-            });
-            return Err(e.to_string());
+            // Network errors or missing releases are expected — stay silent
+            log::info!("Update check failed (no release?): {}", e);
+            emit_status(&app, UpdateStatus::Idle);
+            return Ok(());
         }
     };
 
