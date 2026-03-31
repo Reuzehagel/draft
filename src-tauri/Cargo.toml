@@ -58,6 +58,9 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 symphonia = { version = "0.5.5", features = ["mp3", "aac", "flac", "ogg", "wav", "pcm", "isomp4", "aiff"] }
 tauri-plugin-dialog = "2.6.0"
 
+# Auto-updater
+tauri-plugin-updater = "2"
+
 # Archive extraction for ONNX model packages
 tar = "0.4"
 flate2 = "1.0"

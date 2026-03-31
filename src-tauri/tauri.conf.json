@@ -53,5 +53,12 @@
       "icons/icon.ico"
     ]
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "pubkey": "TODO_GENERATE_WITH_bun_tauri_signer_generate",
+      "endpoints": [
+        "https://github.com/Reuzehagel/draft/releases/latest/download/latest.json"
+      ]
+    }
+  }
 }
