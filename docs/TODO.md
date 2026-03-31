@@ -1,13 +1,10 @@
 # TODO
 
-## Auto-Updater (required for V1 release)
+## Signing keys for auto-updater
 
-- Use `tauri-plugin-updater` with GitHub Releases as the update source
-- Tauri requires update bundles to be signed (need to set up signing keys)
-- Check for updates on app start
-- Show update indicator in settings window (bottom-left card or similar) when update available
-- Button to install the update
-- Single release channel (no beta/stable split)
+- Generate signing keypair: `bun tauri signer generate -w ~/.tauri/draft.key`
+- Replace placeholder pubkey in `src-tauri/tauri.conf.json`
+- Store private key + password as GitHub repo secrets
 
 ## Vulkan SDK
 

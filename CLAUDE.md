@@ -39,8 +39,8 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 - `settings/` - Settings window React app with page-based navigation via sidebar
   - `pages/` - GeneralPage, ModelsPage, PostProcessPage, HistoryPage, AdvancedPage, TranscribePage, InfoPage
-  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest, useHistory, useFileTranscription
-  - `components/` - SettingsCard, SettingRow, HotkeyInput, ModelsCard, Sidebar, PageHeader, ApiKeyInput, ErrorMessage
+  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest, useHistory, useFileTranscription, useUpdateStatus
+  - `components/` - SettingsCard, SettingRow, HotkeyInput, ModelsCard, Sidebar, PageHeader, ApiKeyInput, ErrorMessage, UpdateCard
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
   - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
 - `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → confirming → error
@@ -88,6 +88,9 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - `sound/` - Sound effects module:
   - `playback.rs` - rodio-based audio playback for UI sound effects
   - `assets/` - Bundled sound effect files
+- `updater/` - Auto-update module:
+  - `state.rs` - UpdateStatus enum and managed state wrapper
+  - `commands.rs` - `check_for_update`, `install_update` commands
 - `autostart.rs` - Windows startup integration
 
 ### Audio Pipeline Flow
@@ -111,6 +114,7 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 - `llm-processing` - LLM post-processing started (triggers "enhancing" pill state)
 - `llm-confirm-request` - Prompt user to confirm LLM processing (triggers "confirming" pill state)
 - `llm-confirm-timeout` - Confirmation timed out, raw text output used
+- `update-status` - Update lifecycle state (idle, checking, downloading, ready, error)
 
 ### Model Storage
 
