@@ -21,10 +21,37 @@ import {
 } from "@/components/ui/accordion";
 import { SettingsCard } from "../components/SettingsCard";
 import { PageHeader } from "../components/PageHeader";
+import changelogRaw from "../../../CHANGELOG.md?raw";
 
-type InfoTab = "overview" | "local" | "online";
+/** Parse the current version's changelog entries from the raw CHANGELOG.md string. */
+function parseChangelog(raw: string, version: string | null): string[] {
+  if (!version) return [];
+  const lines = raw.split("\n");
+  const entries: string[] = [];
+  let capturing = false;
+
+  for (const line of lines) {
+    if (line.startsWith("## ")) {
+      if (capturing) break;
+      if (line.includes(`[${version}]`)) {
+        capturing = true;
+      }
+      continue;
+    }
+    if (capturing) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("- ")) {
+        entries.push(trimmed.slice(2));
+      }
+    }
+  }
+  return entries;
+}
+
+type InfoTab = "whatsnew" | "overview" | "local" | "online";
 
 const INFO_TABS: { id: InfoTab; label: string }[] = [
+  { id: "whatsnew", label: "What's New" },
   { id: "overview", label: "Overview" },
   { id: "local", label: "Local" },
   { id: "online", label: "Online" },
@@ -84,7 +111,8 @@ interface InfoPageProps {
 }
 
 export function InfoPage({ version }: InfoPageProps): React.ReactNode {
-  const [activeTab, setActiveTab] = useState<InfoTab>("overview");
+  const [activeTab, setActiveTab] = useState<InfoTab>("whatsnew");
+  const changelogEntries = parseChangelog(changelogRaw, version);
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,6 +136,23 @@ export function InfoPage({ version }: InfoPageProps): React.ReactNode {
           </button>
         ))}
       </div>
+
+      {activeTab === "whatsnew" && (
+        <SettingsCard title="What's New" description={version ? `Changes in v${version}` : ""}>
+          {changelogEntries.length > 0 ? (
+            <ul className="flex flex-col gap-1">
+              {changelogEntries.map((entry, i) => (
+                <li key={i} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+                  <HugeiconsIcon icon={Tick02Icon} size={14} className="shrink-0 mt-0.5 text-success" />
+                  <span>{entry}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">No changelog entries for this version.</p>
+          )}
+        </SettingsCard>
+      )}
 
       {activeTab === "overview" && (
         <SettingsCard title="Local vs Online" description="Key differences">
