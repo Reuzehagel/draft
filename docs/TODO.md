@@ -1,10 +1,8 @@
 # TODO
 
-## Signing keys for auto-updater
+## Auto-updater signing
 
-- Generate signing keypair: `bun tauri signer generate -w ~/.tauri/draft.key`
-- Replace placeholder pubkey in `src-tauri/tauri.conf.json`
-- Store private key + password as GitHub repo secrets
+- Store private key (`~/.tauri/draft.key`) + password as GitHub repo secrets (`TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`)
 
 ## Vulkan SDK
 
