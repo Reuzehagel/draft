@@ -1,4 +1,4 @@
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_updater::UpdaterExt;
 
 use super::state::{UpdateState, UpdateStatus};

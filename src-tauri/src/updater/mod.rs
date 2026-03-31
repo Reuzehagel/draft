@@ -1,5 +1,5 @@
-mod commands;
-mod state;
+pub mod commands;
+pub mod state;
 
-pub use commands::{check_for_update, do_check_for_update, install_update};
-pub use state::{get_update_status, UpdateState};
+pub use commands::do_check_for_update;
+pub use state::UpdateState;

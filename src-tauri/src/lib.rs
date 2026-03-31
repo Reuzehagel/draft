@@ -146,9 +146,9 @@ pub fn run() {
             history::commands::delete_history_entry,
             history::commands::clear_history,
             settings_ready,
-            updater::get_update_status,
-            updater::check_for_update,
-            updater::install_update,
+            updater::state::get_update_status,
+            updater::commands::check_for_update,
+            updater::commands::install_update,
         ])
         .setup(|app| {
             // Load config early for logging and other startup configuration
