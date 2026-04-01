@@ -1,7 +1,0 @@
-[package]
-name = "test_whisper"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-whisper-rs = "0.15"
