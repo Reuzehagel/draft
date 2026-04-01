@@ -1,13 +1,32 @@
+import { useState, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+  ComboboxEmpty,
+} from "@/components/ui/combobox";
 import { SectionHeader } from "../components/SectionHeader";
 import type { UpdateStatus } from "@/shared/types/updater";
 import changelogRaw from "../../../CHANGELOG.md?raw";
 
-/** Parse the current version's changelog entries from the raw CHANGELOG.md string. */
-function parseChangelog(raw: string, version: string | null): string[] {
+/** Extract all version strings from CHANGELOG.md, sorted descending (newest first). */
+function parseVersions(raw: string): string[] {
+  const versions: string[] = [];
+  for (const line of raw.split("\n")) {
+    const match = line.match(/^## \[(.+?)]/);
+    if (match) versions.push(match[1]);
+  }
+  return versions;
+}
+
+/** Parse changelog entries for a specific version. */
+function parseEntries(raw: string, version: string | null): string[] {
   if (!version) return [];
   const lines = raw.split("\n");
   const entries: string[] = [];
@@ -36,8 +55,12 @@ interface InfoPageProps {
   updateStatus: UpdateStatus;
 }
 
-export function InfoPage({ version, updateStatus }: InfoPageProps): React.ReactNode {
-  const changelogEntries = parseChangelog(changelogRaw, version);
+export function InfoPage({ version: _version, updateStatus }: InfoPageProps): React.ReactNode {
+  const versions = useMemo(() => parseVersions(changelogRaw), []);
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(
+    versions[0] ?? null,
+  );
+  const changelogEntries = parseEntries(changelogRaw, selectedVersion);
   const isChecking = updateStatus.status === "checking";
 
   return (
@@ -54,7 +77,25 @@ export function InfoPage({ version, updateStatus }: InfoPageProps): React.ReactN
           {isChecking ? "Checking..." : "Check for updates"}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">Changes in v{version}</p>
+      <Combobox
+        value={selectedVersion}
+        onValueChange={(value) => setSelectedVersion(value)}
+      >
+        <ComboboxInput
+          placeholder="Select version..."
+          className="mb-3 w-48"
+        />
+        <ComboboxContent>
+          <ComboboxList>
+            {versions.map((v) => (
+              <ComboboxItem key={v} value={v}>
+                v{v}
+              </ComboboxItem>
+            ))}
+            <ComboboxEmpty>No versions found</ComboboxEmpty>
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
       {changelogEntries.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {changelogEntries.map((entry, i) => (
