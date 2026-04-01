@@ -4,6 +4,7 @@ import { Clock01Icon, Delete02Icon, Copy01Icon, SparklesIcon } from "@hugeicons/
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from "@/components/ui/empty";
 import { Badge } from "@/components/ui/badge";
+import { formatModelName } from "@/shared/utils/formatModelName";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import {
@@ -85,7 +86,7 @@ function HistoryEntryRow({
           </Badge>
           {entry.stt_model && (
             <Badge variant="outline" className="text-[10px] shrink-0 max-w-24 truncate">
-              {entry.stt_model}
+              {formatModelName(entry.stt_model)}
             </Badge>
           )}
           {entry.llm_applied && (

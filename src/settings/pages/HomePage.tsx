@@ -10,6 +10,7 @@ import type { TopPage } from "../components/TabBar";
 import { StatusCard } from "../components/StatusCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { useHistory } from "../hooks/useHistory";
+import { formatModelName } from "@/shared/utils/formatModelName";
 
 interface HomePageProps {
   config: Config | null;
@@ -60,7 +61,7 @@ function RecentEntry({ entry }: { entry: HistoryEntry }): React.ReactNode {
           <span className="text-[10px] text-muted-foreground">·</span>
           {entry.stt_model && (
             <>
-              <span className="text-[10px] text-muted-foreground">{entry.stt_model}</span>
+              <span className="text-[10px] text-muted-foreground">{formatModelName(entry.stt_model)}</span>
               <span className="text-[10px] text-muted-foreground">·</span>
             </>
           )}
@@ -92,8 +93,8 @@ export function HomePage({
 
   const isLocal = !config?.stt_provider;
   const modelName = isLocal
-    ? (selectedModel ?? "None selected")
-    : (config?.stt_provider ?? "Unknown");
+    ? (selectedModel ? formatModelName(selectedModel) : "None selected")
+    : (config?.stt_provider ? formatModelName(config.stt_provider) : "Unknown");
   const modelStatus = isLocal
     ? (isModelLoading ? "Loading..." : loadedModel ? "Ready" : "Not loaded")
     : "Online";
@@ -106,7 +107,7 @@ export function HomePage({
   const hotkeyStatusColor = config?.hotkey ? "success" as const : "warning" as const;
 
   const engineLabel = isLocal ? "Local" : "Online";
-  const engineStatus = isLocal ? "On-device" : (config?.stt_provider ?? "");
+  const engineStatus = isLocal ? "On-device" : (config?.stt_provider ? formatModelName(config.stt_provider) : "");
 
   return (
     <div className="flex flex-col gap-5">
