@@ -51,11 +51,10 @@ function parseEntries(raw: string, version: string | null): string[] {
 }
 
 interface InfoPageProps {
-  version: string | null;
   updateStatus: UpdateStatus;
 }
 
-export function InfoPage({ version: _version, updateStatus }: InfoPageProps): React.ReactNode {
+export function InfoPage({ updateStatus }: InfoPageProps): React.ReactNode {
   const versions = useMemo(() => parseVersions(changelogRaw), []);
   const [selectedVersion, setSelectedVersion] = useState<string | null>(
     versions[0] ?? null,
@@ -79,7 +78,7 @@ export function InfoPage({ version: _version, updateStatus }: InfoPageProps): Re
       </div>
       <Combobox
         value={selectedVersion}
-        onValueChange={(value) => setSelectedVersion(value)}
+        onValueChange={setSelectedVersion}
       >
         <ComboboxInput
           placeholder="Select version..."

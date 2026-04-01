@@ -14,7 +14,6 @@ interface MorePageProps {
   updateConfig: (updates: Partial<Config>) => void;
   isDark: boolean;
   toggleDarkMode: () => void;
-  version: string | null;
   fileTranscription: FileTranscriptionState;
   whisperBusy: boolean;
   loadedModel: string | null;
@@ -28,7 +27,6 @@ export function MorePage({
   updateConfig,
   isDark,
   toggleDarkMode,
-  version,
   fileTranscription,
   whisperBusy,
   loadedModel,
@@ -62,7 +60,7 @@ export function MorePage({
             sttProvider={sttProvider}
           />
         )}
-        {activeSub === "about" && <InfoPage version={version} updateStatus={updateStatus} />}
+        {activeSub === "about" && <InfoPage updateStatus={updateStatus} />}
       </div>
     </div>
   );

@@ -73,7 +73,6 @@ export default function SettingsApp(): React.ReactNode {
           updateConfig={updateConfig}
           isDark={isDark}
           toggleDarkMode={toggleDarkMode}
-          version={version}
           fileTranscription={fileTranscription}
           whisperBusy={whisperHook.isBusy}
           loadedModel={whisperHook.loadedModel}
