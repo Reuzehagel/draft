@@ -16,45 +16,35 @@ export function UpdateCard({ status }: UpdateCardProps): React.ReactNode {
 
   if (status.status === "downloading") {
     return (
-      <div className="mx-2 mb-2 rounded-lg bg-card border border-border p-3 flex items-center gap-2">
-        <Spinner className="size-4 shrink-0" />
-        <div className="min-w-0">
-          <p className="text-xs font-medium truncate">Updating...</p>
-          <p className="text-[10px] text-muted-foreground">{status.progress}%</p>
-        </div>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Spinner className="size-3" />
+        <span>{status.progress}%</span>
       </div>
     );
   }
 
   if (status.status === "ready") {
     return (
-      <div className="mx-2 mb-2 rounded-lg bg-card border border-border p-3 flex flex-col items-center gap-2 text-center">
-        <HugeiconsIcon icon={Leaf01Icon} size={20} className="text-muted-foreground" />
-        <div>
-          <p className="text-xs font-medium">Updated to {status.version}</p>
-          <p className="text-[10px] text-muted-foreground">Relaunch to apply</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => invoke("install_update")}
-        >
-          Relaunch
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        size="xs"
+        className="text-xs gap-1"
+        onClick={() => invoke("install_update")}
+      >
+        <HugeiconsIcon icon={Leaf01Icon} size={12} />
+        Update to {status.version}
+      </Button>
     );
   }
 
   if (status.status === "error") {
     return (
       <button
-        className="mx-2 mb-2 rounded-lg bg-card border border-destructive/50 p-3 flex items-center gap-2 text-left hover:bg-accent transition-colors overflow-hidden"
         onClick={() => invoke("check_for_update")}
-        title="Click to retry"
+        title={status.message}
+        className="text-destructive hover:text-destructive/80 transition-colors"
       >
-        <HugeiconsIcon icon={Alert01Icon} size={16} className="text-destructive shrink-0" />
-        <p className="text-[10px] text-muted-foreground truncate min-w-0">{status.message}</p>
+        <HugeiconsIcon icon={Alert01Icon} size={14} />
       </button>
     );
   }
