@@ -77,7 +77,7 @@ export function GeneralPage({
     : micItems.find((m) => m.value === SYSTEM_DEFAULT_MIC)?.value ?? micItems[0]?.value;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       <SectionHeader>Microphone</SectionHeader>
       <SettingRow label="Device" inline>
         {microphonesLoading ? (

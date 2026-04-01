@@ -99,7 +99,7 @@ export function ModelsPage({
   const isLocal = !config?.stt_provider;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       <SectionHeader>Engine</SectionHeader>
       <SettingRow label="Transcription engine">
         <Select

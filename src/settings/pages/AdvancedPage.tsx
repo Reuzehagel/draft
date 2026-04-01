@@ -70,7 +70,7 @@ interface AdvancedPageProps {
 
 export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: AdvancedPageProps): React.ReactNode {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       <SectionHeader>Appearance</SectionHeader>
       <SettingRow label="Dark mode" inline>
         <Switch checked={isDark} onCheckedChange={toggleDarkMode} />

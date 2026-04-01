@@ -41,7 +41,7 @@ interface PostProcessPageProps {
 
 export function PostProcessPage({ config, updateConfig }: PostProcessPageProps): React.ReactNode {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-1.5">
       <SectionHeader>AI Enhancement</SectionHeader>
 
       <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
