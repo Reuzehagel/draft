@@ -4,6 +4,11 @@ All notable changes to Draft will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.2] - 2026-04-01
+
+### Fixed
+- Removed unused React import in scroll-area component that broke production builds
+
 ## [1.0.1] - 2026-04-01
 
 ### Changed
