@@ -1,0 +1,265 @@
+<h2>Full Design Overview</h2>
+<p class="subtitle">Status-first dashboard, horizontal underline tabs, flat settings with card exceptions. Review in the terminal.</p>
+
+<div style="max-width:780px;">
+
+  <!-- Full mockup -->
+  <div class="mockup" style="margin-bottom:32px;">
+    <div class="mockup-header">Home Page</div>
+    <div class="mockup-body" style="padding:0;">
+      <div style="background:#0e0e0e;border-radius:0 0 8px 8px;min-height:380px;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;">
+        <!-- Top nav -->
+        <div style="padding:16px 24px 0;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:15px;color:#fff;letter-spacing:-0.3px;">Draft</div>
+            <div style="font-size:10px;color:#444;">v0.1.0</div>
+          </div>
+          <div style="display:flex;gap:0;margin-bottom:-1px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#fff;border-bottom:2px solid #3b82f6;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              Home
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              General
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              Models
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              More
+            </div>
+          </div>
+        </div>
+
+        <!-- Home content -->
+        <div style="flex:1;padding:20px 24px;">
+          <!-- Status cards -->
+          <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <div style="flex:1;background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:14px;">
+              <div style="font-size:10px;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">Model</div>
+              <div style="font-size:14px;color:#e0e0e0;font-weight:500;">Parakeet 0.6B</div>
+              <div style="font-size:11px;color:#3b82f6;margin-top:3px;">Ready</div>
+            </div>
+            <div style="flex:1;background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:14px;">
+              <div style="font-size:10px;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">Hotkey</div>
+              <div style="font-size:14px;color:#e0e0e0;font-weight:500;">Ctrl+\</div>
+              <div style="font-size:11px;color:#22c55e;margin-top:3px;">Active</div>
+            </div>
+            <div style="flex:1;background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:14px;">
+              <div style="font-size:10px;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;">Engine</div>
+              <div style="font-size:14px;color:#e0e0e0;font-weight:500;">Local</div>
+              <div style="font-size:11px;color:#555;margin-top:3px;">On-device</div>
+            </div>
+          </div>
+
+          <!-- Recent transcriptions -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:10px;font-weight:500;">Recent transcriptions</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:11px 14px;">
+              <div style="font-size:12px;color:#ddd;line-height:1.4;">Yeah, so sport is like sandbag as hell.</div>
+              <div style="font-size:10px;color:#444;margin-top:4px;">3.0s · parakeet-0.6b · 2m ago</div>
+            </div>
+            <div style="background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:11px 14px;">
+              <div style="font-size:12px;color:#ddd;line-height:1.4;">What's the difference between boulder and sports?</div>
+              <div style="font-size:10px;color:#444;margin-top:4px;">2.6s · parakeet-0.6b · 3m ago</div>
+            </div>
+            <div style="background:#141414;border:1px solid #1e1e1e;border-radius:8px;padding:11px 14px;">
+              <div style="font-size:12px;color:#ddd;line-height:1.4;">A custom sidebar. Can we switch to the shed CN sidebar as well?</div>
+              <div style="font-size:10px;color:#444;margin-top:4px;">5.1s · parakeet-0.6b · 8m ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- General page mockup -->
+  <div class="mockup" style="margin-bottom:32px;">
+    <div class="mockup-header">General Page (flat sections)</div>
+    <div class="mockup-body" style="padding:0;">
+      <div style="background:#0e0e0e;border-radius:0 0 8px 8px;min-height:380px;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;">
+        <!-- Top nav -->
+        <div style="padding:16px 24px 0;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:15px;color:#fff;letter-spacing:-0.3px;">Draft</div>
+            <div style="font-size:10px;color:#444;">v0.1.0</div>
+          </div>
+          <div style="display:flex;gap:0;margin-bottom:-1px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+              Home
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#fff;border-bottom:2px solid #3b82f6;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              General
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              Models
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+              More
+            </div>
+          </div>
+        </div>
+
+        <!-- Flat settings content -->
+        <div style="flex:1;padding:20px 24px;overflow-y:auto;">
+          <!-- Microphone section -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">Microphone</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <span style="font-size:13px;color:#ccc;">Device</span>
+            <span style="font-size:12px;color:#999;background:#141414;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;">System Default ↕</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <span style="font-size:13px;color:#ccc;">Test microphone</span>
+            <span style="font-size:12px;color:#999;background:#141414;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;">Test</span>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:12px 0;"></div>
+
+          <!-- Hotkey section -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">Hotkey</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Push-to-talk</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">Hold to record, release to transcribe</div>
+            </div>
+            <span style="font-size:12px;color:#999;background:#141414;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;">Ctrl+\ ✕</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Double-tap to toggle</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">Double-tap to start, tap to stop</div>
+            </div>
+            <div style="width:36px;height:20px;background:#3b82f6;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:12px 0;"></div>
+
+          <!-- Output section -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">Output</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Text output</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">How transcribed text is delivered</div>
+            </div>
+            <span style="font-size:12px;color:#999;background:#141414;padding:5px 12px;border-radius:6px;border:1px solid #1e1e1e;">Type into app ↕</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Add space after text</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">Append trailing space</div>
+            </div>
+            <div style="width:36px;height:20px;background:#333;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#666;border-radius:50%;position:absolute;left:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:12px 0;"></div>
+
+          <!-- System section -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">System</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <span style="font-size:13px;color:#ccc;">Start with Windows</span>
+            <div style="width:36px;height:20px;background:#333;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#666;border-radius:50%;position:absolute;left:2px;top:2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- More page mockup -->
+  <div class="mockup" style="margin-bottom:32px;">
+    <div class="mockup-header">More Page (sub-tabs)</div>
+    <div class="mockup-body" style="padding:0;">
+      <div style="background:#0e0e0e;border-radius:0 0 8px 8px;min-height:380px;display:flex;flex-direction:column;font-family:system-ui,-apple-system,sans-serif;">
+        <!-- Top nav -->
+        <div style="padding:16px 24px 0;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-weight:700;font-size:15px;color:#fff;letter-spacing:-0.3px;">Draft</div>
+            <div style="font-size:10px;color:#444;">v0.1.0</div>
+          </div>
+          <div style="display:flex;gap:0;margin-bottom:-1px;">
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">Home</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">General</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#555;border-bottom:2px solid transparent;">Models</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:12px;padding:7px 14px;color:#fff;border-bottom:2px solid #3b82f6;">More</div>
+          </div>
+        </div>
+
+        <!-- Sub-tabs -->
+        <div style="padding:12px 24px 0;border-bottom:1px solid #141414;">
+          <div style="display:flex;gap:0;">
+            <div style="font-size:11px;padding:6px 12px;color:#555;border-bottom:1px solid transparent;">Post Process</div>
+            <div style="font-size:11px;padding:6px 12px;color:#fff;border-bottom:1px solid #555;">Advanced</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;border-bottom:1px solid transparent;">History</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;border-bottom:1px solid transparent;">Transcribe</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;border-bottom:1px solid transparent;">About</div>
+          </div>
+        </div>
+
+        <!-- Advanced content -->
+        <div style="flex:1;padding:20px 24px;overflow-y:auto;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">Appearance</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <span style="font-size:13px;color:#ccc;">Dark mode</span>
+            <div style="width:36px;height:20px;background:#3b82f6;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:12px 0;"></div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">Sound Effects</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Enable sounds</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">Audio feedback for recording events</div>
+            </div>
+            <div style="width:36px;height:20px;background:#3b82f6;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Volume</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:120px;height:4px;background:#333;border-radius:2px;position:relative;">
+                <div style="width:6px;height:6px;background:#3b82f6;border-radius:50%;position:absolute;left:6px;top:-1px;"></div>
+              </div>
+              <span style="font-size:11px;color:#555;">5%</span>
+            </div>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:12px 0;"></div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:12px;font-weight:500;">System</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Enable logging</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">Logs to %APPDATA%\Draft\logs (restart required)</div>
+            </div>
+            <div style="width:36px;height:20px;background:#3b82f6;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Auto-update</div>
+              <div style="font-size:11px;color:#444;margin-top:2px;">Check for updates on startup</div>
+            </div>
+            <div style="width:36px;height:20px;background:#3b82f6;border-radius:10px;position:relative;">
+              <div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

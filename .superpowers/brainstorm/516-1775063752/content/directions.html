@@ -1,0 +1,181 @@
+<h2>Three Redesign Directions</h2>
+<p class="subtitle">Click the one that pulls you. We'll refine from there.</p>
+
+<div class="cards" style="display:grid;grid-template-columns:1fr;gap:24px;max-width:800px;">
+
+  <!-- Direction A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="padding:0;overflow:hidden;">
+    <div class="card-body" style="padding:20px 24px 8px;">
+      <h3 style="margin:0 0 4px;">A: Status-First Dashboard</h3>
+      <p style="opacity:0.6;margin:0 0 16px;font-size:14px;">Home page shows live status — active model, hotkey, last transcription. Settings behind a clean sidebar. Linear-style density.</p>
+    </div>
+    <div class="card-image" style="padding:0 16px 16px;">
+      <div style="background:#111;border-radius:8px;overflow:hidden;border:1px solid #222;display:flex;height:280px;">
+        <!-- Sidebar -->
+        <div style="width:160px;background:#0a0a0a;border-right:1px solid #1a1a1a;padding:16px 12px;display:flex;flex-direction:column;gap:2px;flex-shrink:0;">
+          <div style="font-weight:700;font-size:13px;padding:8px 8px 12px;color:#fff;letter-spacing:-0.3px;">Draft</div>
+          <div style="font-size:12px;padding:6px 8px;background:#ffffff10;border-radius:6px;color:#fff;">Home</div>
+          <div style="font-size:12px;padding:6px 8px;color:#666;">General</div>
+          <div style="font-size:12px;padding:6px 8px;color:#666;">Models</div>
+          <div style="font-size:12px;padding:6px 8px;color:#666;">Post Process</div>
+          <div style="height:1px;background:#1a1a1a;margin:8px 0;"></div>
+          <div style="font-size:12px;padding:6px 8px;color:#666;">Transcribe</div>
+          <div style="font-size:12px;padding:6px 8px;color:#666;">History</div>
+          <div style="flex:1;"></div>
+          <div style="font-size:10px;color:#444;padding:4px 8px;">v0.1.0</div>
+        </div>
+        <!-- Main content -->
+        <div style="flex:1;padding:20px 24px;overflow:hidden;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:12px;">Status</div>
+          <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <div style="flex:1;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:12px;">
+              <div style="font-size:10px;color:#555;margin-bottom:4px;">Model</div>
+              <div style="font-size:13px;color:#ddd;">Parakeet 0.6B</div>
+              <div style="font-size:10px;color:#3b82f6;margin-top:2px;">Ready</div>
+            </div>
+            <div style="flex:1;background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:12px;">
+              <div style="font-size:10px;color:#555;margin-bottom:4px;">Hotkey</div>
+              <div style="font-size:13px;color:#ddd;">Ctrl+\</div>
+              <div style="font-size:10px;color:#22c55e;margin-top:2px;">Active</div>
+            </div>
+          </div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:8px;">Recent</div>
+          <div style="background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:10px 12px;margin-bottom:6px;">
+            <div style="font-size:11px;color:#ddd;">Yeah, so sport is like sandbag as hell.</div>
+            <div style="font-size:10px;color:#444;margin-top:4px;">3.0s · parakeet-0.6b · 2m ago</div>
+          </div>
+          <div style="background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:10px 12px;">
+            <div style="font-size:11px;color:#ddd;">What's the difference between boulder and sports?</div>
+            <div style="font-size:10px;color:#444;margin-top:4px;">2.6s · parakeet-0.6b · 3m ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Direction B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="padding:0;overflow:hidden;">
+    <div class="card-body" style="padding:20px 24px 8px;">
+      <h3 style="margin:0 0 4px;">B: Flat Sections, No Cards</h3>
+      <p style="opacity:0.6;margin:0 0 16px;font-size:14px;">Drop the card chrome entirely. Linear-style flat sections with subtle dividers. Denser, cleaner, no wasted borders. Sidebar stays but tighter.</p>
+    </div>
+    <div class="card-image" style="padding:0 16px 16px;">
+      <div style="background:#111;border-radius:8px;overflow:hidden;border:1px solid #222;display:flex;height:280px;">
+        <!-- Tight sidebar -->
+        <div style="width:140px;background:#0a0a0a;border-right:1px solid #1a1a1a;padding:16px 10px;display:flex;flex-direction:column;gap:1px;flex-shrink:0;">
+          <div style="font-weight:700;font-size:13px;padding:6px 8px 14px;color:#fff;letter-spacing:-0.3px;">Draft</div>
+          <div style="font-size:12px;padding:5px 8px;color:#666;">Transcribe</div>
+          <div style="height:1px;background:#1a1a1a;margin:6px 0;"></div>
+          <div style="font-size:12px;padding:5px 8px;background:#ffffff10;border-radius:5px;color:#fff;">General</div>
+          <div style="font-size:12px;padding:5px 8px;color:#666;">Models</div>
+          <div style="font-size:12px;padding:5px 8px;color:#666;">Post Process</div>
+          <div style="height:1px;background:#1a1a1a;margin:6px 0;"></div>
+          <div style="font-size:12px;padding:5px 8px;color:#666;">Advanced</div>
+          <div style="font-size:12px;padding:5px 8px;color:#666;">History</div>
+          <div style="flex:1;"></div>
+          <div style="font-size:10px;color:#444;padding:4px 8px;">v0.1.0</div>
+        </div>
+        <!-- Main: flat sections -->
+        <div style="flex:1;padding:20px 28px;overflow-y:auto;">
+          <div style="font-size:15px;font-weight:600;color:#fff;margin-bottom:2px;">General</div>
+          <div style="font-size:12px;color:#555;margin-bottom:16px;">Input, output, and system preferences</div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:10px;font-weight:500;">Microphone</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+            <span style="font-size:13px;color:#ccc;">Device</span>
+            <span style="font-size:12px;color:#888;background:#181818;padding:4px 10px;border-radius:5px;border:1px solid #222;">System Default ↕</span>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:10px 0;"></div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:10px;font-weight:500;">Hotkey</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+            <span style="font-size:13px;color:#ccc;">Push-to-talk</span>
+            <span style="font-size:12px;color:#888;background:#181818;padding:4px 10px;border-radius:5px;border:1px solid #222;">Ctrl+\</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+            <span style="font-size:13px;color:#ccc;">Double-tap to toggle</span>
+            <div style="width:32px;height:18px;background:#3b82f6;border-radius:9px;position:relative;">
+              <div style="width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:10px 0;"></div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#555;margin-bottom:10px;font-weight:500;">Output</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+            <span style="font-size:13px;color:#ccc;">Text output</span>
+            <span style="font-size:12px;color:#888;background:#181818;padding:4px 10px;border-radius:5px;border:1px solid #222;">Type into app ↕</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Direction C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)" style="padding:0;overflow:hidden;">
+    <div class="card-body" style="padding:20px 24px 8px;">
+      <h3 style="margin:0 0 4px;">C: Compact Popover — No Sidebar</h3>
+      <p style="opacity:0.6;margin:0 0 16px;font-size:14px;">Kill the sidebar. Shrink to ~420x480. Top tabs or segmented control. Every pixel earns its place. Feels like a native system utility.</p>
+    </div>
+    <div class="card-image" style="padding:0 16px 16px;">
+      <div style="background:#111;border-radius:8px;overflow:hidden;border:1px solid #222;max-width:380px;margin:0 auto;height:280px;display:flex;flex-direction:column;">
+        <!-- Top bar with tabs -->
+        <div style="padding:14px 16px 0;background:#0a0a0a;border-bottom:1px solid #1a1a1a;">
+          <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:12px;letter-spacing:-0.3px;">Draft</div>
+          <div style="display:flex;gap:0;margin-bottom:-1px;">
+            <div style="font-size:11px;padding:6px 12px;color:#fff;border-bottom:2px solid #3b82f6;">General</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;">Models</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;">Post Process</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;">Advanced</div>
+            <div style="font-size:11px;padding:6px 12px;color:#555;">More</div>
+          </div>
+        </div>
+        <!-- Content -->
+        <div style="flex:1;padding:16px;overflow-y:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Microphone</div>
+              <div style="font-size:11px;color:#555;">System Default</div>
+            </div>
+            <span style="font-size:11px;color:#888;background:#181818;padding:4px 10px;border-radius:5px;border:1px solid #222;">Change</span>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:4px 0;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Hotkey</div>
+              <div style="font-size:11px;color:#555;">Hold to record, release to transcribe</div>
+            </div>
+            <span style="font-size:12px;color:#888;background:#181818;padding:4px 10px;border-radius:5px;border:1px solid #222;">Ctrl+\</span>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:4px 0;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Double-tap toggle</div>
+              <div style="font-size:11px;color:#555;">Double-tap to start, tap to stop</div>
+            </div>
+            <div style="width:32px;height:18px;background:#3b82f6;border-radius:9px;position:relative;">
+              <div style="width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;right:2px;top:2px;"></div>
+            </div>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:4px 0;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Output mode</div>
+              <div style="font-size:11px;color:#555;">How text is delivered</div>
+            </div>
+            <span style="font-size:12px;color:#888;background:#181818;padding:4px 10px;border-radius:5px;border:1px solid #222;">Type into app ↕</span>
+          </div>
+          <div style="height:1px;background:#1a1a1a;margin:4px 0;"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div>
+              <div style="font-size:13px;color:#ccc;">Start with Windows</div>
+            </div>
+            <div style="width:32px;height:18px;background:#333;border-radius:9px;position:relative;">
+              <div style="width:14px;height:14px;background:#666;border-radius:50%;position:absolute;left:2px;top:2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
