@@ -20,9 +20,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { Config } from "@/shared/types/config";
 import type { HistoryEntry } from "@/shared/types/history";
-import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
-import { PageHeader } from "../components/PageHeader";
+import { SectionHeader } from "../components/SectionHeader";
+import { SectionDivider } from "../components/SectionDivider";
 import { useHistory } from "../hooks/useHistory";
 
 interface HistoryPageProps {
@@ -157,50 +157,55 @@ export function HistoryPage({ config, updateConfig }: HistoryPageProps): React.R
   const { entries, loading, deleteEntry, clearAll } = useHistory();
 
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="History" description="Your transcription history" />
+    <div className="flex flex-col">
+      <SectionHeader>Settings</SectionHeader>
+      <SettingRow label="Save history" description="Record transcriptions for later review" inline>
+        <Switch
+          checked={config?.history_enabled ?? true}
+          onCheckedChange={(history_enabled) => updateConfig({ history_enabled })}
+        />
+      </SettingRow>
+      <SettingRow label="Maximum entries" description="Oldest entries auto-deleted when limit reached" inline>
+        <Input
+          type="number"
+          min={10}
+          max={10000}
+          className="w-20 text-xs h-7"
+          value={config?.history_max_entries ?? 500}
+          onChange={(e) => {
+            const val = parseInt(e.target.value, 10);
+            if (!isNaN(val) && val >= 10 && val <= 10000) {
+              updateConfig({ history_max_entries: val });
+            }
+          }}
+        />
+      </SettingRow>
 
-      <SettingsCard title="Settings">
-        <SettingRow label="Save history" description="Record transcriptions for later review" inline>
-          <Switch
-            checked={config?.history_enabled ?? true}
-            onCheckedChange={(history_enabled) => updateConfig({ history_enabled })}
-          />
-        </SettingRow>
-        <SettingRow label="Maximum entries" description="Oldest entries auto-deleted when limit reached" inline>
-          <Input
-            type="number"
-            min={10}
-            max={10000}
-            className="w-20 text-xs h-7"
-            value={config?.history_max_entries ?? 500}
-            onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              if (!isNaN(val) && val >= 10 && val <= 10000) {
-                updateConfig({ history_max_entries: val });
-              }
-            }}
-          />
-        </SettingRow>
-      </SettingsCard>
+      <SectionDivider />
 
       {loading ? null : entries.length === 0 ? (
-        <Empty className="py-12">
-          <EmptyHeader>
-            <EmptyMedia>
-              <HugeiconsIcon icon={Clock01Icon} size={48} className="text-muted-foreground/30" />
-            </EmptyMedia>
-            <EmptyTitle>No transcriptions yet</EmptyTitle>
-            <EmptyDescription>
-              Your transcription history will appear here once you start recording.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <>
+          <h3 className="text-[11px] uppercase tracking-[0.8px] text-muted-foreground font-medium mb-3">
+            Transcriptions (0)
+          </h3>
+          <Empty className="py-12">
+            <EmptyHeader>
+              <EmptyMedia>
+                <HugeiconsIcon icon={Clock01Icon} size={48} className="text-muted-foreground/30" />
+              </EmptyMedia>
+              <EmptyTitle>No transcriptions yet</EmptyTitle>
+              <EmptyDescription>
+                Your transcription history will appear here once you start recording.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </>
       ) : (
-        <SettingsCard
-          title={`Transcriptions (${entries.length})`}
-          description="Click text to expand, hover for actions"
-          headerAction={
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[11px] uppercase tracking-[0.8px] text-muted-foreground font-medium">
+              Transcriptions ({entries.length})
+            </h3>
             <AlertDialog>
               <AlertDialogTrigger
                 render={
@@ -224,9 +229,8 @@ export function HistoryPage({ config, updateConfig }: HistoryPageProps): React.R
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          }
-        >
-          <div className="flex flex-col -mx-3">
+          </div>
+          <div className="flex flex-col">
             {entries.map((entry, i) => (
               <div key={entry.id}>
                 {i > 0 && <Separator />}
@@ -237,7 +241,7 @@ export function HistoryPage({ config, updateConfig }: HistoryPageProps): React.R
               </div>
             ))}
           </div>
-        </SettingsCard>
+        </>
       )}
     </div>
   );
