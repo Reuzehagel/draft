@@ -4,6 +4,11 @@ All notable changes to Draft will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.1] - 2026-04-01
+
+### Changed
+- Prettified model and provider names across the UI (e.g., "parakeet-0.6b" → "Parakeet 0.6B", "openai" → "OpenAI")
+
 ## [1.0.0] - 2026-04-01
 
 ### Changed
