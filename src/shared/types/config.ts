@@ -33,4 +33,5 @@ export interface Config {
   sound_confirm_enabled: boolean;
   history_enabled: boolean;
   history_max_entries: number;
+  auto_update_enabled: boolean;
 }

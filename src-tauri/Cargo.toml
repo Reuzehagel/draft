@@ -1,8 +1,8 @@
 [package]
 name = "app"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+version = "1.0.1"
+description = "Push-to-talk dictation for Windows"
+authors = ["Reuzehagel"]
 license = ""
 repository = ""
 edition = "2024"
@@ -57,6 +57,9 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 # File transcription dependencies
 symphonia = { version = "0.5.5", features = ["mp3", "aac", "flac", "ogg", "wav", "pcm", "isomp4", "aiff"] }
 tauri-plugin-dialog = "2.6.0"
+
+# Auto-updater
+tauri-plugin-updater = "2"
 
 # Archive extraction for ONNX model packages
 tar = "0.4"

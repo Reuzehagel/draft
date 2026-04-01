@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src-tauri/tauri.conf.json'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if version changed
+        id: check
+        run: |
+          CURRENT=$(jq -r '.version' src-tauri/tauri.conf.json)
+          PREVIOUS=$(git show HEAD~1:src-tauri/tauri.conf.json 2>/dev/null | jq -r '.version' 2>/dev/null || echo "")
+          echo "current=$CURRENT previous=$PREVIOUS"
+          if [ "$CURRENT" != "$PREVIOUS" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=$CURRENT" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-release:
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    permissions:
+      contents: write
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Extract changelog for release body
+        id: changelog
+        shell: bash
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          # Extract the section for this version from CHANGELOG.md
+          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} /^## \[/{if(found) exit} found{print}" CHANGELOG.md)
+          # Write to file to preserve newlines
+          echo "$BODY" > release-notes.md
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: v__VERSION__
+          releaseName: v__VERSION__
+          releaseBody: ''
+          releaseDraft: false
+          prerelease: false
+
+      - name: Update release body with changelog
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ needs.check-version.outputs.version }}"
+          gh release edit "v${VERSION}" --notes-file release-notes.md

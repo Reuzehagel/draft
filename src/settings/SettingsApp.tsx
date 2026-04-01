@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { useDarkMode } from "./hooks/useDarkMode";
@@ -9,17 +9,16 @@ import { useMicrophoneTest } from "./hooks/useMicrophoneTest";
 import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { useFileTranscription } from "./hooks/useFileTranscription";
-import { Sidebar, type Page } from "./components/Sidebar";
+import { useUpdateStatus } from "./hooks/useUpdateStatus";
+import { TabBar, type TopPage } from "./components/TabBar";
+import { UpdateCard } from "./components/UpdateCard";
 import { GeneralPage } from "./pages/GeneralPage";
 import { ModelsPage } from "./pages/ModelsPage";
-import { PostProcessPage } from "./pages/PostProcessPage";
-import { AdvancedPage } from "./pages/AdvancedPage";
-import { HistoryPage } from "./pages/HistoryPage";
-import { InfoPage } from "./pages/InfoPage";
-import { TranscribePage } from "./pages/TranscribePage";
+import { HomePage } from "./pages/HomePage";
+import { MorePage } from "./pages/MorePage";
 
 export default function SettingsApp(): React.ReactNode {
-  const [activePage, setActivePage] = useState<Page>("general");
+  const [activePage, setActivePage] = useState<TopPage>("home");
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { config, updateConfig, loading, saved } = useConfig();
   const {
@@ -33,6 +32,7 @@ export default function SettingsApp(): React.ReactNode {
   const whisperHook = useWhisper(config?.selected_model, config?.stt_provider);
   const fileTranscription = useFileTranscription();
   const [version, setVersion] = useState<string | null>(null);
+  const updateStatus = useUpdateStatus();
 
   useEffect(() => {
     getVersion().then(setVersion);
@@ -57,71 +57,69 @@ export default function SettingsApp(): React.ReactNode {
   const llmConfigured = !!(config?.llm_provider && config?.llm_api_key);
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar
+    <div className="h-screen flex flex-col bg-background">
+      <TabBar
         activePage={activePage}
         onNavigate={setActivePage}
-        isDark={isDark}
-        toggleDarkMode={toggleDarkMode}
         version={version}
         saved={saved}
-      />
+      >
+        <UpdateCard status={updateStatus} />
+      </TabBar>
 
-      <main className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-        <div className="p-5 max-w-lg mx-auto">
-          {activePage === "general" && (
-            <GeneralPage
-              config={config}
-              updateConfig={updateConfig}
-              microphones={microphones}
-              microphonesLoading={microphonesLoading}
-              microphonesError={microphonesError}
-              isTesting={isTesting}
-              micTestAmplitudes={micTestAmplitudes}
-              startTest={startTest}
-              hotkeyError={hotkeyError}
-              hotkeyRegistering={hotkeyRegistering}
-              validateAndRegister={validateAndRegister}
-            />
-          )}
-          {activePage === "models" && (
-            <ModelsPage
-              config={config}
-              updateConfig={updateConfig}
-              modelsHook={modelsHook}
-              whisperHook={whisperHook}
-              isTesting={isTesting}
-            />
-          )}
-          {activePage === "post-process" && (
-            <PostProcessPage
-              config={config}
-              updateConfig={updateConfig}
-            />
-          )}
-          {activePage === "advanced" && (
-            <AdvancedPage
-              config={config}
-              updateConfig={updateConfig}
-              isDark={isDark}
-              toggleDarkMode={toggleDarkMode}
-            />
-          )}
-          {activePage === "history" && (
-            <HistoryPage config={config} updateConfig={updateConfig} />
-          )}
-          {activePage === "info" && <InfoPage version={version} />}
-          {activePage === "transcribe" && (
-            <TranscribePage
-              fileTranscription={fileTranscription}
-              whisperBusy={whisperHook.isBusy}
-              loadedModel={whisperHook.loadedModel}
-              llmConfigured={llmConfigured}
-              sttProvider={config?.stt_provider ?? null}
-            />
-          )}
+      {activePage === "more" ? (
+        <MorePage
+          config={config}
+          updateConfig={updateConfig}
+          isDark={isDark}
+          toggleDarkMode={toggleDarkMode}
+          version={version}
+          fileTranscription={fileTranscription}
+          whisperBusy={whisperHook.isBusy}
+          loadedModel={whisperHook.loadedModel}
+          llmConfigured={llmConfigured}
+          sttProvider={config?.stt_provider ?? null}
+          updateStatus={updateStatus}
+        />
+      ) : (
+        <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
+          <div className="px-5 py-5">
+            {activePage === "home" && (
+              <HomePage
+                config={config}
+                onNavigate={setActivePage}
+                loadedModel={whisperHook.loadedModel}
+                isModelLoading={whisperHook.isModelLoading}
+                selectedModel={config?.selected_model ?? null}
+              />
+            )}
+            {activePage === "general" && (
+              <GeneralPage
+                config={config}
+                updateConfig={updateConfig}
+                microphones={microphones}
+                microphonesLoading={microphonesLoading}
+                microphonesError={microphonesError}
+                isTesting={isTesting}
+                micTestAmplitudes={micTestAmplitudes}
+                startTest={startTest}
+                hotkeyError={hotkeyError}
+                hotkeyRegistering={hotkeyRegistering}
+                validateAndRegister={validateAndRegister}
+              />
+            )}
+            {activePage === "models" && (
+              <ModelsPage
+                config={config}
+                updateConfig={updateConfig}
+                modelsHook={modelsHook}
+                whisperHook={whisperHook}
+                isTesting={isTesting}
+              />
+            )}
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }

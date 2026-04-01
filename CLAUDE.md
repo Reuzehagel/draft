@@ -39,8 +39,8 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 - `settings/` - Settings window React app with page-based navigation via sidebar
   - `pages/` - GeneralPage, ModelsPage, PostProcessPage, HistoryPage, AdvancedPage, TranscribePage, InfoPage
-  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest, useHistory, useFileTranscription
-  - `components/` - SettingsCard, SettingRow, HotkeyInput, ModelsCard, Sidebar, PageHeader, ApiKeyInput, ErrorMessage
+  - `hooks/` - Extracted hooks: useDarkMode, useConfig, useHotkeyRegistration, useMicrophones, useMicrophoneTest, useHistory, useFileTranscription, useUpdateStatus
+  - `components/` - SettingsCard, SettingRow, HotkeyInput, ModelsCard, Sidebar, PageHeader, ApiKeyInput, ErrorMessage, UpdateCard
   - `components/models/` - Tier-based model picker (TierPicker, DownloadableModel, etc.)
   - `useModels.ts`, `useWhisper.ts` - Model and Whisper state management
 - `pill/` - Pill overlay with state machine: idle → loading → recording → transcribing → enhancing → confirming → error
@@ -88,6 +88,9 @@ cargo test --manifest-path src-tauri/Cargo.toml
 - `sound/` - Sound effects module:
   - `playback.rs` - rodio-based audio playback for UI sound effects
   - `assets/` - Bundled sound effect files
+- `updater/` - Auto-update module:
+  - `state.rs` - UpdateStatus enum and managed state wrapper
+  - `commands.rs` - `check_for_update`, `install_update` commands
 - `autostart.rs` - Windows startup integration
 
 ### Audio Pipeline Flow
@@ -111,6 +114,7 @@ Frontend listens to Tauri events defined in `events.rs`/`events.ts`:
 - `llm-processing` - LLM post-processing started (triggers "enhancing" pill state)
 - `llm-confirm-request` - Prompt user to confirm LLM processing (triggers "confirming" pill state)
 - `llm-confirm-timeout` - Confirmation timed out, raw text output used
+- `update-status` - Update lifecycle state (idle, checking, downloading, ready, error)
 
 ### Model Storage
 
@@ -143,6 +147,18 @@ Config stored at `%APPDATA%/Draft/config.json` via the `dirs` crate. TypeScript 
 - rubato's `input_frames_next()` can return different values after each `process()` call — always re-query per iteration, never cache outside the loop
 - Global hotkey system only supports F1-F24 as standalone keys (no modifier). Modifier keys (Ctrl, Alt, Shift, Fn) cannot be used alone — OS API limitation. Right vs left modifiers are not distinguished.
 - **Pill visibility/state sync**: Every pill state transition to "idle" must pair `setState("idle")` with `setVisible(false)` — except `TRANSCRIPTION_COMPLETE`, which intentionally leaves `visible=true` to avoid flicker when LLM processing follows immediately (Rust's `hide_pill_after_delay` controls that path).
+
+## Release Process
+
+When shipping a new version:
+1. Update `CHANGELOG.md` with what changed (keepachangelog format)
+2. Bump version in both `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml` (must stay in sync)
+3. Commit with message `release: v{version}`
+4. Push to main — GitHub Actions detects the version change, builds, signs, and creates a GitHub Release
+
+The workflow (`.github/workflows/release.yml`) only triggers when `src-tauri/tauri.conf.json` changes on main, and only builds if the version field actually changed. `tauri-apps/tauri-action` generates the `latest.json` manifest that the auto-updater checks.
+
+Required GitHub repo secrets: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
 
 ## Post-Sprint Workflow
 

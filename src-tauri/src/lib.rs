@@ -11,6 +11,7 @@ mod llm;
 mod recording;
 mod sound;
 mod stt;
+mod updater;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -97,6 +98,7 @@ pub fn run() {
             Some(vec!["--minimized"]),
         ))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Manage state for microphone testing
         .manage(audio::devices::TestState::default())
         // Manage state for model downloads
@@ -107,6 +109,7 @@ pub fn run() {
         .manage(sound::SoundPlayer::try_new())
         .manage(stt::file::FileTranscriptionState::default())
         .manage(SettingsReady::default())
+        .manage(updater::UpdateState::default())
         .manage(
             history::HistoryManager::new()
                 .expect("Failed to initialize history database"),
@@ -143,6 +146,9 @@ pub fn run() {
             history::commands::delete_history_entry,
             history::commands::clear_history,
             settings_ready,
+            updater::state::get_update_status,
+            updater::commands::check_for_update,
+            updater::commands::install_update,
         ])
         .setup(|app| {
             // Load config early for logging and other startup configuration
@@ -310,6 +316,15 @@ pub fn run() {
             }
 
             log::info!("Draft initialized successfully");
+
+            // Check for updates in the background
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = updater::do_check_for_update(handle).await {
+                    log::warn!("Startup update check failed: {}", e);
+                }
+            });
+
             Ok(())
         })
         .run(tauri::generate_context!())

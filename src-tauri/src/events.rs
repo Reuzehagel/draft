@@ -19,3 +19,4 @@ pub const FILE_DECODE_PROGRESS: &str = "file-decode-progress";
 pub const FILE_TRANSCRIPTION_ERROR: &str = "file-transcription-error";
 pub const FILE_TRANSCRIPTION_PROGRESS: &str = "file-transcription-progress";
 pub const HISTORY_ENTRY_ADDED: &str = "history-entry-added";
+pub const UPDATE_STATUS: &str = "update-status";

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Draft",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "identifier": "com.draft.app",
   "build": {
     "frontendDist": "../dist",
@@ -53,5 +53,12 @@
       "icons/icon.ico"
     ]
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU4QzRCN0JGMUU1QzI3NTgKUldSWUoxd2V2N2ZFNkJDSkxDWGs1bExBaHBISkgvbG9YRlErYm5ISnVtdVVrTUVmOHZmWk1YUG0K",
+      "endpoints": [
+        "https://github.com/Reuzehagel/draft/releases/latest/download/latest.json"
+      ]
+    }
+  }
 }

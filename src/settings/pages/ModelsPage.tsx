@@ -15,12 +15,12 @@ import { STT_PROVIDER_LABELS } from "@/shared/constants/providers";
 import { createListenerGroup } from "@/shared/utils/tauriListeners";
 import { parseApiError } from "@/shared/utils/parseApiError";
 import * as Events from "@/shared/constants/events";
-import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
 import { ApiKeyInput } from "../components/ApiKeyInput";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { ModelsCard } from "../components/ModelsCard";
-import { PageHeader } from "../components/PageHeader";
+import { SectionHeader } from "../components/SectionHeader";
+import { SectionDivider } from "../components/SectionDivider";
 
 const STT_PROVIDERS = Object.entries(STT_PROVIDER_LABELS).map(([value, label]) => ({
   value,
@@ -100,34 +100,34 @@ export function ModelsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="Models" description="Transcription engine and model management" />
-
-      <SettingsCard title="Engine">
-        <SettingRow label="Transcription engine">
-          <Select
-            value={config?.stt_provider || "local"}
-            onValueChange={(value) =>
-              updateConfig({ stt_provider: value === "local" ? null : value })
-            }
-            items={engineItems}
-          >
-            <SelectTrigger className="w-full text-[13px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {engineItems.map((item) => (
-                <SelectItem key={item.value} value={item.value} className="text-[13px]">
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingRow>
-      </SettingsCard>
+      <SectionHeader>Engine</SectionHeader>
+      <SettingRow label="Transcription engine">
+        <Select
+          value={config?.stt_provider || "local"}
+          onValueChange={(value) =>
+            updateConfig({ stt_provider: value === "local" ? null : value })
+          }
+          items={engineItems}
+        >
+          <SelectTrigger className="w-full text-[13px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {engineItems.map((item) => (
+              <SelectItem key={item.value} value={item.value} className="text-[13px]">
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingRow>
 
       {/* Online STT provider settings */}
       {!isLocal && (
-        <SettingsCard title="Provider Settings" description={STT_PROVIDER_LABELS[config?.stt_provider ?? ""] ?? "Online provider"}>
+        <>
+          <SectionDivider />
+          <SectionHeader>{STT_PROVIDER_LABELS[config?.stt_provider ?? ""] ?? "Provider Settings"}</SectionHeader>
+
           <ApiKeyInput
             value={config?.stt_api_key || ""}
             onChange={(stt_api_key) => updateConfig({ stt_api_key })}
@@ -157,12 +157,13 @@ export function ModelsPage({
           )}
 
           {onlineSttError && <ErrorMessage message={onlineSttError} />}
-        </SettingsCard>
+        </>
       )}
 
       {/* Local Whisper settings */}
       {isLocal && (
         <>
+          <SectionDivider />
           <ModelsCard
             config={config}
             updateConfig={updateConfig}
@@ -186,18 +187,18 @@ export function ModelsPage({
             isTesting={isTesting}
           />
 
-          <SettingsCard title="Whisper Prompt" description="Only applies to Whisper models">
-            <Textarea
-              value={config?.whisper_initial_prompt || ""}
-              onChange={(e) => updateConfig({ whisper_initial_prompt: e.target.value || null })}
-              placeholder="e.g. Draft, Tauri, React. Use proper punctuation and capitalization."
-              rows={2}
-              className="text-[13px] min-h-[48px] resize-y"
-            />
-            <p className="text-xs text-muted-foreground">
-              Helps Whisper with domain terms, spelling, and formatting preferences. Has no effect on Parakeet.
-            </p>
-          </SettingsCard>
+          <SectionDivider />
+          <SectionHeader>Whisper Prompt</SectionHeader>
+          <Textarea
+            value={config?.whisper_initial_prompt || ""}
+            onChange={(e) => updateConfig({ whisper_initial_prompt: e.target.value || null })}
+            placeholder="e.g. Draft, Tauri, React. Use proper punctuation and capitalization."
+            rows={2}
+            className="text-[13px] min-h-[48px] resize-y"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Helps Whisper with domain terms, spelling, and formatting preferences. Has no effect on Parakeet.
+          </p>
         </>
       )}
     </div>

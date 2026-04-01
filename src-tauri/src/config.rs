@@ -44,6 +44,7 @@ pub struct Config {
     pub sound_confirm_enabled: bool,
     pub history_enabled: bool,
     pub history_max_entries: u32,
+    pub auto_update_enabled: bool,
 }
 
 impl Default for Config {
@@ -79,6 +80,7 @@ impl Default for Config {
             sound_confirm_enabled: true,
             history_enabled: true,
             history_max_entries: 500,
+            auto_update_enabled: true,
         }
     }
 }

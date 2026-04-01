@@ -11,11 +11,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import type { Config, TextOutputMode } from "@/shared/types/config";
 import { WaveformBars } from "@/components/WaveformBars";
-import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
 import { HotkeyInput } from "../components/HotkeyInput";
 import { ErrorMessage } from "../components/ErrorMessage";
-import { PageHeader } from "../components/PageHeader";
+import { SectionHeader } from "../components/SectionHeader";
+import { SectionDivider } from "../components/SectionDivider";
 
 const SYSTEM_DEFAULT_MIC = "system-default";
 
@@ -78,9 +78,8 @@ export function GeneralPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title="General" description="Input, output, and system preferences" />
-
-      <SettingsCard title="Microphone">
+      <SectionHeader>Microphone</SectionHeader>
+      <SettingRow label="Device" inline>
         {microphonesLoading ? (
           <span className="text-sm text-muted-foreground">Loading...</span>
         ) : microphonesError ? (
@@ -107,7 +106,9 @@ export function GeneralPage({
             </SelectContent>
           </Select>
         )}
-        <div className="flex items-center gap-3">
+      </SettingRow>
+      <SettingRow label="Test" inline>
+        <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="sm"
@@ -119,64 +120,67 @@ export function GeneralPage({
           </Button>
           {isTesting && <WaveformBars amplitudes={micTestAmplitudes} />}
         </div>
-      </SettingsCard>
+      </SettingRow>
 
-      <SettingsCard title="Hotkey" description="Push-to-talk keyboard shortcut">
-        <SettingRow
-          label={hotkeyRegistering ? "Push-to-talk (Registering...)" : "Push-to-talk"}
-          description="Hold to record, release to transcribe. Function keys (F1-F24) work without modifiers."
+      <SectionDivider />
+
+      <SectionHeader>Hotkey</SectionHeader>
+      <SettingRow
+        label={hotkeyRegistering ? "Push-to-talk (Registering...)" : "Push-to-talk"}
+        description="Hold to record, release to transcribe. Function keys (F1-F24) work without modifiers."
+      >
+        <HotkeyInput
+          value={config?.hotkey || null}
+          onChange={(hotkey) => updateConfig({ hotkey })}
+          error={hotkeyError}
+          onValidate={validateAndRegister}
+        />
+      </SettingRow>
+      <SettingRow label="Double-tap to toggle" description="Double-tap to start continuous recording, tap again to stop" inline>
+        <Switch
+          checked={config?.double_tap_toggle || false}
+          onCheckedChange={(double_tap_toggle) => updateConfig({ double_tap_toggle })}
+        />
+      </SettingRow>
+
+      <SectionDivider />
+
+      <SectionHeader>Output</SectionHeader>
+      <SettingRow label="Text output" description="How transcribed text is delivered">
+        <Select
+          value={config?.text_output_mode || "inject"}
+          onValueChange={(value) => updateConfig({ text_output_mode: value as TextOutputMode })}
+          items={OUTPUT_MODE_ITEMS}
         >
-          <HotkeyInput
-            value={config?.hotkey || null}
-            onChange={(hotkey) => updateConfig({ hotkey })}
-            error={hotkeyError}
-            onValidate={validateAndRegister}
-          />
-        </SettingRow>
-        <SettingRow label="Double-tap to toggle" description="Double-tap to start continuous recording, tap again to stop" inline>
-          <Switch
-            checked={config?.double_tap_toggle || false}
-            onCheckedChange={(double_tap_toggle) => updateConfig({ double_tap_toggle })}
-          />
-        </SettingRow>
-      </SettingsCard>
+          <SelectTrigger className="w-full text-[13px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            {OUTPUT_MODE_ITEMS.map((item) => (
+              <SelectItem key={item.value} value={item.value} className="text-[13px]">
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </SettingRow>
+      <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>
+        <Switch
+          checked={config?.trailing_space || false}
+          onCheckedChange={(trailing_space) => updateConfig({ trailing_space })}
+        />
+      </SettingRow>
 
-      <SettingsCard title="Output">
-        <SettingRow label="Text output" description="How transcribed text is delivered">
-          <Select
-            value={config?.text_output_mode || "inject"}
-            onValueChange={(value) => updateConfig({ text_output_mode: value as TextOutputMode })}
-            items={OUTPUT_MODE_ITEMS}
-          >
-            <SelectTrigger className="w-full text-[13px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {OUTPUT_MODE_ITEMS.map((item) => (
-                <SelectItem key={item.value} value={item.value} className="text-[13px]">
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingRow>
-        <SettingRow label="Add space after text" description="Append a trailing space after transcribed text" inline>
-          <Switch
-            checked={config?.trailing_space || false}
-            onCheckedChange={(trailing_space) => updateConfig({ trailing_space })}
-          />
-        </SettingRow>
-      </SettingsCard>
+      <SectionDivider />
 
-      <SettingsCard title="System">
-        <SettingRow label="Start with Windows" inline>
-          <Switch
-            checked={config?.auto_start || false}
-            onCheckedChange={handleAutoStartToggle}
-          />
-        </SettingRow>
-        {autoStartError && <ErrorMessage message={autoStartError} />}
-      </SettingsCard>
+      <SectionHeader>System</SectionHeader>
+      <SettingRow label="Start with Windows" inline>
+        <Switch
+          checked={config?.auto_start || false}
+          onCheckedChange={handleAutoStartToggle}
+        />
+      </SettingRow>
+      {autoStartError && <ErrorMessage message={autoStartError} />}
     </div>
   );
 }
