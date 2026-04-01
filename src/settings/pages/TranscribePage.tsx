@@ -9,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { STT_PROVIDER_LABELS } from "@/shared/constants/providers";
 import { SettingsCard } from "../components/SettingsCard";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { SectionHeader } from "../components/SectionHeader";
