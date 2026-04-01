@@ -62,6 +62,7 @@ export default function SettingsApp(): React.ReactNode {
         activePage={activePage}
         onNavigate={setActivePage}
         version={version}
+        saved={saved}
       >
         <UpdateCard status={updateStatus} />
       </TabBar>

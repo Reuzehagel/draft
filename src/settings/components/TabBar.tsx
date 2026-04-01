@@ -26,15 +26,21 @@ interface TabBarProps {
   activePage: TopPage;
   onNavigate: (page: TopPage) => void;
   version: string | null;
+  saved: boolean;
   children?: React.ReactNode; // Slot for UpdateCard
 }
 
-export function TabBar({ activePage, onNavigate, version, children }: TabBarProps): React.ReactNode {
+export function TabBar({ activePage, onNavigate, version, saved, children }: TabBarProps): React.ReactNode {
   return (
     <div className="border-b border-border flex-shrink-0" data-tauri-drag-region>
       <div className="flex items-center justify-between px-5 pt-3.5 pb-0" data-tauri-drag-region>
         <span className="text-sm font-bold tracking-tight text-foreground">Draft</span>
         <div className="flex items-center gap-2">
+          <span
+            className={`text-[10px] text-success transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}
+          >
+            Saved
+          </span>
           {children}
           {version && (
             <Badge variant="outline" className="text-[10px] font-mono px-1.5 h-4 text-muted-foreground">
