@@ -11,10 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Config } from "@/shared/types/config";
-import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
 import { ApiKeyInput } from "../components/ApiKeyInput";
-import { PageHeader } from "../components/PageHeader";
+import { SectionHeader } from "../components/SectionHeader";
+import { SectionDivider } from "../components/SectionDivider";
 
 const LLM_DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4o-mini",
@@ -41,20 +41,21 @@ interface PostProcessPageProps {
 
 export function PostProcessPage({ config, updateConfig }: PostProcessPageProps): React.ReactNode {
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Post Process" description="AI enhancement for transcribed text" />
+    <div className="flex flex-col">
+      <SectionHeader>AI Enhancement</SectionHeader>
 
-      <SettingsCard title="AI Enhancement" description="Clean up and transform transcribed text">
-        <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
-          <Switch
-            checked={config?.llm_auto_process || false}
-            onCheckedChange={(llm_auto_process) => updateConfig({ llm_auto_process })}
-          />
-        </SettingRow>
-      </SettingsCard>
+      <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
+        <Switch
+          checked={config?.llm_auto_process || false}
+          onCheckedChange={(llm_auto_process) => updateConfig({ llm_auto_process })}
+        />
+      </SettingRow>
 
       {config?.llm_auto_process && (
-        <SettingsCard title="LLM Settings">
+        <>
+          <SectionDivider />
+          <SectionHeader>LLM Settings</SectionHeader>
+
           <SettingRow label="Confirm before enhancing" description="Prompt Y/N before sending to LLM" inline>
             <Switch
               checked={config?.llm_confirm_before_processing || false}
@@ -112,7 +113,7 @@ export function PostProcessPage({ config, updateConfig }: PostProcessPageProps):
             <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
             <span>Voice commands: start with an instruction like &ldquo;reply saying...&rdquo; or &ldquo;make this professional&rdquo;</span>
           </p>
-        </SettingsCard>
+        </>
       )}
     </div>
   );
