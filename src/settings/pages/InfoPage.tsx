@@ -59,7 +59,10 @@ export function InfoPage({ updateStatus }: InfoPageProps): React.ReactNode {
   const [selectedVersion, setSelectedVersion] = useState<string | null>(
     versions[0] ?? null,
   );
-  const changelogEntries = parseEntries(changelogRaw, selectedVersion);
+  const changelogEntries = useMemo(
+    () => parseEntries(changelogRaw, selectedVersion),
+    [selectedVersion],
+  );
   const isChecking = updateStatus.status === "checking";
 
   return (
