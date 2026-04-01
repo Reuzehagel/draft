@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { useDarkMode } from "./hooks/useDarkMode";
@@ -10,7 +10,8 @@ import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { useFileTranscription } from "./hooks/useFileTranscription";
 import { useUpdateStatus } from "./hooks/useUpdateStatus";
-import { Sidebar, type Page } from "./components/Sidebar";
+import { AppSidebar, type Page } from "./components/Sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { GeneralPage } from "./pages/GeneralPage";
 import { ModelsPage } from "./pages/ModelsPage";
 import { PostProcessPage } from "./pages/PostProcessPage";
@@ -59,8 +60,11 @@ export default function SettingsApp(): React.ReactNode {
   const llmConfigured = !!(config?.llm_provider && config?.llm_api_key);
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      <Sidebar
+    <SidebarProvider
+      style={{ "--sidebar-width": "172px" } as React.CSSProperties}
+      className="h-screen"
+    >
+      <AppSidebar
         activePage={activePage}
         onNavigate={setActivePage}
         isDark={isDark}
@@ -70,7 +74,7 @@ export default function SettingsApp(): React.ReactNode {
         updateStatus={updateStatus}
       />
 
-      <main className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
+      <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
         <div className="p-5 max-w-lg mx-auto">
           {activePage === "general" && (
             <GeneralPage
@@ -124,7 +128,7 @@ export default function SettingsApp(): React.ReactNode {
             />
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 }

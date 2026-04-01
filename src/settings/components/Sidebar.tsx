@@ -11,7 +11,18 @@ import {
   SlidersHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarSeparator,
+} from "@/components/ui/sidebar";
 import { UpdateCard } from "./UpdateCard";
 import type { UpdateStatus } from "@/shared/types/updater";
 
@@ -42,7 +53,7 @@ const OTHER_NAV: NavItem[] = [
   { page: "info", label: "Info", icon: InformationCircleIcon },
 ];
 
-interface SidebarProps {
+interface AppSidebarProps {
   activePage: Page;
   onNavigate: (page: Page) => void;
   isDark: boolean;
@@ -52,89 +63,90 @@ interface SidebarProps {
   updateStatus: UpdateStatus;
 }
 
-function NavButton({
-  item,
-  isActive,
-  onClick,
+function NavGroup({
+  items,
+  activePage,
+  onNavigate,
 }: {
-  item: NavItem;
-  isActive: boolean;
-  onClick: () => void;
-}): React.ReactNode {
+  items: NavItem[];
+  activePage: Page;
+  onNavigate: (page: Page) => void;
+}) {
   return (
-    <button
-      onClick={onClick}
-      aria-current={isActive ? "page" : undefined}
-      className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] transition-colors ${
-        isActive
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-      }`}
-    >
-      <HugeiconsIcon icon={item.icon} size={16} />
-      {item.label}
-    </button>
+    <SidebarGroup>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarMenuItem key={item.page}>
+              <SidebarMenuButton
+                size="sm"
+                isActive={activePage === item.page}
+                onClick={() => onNavigate(item.page)}
+              >
+                <HugeiconsIcon icon={item.icon} size={16} />
+                <span>{item.label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 }
 
-function NavGroup({ items, activePage, onNavigate }: { items: NavItem[]; activePage: Page; onNavigate: (page: Page) => void }): React.ReactNode {
+export function AppSidebar({
+  activePage,
+  onNavigate,
+  isDark,
+  toggleDarkMode,
+  version,
+  saved,
+  updateStatus,
+}: AppSidebarProps) {
   return (
-    <div className="flex flex-col gap-0.5">
-      {items.map((item) => (
-        <NavButton
-          key={item.page}
-          item={item}
-          isActive={activePage === item.page}
-          onClick={() => onNavigate(item.page)}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function Sidebar({ activePage, onNavigate, isDark, toggleDarkMode, version, saved, updateStatus }: SidebarProps): React.ReactNode {
-  return (
-    <aside className="w-[172px] shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col">
-      <div className="px-4 py-3">
+    <Sidebar collapsible="none">
+      <SidebarHeader className="px-4 py-3">
         <span className="text-sm font-bold tracking-tight text-sidebar-foreground">
           Draft
         </span>
-      </div>
+      </SidebarHeader>
 
-      <nav className="flex-1 px-2 flex flex-col gap-3 overflow-hidden">
+      <SidebarContent>
         <NavGroup items={FEATURE_NAV} activePage={activePage} onNavigate={onNavigate} />
-        <Separator className="mx-1" />
+        <SidebarSeparator />
         <NavGroup items={SETTINGS_NAV} activePage={activePage} onNavigate={onNavigate} />
-        <Separator className="mx-1" />
+        <SidebarSeparator />
         <NavGroup items={OTHER_NAV} activePage={activePage} onNavigate={onNavigate} />
-      </nav>
+      </SidebarContent>
 
       <UpdateCard status={updateStatus} />
 
-      <div className="px-3 py-2.5 border-t border-sidebar-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleDarkMode}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={14} />
-          </button>
-          <span
-            className={`text-[11px] text-success transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}
-            role="status"
-            aria-live="polite"
-          >
-            Saved
-          </span>
+      <SidebarFooter className="border-t border-sidebar-border px-3 py-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDarkMode}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              <HugeiconsIcon icon={isDark ? Sun01Icon : Moon01Icon} size={14} />
+            </button>
+            <span
+              className={`text-[11px] text-success transition-opacity duration-200 ${saved ? "opacity-100" : "opacity-0"}`}
+              role="status"
+              aria-live="polite"
+            >
+              Saved
+            </span>
+          </div>
+          {version && (
+            <Badge variant="outline" className="text-[10px] font-mono px-1.5 h-4 text-muted-foreground">
+              v{version}
+            </Badge>
+          )}
         </div>
-        {version && (
-          <Badge variant="outline" className="text-[10px] font-mono px-1.5 h-4 text-muted-foreground">
-            v{version}
-          </Badge>
-        )}
-      </div>
-    </aside>
+      </SidebarFooter>
+    </Sidebar>
   );
 }
