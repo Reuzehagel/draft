@@ -68,23 +68,21 @@ export default function SettingsApp(): React.ReactNode {
       </TabBar>
 
       {activePage === "more" ? (
-        <div className="flex-1 overflow-hidden px-5">
-          <MorePage
-            config={config}
-            updateConfig={updateConfig}
-            isDark={isDark}
-            toggleDarkMode={toggleDarkMode}
-            version={version}
-            fileTranscription={fileTranscription}
-            whisperBusy={whisperHook.isBusy}
-            loadedModel={whisperHook.loadedModel}
-            llmConfigured={llmConfigured}
-            sttProvider={config?.stt_provider ?? null}
-          />
-        </div>
+        <MorePage
+          config={config}
+          updateConfig={updateConfig}
+          isDark={isDark}
+          toggleDarkMode={toggleDarkMode}
+          version={version}
+          fileTranscription={fileTranscription}
+          whisperBusy={whisperHook.isBusy}
+          loadedModel={whisperHook.loadedModel}
+          llmConfigured={llmConfigured}
+          sttProvider={config?.stt_provider ?? null}
+        />
       ) : (
         <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-          <div className="px-5 py-5 max-w-lg mx-auto">
+          <div className="px-5 py-5">
             {activePage === "home" && (
               <HomePage
                 config={config}

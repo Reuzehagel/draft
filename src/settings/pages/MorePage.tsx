@@ -36,9 +36,11 @@ export function MorePage({
   const [activeSub, setActiveSub] = useState<MoreSubPage>("post-process");
 
   return (
-    <div className="flex flex-col h-full">
-      <SubTabBar activeSub={activeSub} onNavigate={setActiveSub} />
-      <div className="flex-1 overflow-y-auto py-5 max-w-lg mx-auto" style={{ scrollbarGutter: "stable" }}>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="px-5">
+        <SubTabBar activeSub={activeSub} onNavigate={setActiveSub} />
+      </div>
+      <div className="flex-1 overflow-y-auto px-5 py-5" style={{ scrollbarGutter: "stable" }}>
         {activeSub === "post-process" && (
           <PostProcessPage config={config} updateConfig={updateConfig} />
         )}
@@ -62,3 +64,4 @@ export function MorePage({
     </div>
   );
 }
+

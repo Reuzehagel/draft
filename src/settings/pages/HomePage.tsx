@@ -149,7 +149,7 @@ export function HomePage({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="flex flex-col -mx-3 rounded-lg border border-border overflow-hidden">
+          <div className="flex flex-col rounded-lg border border-border overflow-hidden">
             {recentEntries.map((entry, i) => (
               <div key={entry.id}>
                 {i > 0 && <Separator />}
