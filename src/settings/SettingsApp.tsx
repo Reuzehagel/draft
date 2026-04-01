@@ -10,18 +10,15 @@ import { useModels } from "./useModels";
 import { useWhisper } from "./useWhisper";
 import { useFileTranscription } from "./hooks/useFileTranscription";
 import { useUpdateStatus } from "./hooks/useUpdateStatus";
-import { AppSidebar, type Page } from "./components/Sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { TabBar, type TopPage } from "./components/TabBar";
+import { UpdateCard } from "./components/UpdateCard";
 import { GeneralPage } from "./pages/GeneralPage";
 import { ModelsPage } from "./pages/ModelsPage";
-import { PostProcessPage } from "./pages/PostProcessPage";
-import { AdvancedPage } from "./pages/AdvancedPage";
-import { HistoryPage } from "./pages/HistoryPage";
-import { InfoPage } from "./pages/InfoPage";
-import { TranscribePage } from "./pages/TranscribePage";
+import { HomePage } from "./pages/HomePage";
+import { MorePage } from "./pages/MorePage";
 
 export default function SettingsApp(): React.ReactNode {
-  const [activePage, setActivePage] = useState<Page>("general");
+  const [activePage, setActivePage] = useState<TopPage>("home");
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { config, updateConfig, loading, saved } = useConfig();
   const {
@@ -60,75 +57,69 @@ export default function SettingsApp(): React.ReactNode {
   const llmConfigured = !!(config?.llm_provider && config?.llm_api_key);
 
   return (
-    <SidebarProvider
-      style={{ "--sidebar-width": "172px" } as React.CSSProperties}
-      className="h-screen"
-    >
-      <AppSidebar
+    <div className="h-screen flex flex-col bg-background">
+      <TabBar
         activePage={activePage}
         onNavigate={setActivePage}
-        isDark={isDark}
-        toggleDarkMode={toggleDarkMode}
         version={version}
-        saved={saved}
-        updateStatus={updateStatus}
-      />
+      >
+        <UpdateCard status={updateStatus} />
+      </TabBar>
 
-      <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-        <div className="p-5 max-w-lg mx-auto">
-          {activePage === "general" && (
-            <GeneralPage
-              config={config}
-              updateConfig={updateConfig}
-              microphones={microphones}
-              microphonesLoading={microphonesLoading}
-              microphonesError={microphonesError}
-              isTesting={isTesting}
-              micTestAmplitudes={micTestAmplitudes}
-              startTest={startTest}
-              hotkeyError={hotkeyError}
-              hotkeyRegistering={hotkeyRegistering}
-              validateAndRegister={validateAndRegister}
-            />
-          )}
-          {activePage === "models" && (
-            <ModelsPage
-              config={config}
-              updateConfig={updateConfig}
-              modelsHook={modelsHook}
-              whisperHook={whisperHook}
-              isTesting={isTesting}
-            />
-          )}
-          {activePage === "post-process" && (
-            <PostProcessPage
-              config={config}
-              updateConfig={updateConfig}
-            />
-          )}
-          {activePage === "advanced" && (
-            <AdvancedPage
-              config={config}
-              updateConfig={updateConfig}
-              isDark={isDark}
-              toggleDarkMode={toggleDarkMode}
-            />
-          )}
-          {activePage === "history" && (
-            <HistoryPage config={config} updateConfig={updateConfig} />
-          )}
-          {activePage === "info" && <InfoPage version={version} />}
-          {activePage === "transcribe" && (
-            <TranscribePage
-              fileTranscription={fileTranscription}
-              whisperBusy={whisperHook.isBusy}
-              loadedModel={whisperHook.loadedModel}
-              llmConfigured={llmConfigured}
-              sttProvider={config?.stt_provider ?? null}
-            />
-          )}
+      {activePage === "more" ? (
+        <div className="flex-1 overflow-hidden px-5">
+          <MorePage
+            config={config}
+            updateConfig={updateConfig}
+            isDark={isDark}
+            toggleDarkMode={toggleDarkMode}
+            version={version}
+            fileTranscription={fileTranscription}
+            whisperBusy={whisperHook.isBusy}
+            loadedModel={whisperHook.loadedModel}
+            llmConfigured={llmConfigured}
+            sttProvider={config?.stt_provider ?? null}
+          />
         </div>
-      </div>
-    </SidebarProvider>
+      ) : (
+        <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
+          <div className="px-5 py-5 max-w-lg mx-auto">
+            {activePage === "home" && (
+              <HomePage
+                config={config}
+                onNavigate={setActivePage}
+                loadedModel={whisperHook.loadedModel}
+                isModelLoading={whisperHook.isModelLoading}
+                selectedModel={config?.selected_model ?? null}
+              />
+            )}
+            {activePage === "general" && (
+              <GeneralPage
+                config={config}
+                updateConfig={updateConfig}
+                microphones={microphones}
+                microphonesLoading={microphonesLoading}
+                microphonesError={microphonesError}
+                isTesting={isTesting}
+                micTestAmplitudes={micTestAmplitudes}
+                startTest={startTest}
+                hotkeyError={hotkeyError}
+                hotkeyRegistering={hotkeyRegistering}
+                validateAndRegister={validateAndRegister}
+              />
+            )}
+            {activePage === "models" && (
+              <ModelsPage
+                config={config}
+                updateConfig={updateConfig}
+                modelsHook={modelsHook}
+                whisperHook={whisperHook}
+                isTesting={isTesting}
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
