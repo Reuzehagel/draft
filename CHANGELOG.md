@@ -4,6 +4,16 @@ All notable changes to Draft will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0] - 2026-04-01
+
+### Changed
+- Replaced vertical sidebar navigation with horizontal underline tab bar (Home, General, Models, More)
+- Added new Home page with live status cards (model, hotkey, engine) and recent transcriptions
+- Converted all settings pages from card-based layout to flat sections with dividers
+- Consolidated 7 navigation pages into 4 tabs with "More" containing sub-tabs (Post Process, Advanced, History, Transcribe, About)
+- Simplified Info page to a focused About section with changelog only
+- Made update card compact for inline display in the tab bar header
+
 ## [0.1.0] - 2026-03-31
 
 ### Added

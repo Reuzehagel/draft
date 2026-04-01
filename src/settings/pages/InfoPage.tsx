@@ -1,6 +1,9 @@
+import { invoke } from "@tauri-apps/api/core";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
+import { Button } from "@/components/ui/button";
 import { SectionHeader } from "../components/SectionHeader";
+import type { UpdateStatus } from "@/shared/types/updater";
 import changelogRaw from "../../../CHANGELOG.md?raw";
 
 /** Parse the current version's changelog entries from the raw CHANGELOG.md string. */
@@ -30,14 +33,27 @@ function parseChangelog(raw: string, version: string | null): string[] {
 
 interface InfoPageProps {
   version: string | null;
+  updateStatus: UpdateStatus;
 }
 
-export function InfoPage({ version }: InfoPageProps): React.ReactNode {
+export function InfoPage({ version, updateStatus }: InfoPageProps): React.ReactNode {
   const changelogEntries = parseChangelog(changelogRaw, version);
+  const isChecking = updateStatus.status === "checking";
 
   return (
     <div className="flex flex-col">
-      <SectionHeader>What's New</SectionHeader>
+      <div className="flex items-center justify-between">
+        <SectionHeader>What's New</SectionHeader>
+        <Button
+          variant="outline"
+          size="xs"
+          className="text-xs"
+          disabled={isChecking}
+          onClick={() => invoke("check_for_update")}
+        >
+          {isChecking ? "Checking..." : "Check for updates"}
+        </Button>
+      </div>
       <p className="text-xs text-muted-foreground mb-3">Changes in v{version}</p>
       {changelogEntries.length > 0 ? (
         <ul className="flex flex-col gap-1">

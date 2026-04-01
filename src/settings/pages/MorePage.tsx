@@ -7,6 +7,7 @@ import { TranscribePage } from "./TranscribePage";
 import { InfoPage } from "./InfoPage";
 import type { Config } from "@/shared/types/config";
 import type { FileTranscriptionState } from "../hooks/useFileTranscription";
+import type { UpdateStatus } from "@/shared/types/updater";
 
 interface MorePageProps {
   config: Config | null;
@@ -19,6 +20,7 @@ interface MorePageProps {
   loadedModel: string | null;
   llmConfigured: boolean;
   sttProvider: string | null;
+  updateStatus: UpdateStatus;
 }
 
 export function MorePage({
@@ -32,6 +34,7 @@ export function MorePage({
   loadedModel,
   llmConfigured,
   sttProvider,
+  updateStatus,
 }: MorePageProps): React.ReactNode {
   const [activeSub, setActiveSub] = useState<MoreSubPage>("post-process");
 
@@ -59,7 +62,7 @@ export function MorePage({
             sttProvider={sttProvider}
           />
         )}
-        {activeSub === "about" && <InfoPage version={version} />}
+        {activeSub === "about" && <InfoPage version={version} updateStatus={updateStatus} />}
       </div>
     </div>
   );

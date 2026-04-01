@@ -39,10 +39,10 @@ export function TranscribePage({
   else if (ft.isTranscribing) buttonText = "Transcribing...";
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-4">
       <SectionHeader>Audio File</SectionHeader>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <Button
           variant="outline"
           size="sm"
@@ -63,7 +63,7 @@ export function TranscribePage({
         Supported: WAV, MP3, FLAC, OGG, AAC, M4A, AIFF
       </p>
 
-      <div className="flex items-center gap-3 mt-3">
+      <div className="flex items-center gap-4 mt-3">
         <Button
           size="sm"
           className="h-8 text-xs"

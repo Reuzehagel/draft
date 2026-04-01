@@ -70,7 +70,7 @@ interface AdvancedPageProps {
 
 export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: AdvancedPageProps): React.ReactNode {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-4">
       <SectionHeader>Appearance</SectionHeader>
       <SettingRow label="Dark mode" inline>
         <Switch checked={isDark} onCheckedChange={toggleDarkMode} />
@@ -87,7 +87,7 @@ export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: A
       </SettingRow>
 
       <SettingRow label="Volume">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Slider
             value={[Math.round((config?.sound_volume ?? 0.5) * 100)]}
             min={0}
@@ -119,7 +119,7 @@ export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: A
         style={{ gridTemplateRows: config?.sound_effects_enabled ? "1fr" : "0fr" }}
       >
         <div className="overflow-hidden">
-          <div className="flex flex-col gap-1 pt-1">
+          <div className="flex flex-col gap-2 pt-1">
             {SOUND_TOGGLES.map(({ label, key }) => (
               <SettingRow key={key} label={label} inline>
                 <Switch

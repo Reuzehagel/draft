@@ -79,6 +79,7 @@ export default function SettingsApp(): React.ReactNode {
           loadedModel={whisperHook.loadedModel}
           llmConfigured={llmConfigured}
           sttProvider={config?.stt_provider ?? null}
+          updateStatus={updateStatus}
         />
       ) : (
         <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>

@@ -157,7 +157,7 @@ export function HistoryPage({ config, updateConfig }: HistoryPageProps): React.R
   const { entries, loading, deleteEntry, clearAll } = useHistory();
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-4">
       <SectionHeader>Settings</SectionHeader>
       <SettingRow label="Save history" description="Record transcriptions for later review" inline>
         <Switch

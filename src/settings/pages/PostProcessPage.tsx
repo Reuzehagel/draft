@@ -41,7 +41,7 @@ interface PostProcessPageProps {
 
 export function PostProcessPage({ config, updateConfig }: PostProcessPageProps): React.ReactNode {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-4">
       <SectionHeader>AI Enhancement</SectionHeader>
 
       <SettingRow label="Enable enhancement" description="Process text through an LLM before injection" inline>
@@ -109,7 +109,7 @@ export function PostProcessPage({ config, updateConfig }: PostProcessPageProps):
             />
           </SettingRow>
 
-          <p className="text-xs text-muted-foreground flex items-start gap-1.5 pt-1">
+          <p className="text-xs text-muted-foreground flex items-start gap-4 pt-1">
             <HugeiconsIcon icon={InformationCircleIcon} size={14} className="shrink-0 mt-0.5" />
             <span>Voice commands: start with an instruction like &ldquo;reply saying...&rdquo; or &ldquo;make this professional&rdquo;</span>
           </p>

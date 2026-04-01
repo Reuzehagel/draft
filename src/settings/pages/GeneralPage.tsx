@@ -77,7 +77,7 @@ export function GeneralPage({
     : micItems.find((m) => m.value === SYSTEM_DEFAULT_MIC)?.value ?? micItems[0]?.value;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-4">
       <SectionHeader>Microphone</SectionHeader>
       <SettingRow label="Device" inline>
         {microphonesLoading ? (
@@ -108,7 +108,7 @@ export function GeneralPage({
         )}
       </SettingRow>
       <SettingRow label="Test" inline>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="sm"
