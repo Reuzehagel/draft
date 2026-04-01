@@ -14,9 +14,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Config } from "@/shared/types/config";
-import { SettingsCard } from "../components/SettingsCard";
 import { SettingRow } from "../components/SettingRow";
-import { PageHeader } from "../components/PageHeader";
+import { SectionHeader } from "../components/SectionHeader";
+import { SectionDivider } from "../components/SectionDivider";
 
 /** Default config values (mirrors Rust Config::default). Excludes window geometry (managed by Rust). */
 const DEFAULT_CONFIG: Omit<Config, "window_position" | "window_size"> = {
@@ -70,149 +70,150 @@ interface AdvancedPageProps {
 
 export function AdvancedPage({ config, updateConfig, isDark, toggleDarkMode }: AdvancedPageProps): React.ReactNode {
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader title="Advanced" description="Appearance, sounds, and other options" />
+    <div className="flex flex-col">
+      <SectionHeader>Appearance</SectionHeader>
+      <SettingRow label="Dark mode" inline>
+        <Switch checked={isDark} onCheckedChange={toggleDarkMode} />
+      </SettingRow>
 
-      <SettingsCard title="Appearance">
-        <SettingRow label="Dark mode" inline>
-          <Switch checked={isDark} onCheckedChange={toggleDarkMode} />
-        </SettingRow>
-      </SettingsCard>
+      <SectionDivider />
 
-      <SettingsCard title="Sound Effects" description="Audio feedback for recording events">
-        <SettingRow label="Enable sounds" inline>
-          <Switch
-            checked={config?.sound_effects_enabled ?? true}
-            onCheckedChange={(sound_effects_enabled) => updateConfig({ sound_effects_enabled })}
+      <SectionHeader>Sound Effects</SectionHeader>
+      <SettingRow label="Enable sounds" inline>
+        <Switch
+          checked={config?.sound_effects_enabled ?? true}
+          onCheckedChange={(sound_effects_enabled) => updateConfig({ sound_effects_enabled })}
+        />
+      </SettingRow>
+
+      <SettingRow label="Volume">
+        <div className="flex items-center gap-3">
+          <Slider
+            value={[Math.round((config?.sound_volume ?? 0.5) * 100)]}
+            min={0}
+            max={100}
+            onValueChange={(value) => {
+              const v = Array.isArray(value) ? value[0] : value;
+              updateConfig({ sound_volume: v / 100 });
+            }}
+            disabled={!config?.sound_effects_enabled}
+            className="flex-1"
           />
-        </SettingRow>
+          <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
+            {Math.round((config?.sound_volume ?? 0.5) * 100)}%
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            disabled={!config?.sound_effects_enabled}
+            onClick={() => invoke("test_sound")}
+          >
+            Test
+          </Button>
+        </div>
+      </SettingRow>
 
-        <SettingRow label="Volume">
-          <div className="flex items-center gap-3">
-            <Slider
-              value={[Math.round((config?.sound_volume ?? 0.5) * 100)]}
-              min={0}
-              max={100}
-              onValueChange={(value) => {
-                const v = Array.isArray(value) ? value[0] : value;
-                updateConfig({ sound_volume: v / 100 });
-              }}
-              disabled={!config?.sound_effects_enabled}
-              className="flex-1"
-            />
-            <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
-              {Math.round((config?.sound_volume ?? 0.5) * 100)}%
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs text-muted-foreground hover:text-foreground"
-              disabled={!config?.sound_effects_enabled}
-              onClick={() => invoke("test_sound")}
-            >
-              Test
-            </Button>
-          </div>
-        </SettingRow>
-
-        <div
-          className="grid transition-[grid-template-rows] duration-200 ease-out"
-          style={{ gridTemplateRows: config?.sound_effects_enabled ? "1fr" : "0fr" }}
-        >
-          <div className="overflow-hidden">
-            <div className="flex flex-col gap-1 pt-1">
-              {SOUND_TOGGLES.map(({ label, key }) => (
-                <SettingRow key={key} label={label} inline>
-                  <Switch
-                    checked={config?.[key] ?? true}
-                    onCheckedChange={(value) => updateConfig({ [key]: value })}
-                  />
-                </SettingRow>
-              ))}
-            </div>
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: config?.sound_effects_enabled ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+          <div className="flex flex-col gap-1 pt-1">
+            {SOUND_TOGGLES.map(({ label, key }) => (
+              <SettingRow key={key} label={label} inline>
+                <Switch
+                  checked={config?.[key] ?? true}
+                  onCheckedChange={(value) => updateConfig({ [key]: value })}
+                />
+              </SettingRow>
+            ))}
           </div>
         </div>
-      </SettingsCard>
+      </div>
 
-      <SettingsCard title="Logging">
-        <SettingRow
-          label="Enable logging"
-          description="Logs to %APPDATA%\Draft\logs (restart required)"
-          inline
-        >
-          <Switch
-            checked={config?.logging_enabled || false}
-            onCheckedChange={(logging_enabled) => updateConfig({ logging_enabled })}
-          />
-        </SettingRow>
-      </SettingsCard>
+      <SectionDivider />
 
-      <SettingsCard title="Updates">
-        <SettingRow label="Auto-update" description="Check for updates on startup" inline>
-          <Switch
-            checked={config?.auto_update_enabled ?? true}
-            onCheckedChange={(auto_update_enabled) => updateConfig({ auto_update_enabled })}
-          />
-        </SettingRow>
-      </SettingsCard>
+      <SectionHeader>Logging</SectionHeader>
+      <SettingRow
+        label="Enable logging"
+        description="Logs to %APPDATA%\Draft\logs (restart required)"
+        inline
+      >
+        <Switch
+          checked={config?.logging_enabled || false}
+          onCheckedChange={(logging_enabled) => updateConfig({ logging_enabled })}
+        />
+      </SettingRow>
 
-      <SettingsCard title="Reset" description="Restore settings to their original values">
-        <div className="flex gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger render={<Button variant="outline" />}>
-              Reset to defaults
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reset to defaults?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will reset all settings to their default values but keep your API keys.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    if (!config) return;
-                    const preserved: Partial<Config> = {};
-                    for (const key of SENSITIVE_KEYS) {
-                      if (config[key] != null) {
-                        (preserved as Record<string, unknown>)[key] = config[key];
-                      }
+      <SectionDivider />
+
+      <SectionHeader>Updates</SectionHeader>
+      <SettingRow label="Auto-update" description="Check for updates on startup" inline>
+        <Switch
+          checked={config?.auto_update_enabled ?? true}
+          onCheckedChange={(auto_update_enabled) => updateConfig({ auto_update_enabled })}
+        />
+      </SettingRow>
+
+      <SectionDivider />
+
+      <SectionHeader>Reset</SectionHeader>
+      <div className="flex gap-2">
+        <AlertDialog>
+          <AlertDialogTrigger render={<Button variant="outline" />}>
+            Reset to defaults
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset to defaults?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will reset all settings to their default values but keep your API keys.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (!config) return;
+                  const preserved: Partial<Config> = {};
+                  for (const key of SENSITIVE_KEYS) {
+                    if (config[key] != null) {
+                      (preserved as Record<string, unknown>)[key] = config[key];
                     }
-                    updateConfig({ ...DEFAULT_CONFIG, ...preserved });
-                  }}
-                >
-                  Reset
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  }
+                  updateConfig({ ...DEFAULT_CONFIG, ...preserved });
+                }}
+              >
+                Reset
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-          <AlertDialog>
-            <AlertDialogTrigger render={<Button variant="outline" />}>
-              Reset everything
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reset everything?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will erase all settings including API keys and return everything to a blank state. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="destructive"
-                  onClick={() => updateConfig({ ...DEFAULT_CONFIG })}
-                >
-                  Erase everything
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </SettingsCard>
+        <AlertDialog>
+          <AlertDialogTrigger render={<Button variant="outline" />}>
+            Reset everything
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset everything?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will erase all settings including API keys and return everything to a blank state. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => updateConfig({ ...DEFAULT_CONFIG })}
+              >
+                Erase everything
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
