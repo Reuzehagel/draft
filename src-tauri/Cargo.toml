@@ -69,12 +69,8 @@ flate2 = "1.0"
 transcribe-rs = { version = "0.3", features = ["whisper-cpp", "ort-directml"] }
 # TODO: Switch whisper-cpp to whisper-vulkan after installing Vulkan SDK
 
-# Release profile optimizations for whisper-rs native code performance
+# Release profile optimizations
 [profile.release]
 opt-level = 3
 lto = "thin"
-codegen-units = 1
-
-# Also optimize dependencies in release mode
-[profile.release.package."*"]
-opt-level = 3
+strip = true
