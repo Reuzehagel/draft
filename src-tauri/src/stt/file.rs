@@ -7,6 +7,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use windows::core::HSTRING;
+use windows::Win32::System::Registry;
+
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::DecoderOptions;
 use symphonia::core::formats::FormatOptions;
@@ -18,27 +21,149 @@ use tauri::{AppHandle, Emitter};
 use crate::audio::resampler::AudioResampler;
 use crate::events;
 
+/// Find ffmpeg executable, checking both inherited PATH and fresh registry PATH.
+///
+/// GUI apps on Windows inherit PATH from explorer.exe, which only reads it at
+/// login. If ffmpeg was added to PATH after that, it won't be found via normal
+/// Command::new("ffmpeg"). This function falls back to reading the current PATH
+/// directly from the Windows registry.
+fn find_ffmpeg() -> Option<std::path::PathBuf> {
+    // First, check if ffmpeg is on the inherited PATH
+    if let Ok(output) = std::process::Command::new("ffmpeg")
+        .arg("-version")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .creation_flags(0x08000000)
+        .status()
+    {
+        if output.success() {
+            return Some(std::path::PathBuf::from("ffmpeg"));
+        }
+    }
+
+    // Read fresh PATH from Windows registry (system + user)
+    let fresh_path = read_registry_path();
+    if fresh_path.is_empty() {
+        return None;
+    }
+
+    // Search each directory for ffmpeg.exe
+    for dir in std::env::split_paths(&fresh_path) {
+        let candidate = dir.join("ffmpeg.exe");
+        if candidate.is_file() {
+            log::info!("Found ffmpeg via registry PATH: {}", candidate.display());
+            return Some(candidate);
+        }
+    }
+
+    None
+}
+
+/// Read the current PATH from the Windows registry (system + user).
+fn read_registry_path() -> String {
+    let mut parts = Vec::new();
+
+    // System PATH: HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment
+    let mut key = Registry::HKEY::default();
+    let status = unsafe {
+        Registry::RegOpenKeyExW(
+            Registry::HKEY_LOCAL_MACHINE,
+            &HSTRING::from("SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment"),
+            None,
+            Registry::KEY_READ,
+            &mut key,
+        )
+    };
+    if status.is_ok() {
+        if let Some(val) = read_reg_string(key, "Path") {
+            parts.push(val);
+        }
+        let _ = unsafe { Registry::RegCloseKey(key) };
+    }
+
+    // User PATH: HKCU\Environment
+    let mut key = Registry::HKEY::default();
+    let status = unsafe {
+        Registry::RegOpenKeyExW(
+            Registry::HKEY_CURRENT_USER,
+            &HSTRING::from("Environment"),
+            None,
+            Registry::KEY_READ,
+            &mut key,
+        )
+    };
+    if status.is_ok() {
+        if let Some(val) = read_reg_string(key, "Path") {
+            parts.push(val);
+        }
+        let _ = unsafe { Registry::RegCloseKey(key) };
+    }
+
+    parts.join(";")
+}
+
+/// Read a string value from a registry key.
+fn read_reg_string(key: Registry::HKEY, name: &str) -> Option<String> {
+    let name = HSTRING::from(name);
+    let mut size: u32 = 0;
+    let mut kind = Registry::REG_VALUE_TYPE(0);
+
+    // Query size first
+    let status = unsafe {
+        Registry::RegQueryValueExW(key, &name, None, Some(&mut kind), None, Some(&mut size))
+    };
+    if status.is_err() || size == 0 {
+        return None;
+    }
+
+    // REG_SZ or REG_EXPAND_SZ
+    if kind != Registry::REG_SZ && kind != Registry::REG_EXPAND_SZ {
+        return None;
+    }
+
+    let mut buf = vec![0u8; size as usize];
+    let status = unsafe {
+        Registry::RegQueryValueExW(
+            key,
+            &name,
+            None,
+            Some(&mut kind),
+            Some(buf.as_mut_ptr()),
+            Some(&mut size),
+        )
+    };
+    if status.is_err() {
+        return None;
+    }
+
+    // Convert from UTF-16LE
+    let wide: Vec<u16> = buf
+        .chunks_exact(2)
+        .map(|c| u16::from_le_bytes([c[0], c[1]]))
+        .collect();
+    let s = String::from_utf16_lossy(&wide);
+    Some(s.trim_end_matches('\0').to_string())
+}
+
 /// Convert an audio file to WAV using ffmpeg. Returns the temp file path.
 fn ffmpeg_convert_to_wav(path: &str) -> Result<std::path::PathBuf, String> {
+    let ffmpeg = find_ffmpeg().ok_or_else(|| {
+        "This file uses the Opus codec which requires ffmpeg to decode. \
+         Install ffmpeg and add it to your PATH, then try again."
+            .to_string()
+    })?;
+
     let temp_dir = std::env::temp_dir();
     let temp_path = temp_dir.join(format!("draft_convert_{}.wav", std::process::id()));
 
-    let output = std::process::Command::new("ffmpeg")
+    let output = std::process::Command::new(&ffmpeg)
         .args(["-y", "-i", path, "-ar", "16000", "-ac", "1", "-f", "wav"])
         .arg(&temp_path)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())
         .creation_flags(0x08000000) // CREATE_NO_WINDOW
         .output()
-        .map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                "This file uses the Opus codec which requires ffmpeg to decode. \
-                 Install ffmpeg and add it to your PATH, then try again."
-                    .to_string()
-            } else {
-                format!("Failed to run ffmpeg: {e}")
-            }
-        })?;
+        .map_err(|e| format!("Failed to run ffmpeg: {e}"))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

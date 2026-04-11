@@ -46,7 +46,7 @@ tokio = { version = "1", features = ["fs"] }
 # Sprint 6 dependencies (Text injection)
 enigo = "0.6"
 arboard = "3"
-windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
+windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading", "Win32_System_Registry"] }
 
 # Sound effects
 rodio = "0.20"
