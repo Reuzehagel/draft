@@ -4,6 +4,11 @@ All notable changes to Draft will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.5] - 2026-04-11
+
+### Fixed
+- ffmpeg not found in release builds when added to PATH after app launch — now reads fresh PATH from Windows registry
+
 ## [1.0.4] - 2026-04-11
 
 ### Fixed
