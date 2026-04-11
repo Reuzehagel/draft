@@ -4,6 +4,11 @@ All notable changes to Draft will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.4] - 2026-04-11
+
+### Fixed
+- Auto-updater not working — `latest.json` was missing from GitHub releases due to missing `createUpdaterArtifacts` config
+
 ## [1.0.3] - 2026-04-11
 
 ### Added
