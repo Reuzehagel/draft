@@ -2,6 +2,7 @@
 //! Decodes audio files via symphonia and transcribes with whisper
 //! Supports cancellation and online STT dispatch
 
+use std::os::windows::process::CommandExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -16,6 +17,36 @@ use tauri::{AppHandle, Emitter};
 
 use crate::audio::resampler::AudioResampler;
 use crate::events;
+
+/// Convert an audio file to WAV using ffmpeg. Returns the temp file path.
+fn ffmpeg_convert_to_wav(path: &str) -> Result<std::path::PathBuf, String> {
+    let temp_dir = std::env::temp_dir();
+    let temp_path = temp_dir.join(format!("draft_convert_{}.wav", std::process::id()));
+
+    let output = std::process::Command::new("ffmpeg")
+        .args(["-y", "-i", path, "-ar", "16000", "-ac", "1", "-f", "wav"])
+        .arg(&temp_path)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .output()
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                "This file uses the Opus codec which requires ffmpeg to decode. \
+                 Install ffmpeg and add it to your PATH, then try again."
+                    .to_string()
+            } else {
+                format!("Failed to run ffmpeg: {e}")
+            }
+        })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("ffmpeg conversion failed: {stderr}"));
+    }
+
+    Ok(temp_path)
+}
 
 use super::engine::EngineHandle;
 
@@ -51,6 +82,29 @@ impl FileTranscriptionState {
 
 /// Decode an audio file to 16kHz mono f32 samples.
 fn decode_audio_file(
+    path: &str,
+    app: &AppHandle,
+    cancel_token: Option<&Arc<AtomicBool>>,
+) -> Result<Vec<f32>, String> {
+    match decode_audio_file_symphonia(path, app, cancel_token) {
+        Ok(samples) => Ok(samples),
+        Err(e) if e.contains("unsupported") || e.contains("Unsupported") => {
+            log::info!("Symphonia can't decode this file, trying ffmpeg conversion: {e}");
+            let temp_path = ffmpeg_convert_to_wav(path)?;
+            let result = decode_audio_file_symphonia(
+                temp_path.to_str().unwrap_or_default(),
+                app,
+                cancel_token,
+            );
+            let _ = std::fs::remove_file(&temp_path);
+            result
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Decode an audio file to 16kHz mono f32 samples using symphonia.
+fn decode_audio_file_symphonia(
     path: &str,
     app: &AppHandle,
     cancel_token: Option<&Arc<AtomicBool>>,
@@ -97,7 +151,7 @@ fn decode_audio_file(
 
     let mut decoder = symphonia::default::get_codecs()
         .make(&codec_params, &DecoderOptions::default())
-        .map_err(|e| format!("Failed to create audio decoder: {e}"))?;
+        .map_err(|e| format!("Failed to create audio decoder: unsupported feature: {e}"))?;
 
     let mut resampler = AudioResampler::new(sample_rate, channels)?;
     let mut output = Vec::new();

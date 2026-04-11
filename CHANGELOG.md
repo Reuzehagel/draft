@@ -4,6 +4,14 @@ All notable changes to Draft will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.3] - 2026-04-11
+
+### Added
+- OGG Opus file transcription support via automatic ffmpeg conversion (e.g., WhatsApp voice messages)
+
+### Fixed
+- Removed unused `FILE_TRANSCRIPTION_PROGRESS` constant from Rust events
+
 ## [1.0.2] - 2026-04-01
 
 ### Added
